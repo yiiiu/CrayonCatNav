@@ -1,8 +1,12 @@
 .center {
-  min-height: calc(100vh - 120px);
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
   display: grid;
   place-items: center;
-  padding: var(--sp-6) 0;
+  padding: var(--sp-4);
+  box-sizing: border-box;
 }
 
 .loginCard {
