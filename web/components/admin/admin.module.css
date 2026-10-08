@@ -1,33 +1,21 @@
-/* 后台外壳：锁定视口高度，杜绝外层页面滚动条与空白滑动 */
-.viewport {
-  height: 100vh;
-  height: 100dvh;
-  max-height: 100dvh;
-  overflow: hidden;
-  padding: 16px 20px;
-  box-sizing: border-box;
-}
-
+/* 后台外壳：标准栅格与粘性侧边栏，对齐原型 .x-shell / .x-side */
 .shell {
-  width: 100%;
-  max-width: var(--container);
-  height: 100%;
-  margin: 0 auto;
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
-  gap: 20px;
-  align-items: stretch;
+  gap: 26px;
+  align-items: start;
 }
 
 .side {
-  height: 100%;
-  max-height: 100%;
+  position: sticky;
+  top: 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 18px 14px !important;
-  box-sizing: border-box;
-  overflow-y: auto;
+  min-height: calc(100vh - 60px);
+  box-shadow: 5px 6px 0 var(--shade, rgba(29, 26, 31, 0.85)) !important;
+  transform: rotate(-0.4deg);
 }
 
 .brand { display: flex; align-items: center; gap: 10px; padding: 0 4px 14px; font-size: var(--fs-lg); font-weight: 900; letter-spacing: 1px; }
@@ -38,52 +26,46 @@
 .nav a[aria-current="page"] { background: #fff; box-shadow: 0 0 0 2px var(--ink), 2px 3px 0 var(--ink); }
 .bottom { margin-top: auto; display: flex; flex-direction: column; gap: 4px; padding-top: 14px; border-top: 2px dashed var(--ink-2); }
 .bottom a, .bottom button { font-size: var(--fs-sm); color: var(--ink-2); }
-.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; flex: none; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
 .top h1 { margin: 0; font-size: 26px; font-weight: 900; letter-spacing: 1px; text-shadow: 2px 2px 0 var(--paper), 3px 4px 0 var(--blue); }
-.pane {
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-width: 0;
-  overflow-y: auto;
-  padding-right: 4px;
-  overscroll-behavior: contain;
-}
+.pane { display: grid; gap: 24px; min-width: 0; }
 .cardTitle { margin: 0 0 12px; font-size: 18px; font-weight: 900; }
 
-/* 资源管理卡片自适应容器 */
-.resourceCard {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+/* 双栏并排容器，对齐原型 .x-split */
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
 }
 
 /* 工具条与表格 */
-.toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px; flex: none; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
 .toolbar .grow { margin-left: auto; }
 .search { flex: 1 1 220px; display: flex; align-items: center; gap: 8px; padding: 0 14px; min-height: 46px; background: #fff; border: var(--stroke) solid var(--ink); border-radius: var(--wob-pill); }
 .search input { flex: 1; min-width: 0; border: 0; background: transparent; font: 600 var(--fs-md) var(--font); color: var(--ink); outline: none; }
 .sel { font: 700 var(--fs-sm) var(--font); color: var(--ink); background: #fff; border: var(--stroke) solid var(--ink); border-radius: var(--wob2); min-height: 46px; padding: 0 12px; }
 .seg { display: flex; gap: 8px; flex-wrap: wrap; }
 .scroll {
-  flex: 1;
-  min-height: 0;
   overflow-x: auto;
+  max-height: 540px;
   overflow-y: auto;
   margin: 0 -8px;
   padding: 0 8px 6px;
-  border: var(--stroke) solid var(--ink);
-  border-radius: var(--wob2);
-  background: #fff;
   overscroll-behavior: contain;
 }
 .tbl { width: 100%; min-width: 820px; border-collapse: collapse; font-size: var(--fs-sm); }
 .tbl th, .tbl td { padding: 12px 10px; text-align: left; white-space: nowrap; border-bottom: 1.5px solid color-mix(in srgb, var(--ink) 16%, transparent); vertical-align: middle; }
-.tbl thead th { position: sticky; top: 0; background: #fff; z-index: 2; font-size: 13px; font-weight: 800; color: var(--ink-2); border-bottom: var(--stroke) solid var(--ink); }
+.tbl thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--paper);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink-2);
+  border-bottom: var(--stroke) solid var(--ink);
+}
 .tbl tbody tr:last-child > * { border-bottom: 0; }
 .tbl tbody th { font-weight: 800; font-size: var(--fs-md); }
 .muted { color: var(--ink-2); font-variant-numeric: tabular-nums; font-weight: 600; }
@@ -114,7 +96,7 @@
 .hint { font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); }
 .alert { margin: 0 0 14px; padding: 10px 14px; font-size: var(--fs-sm); font-weight: 800; border: 2px solid var(--err); color: var(--err); background: color-mix(in srgb, var(--err) 10%, var(--paper)); border-radius: var(--wob2); }
 .ok { margin: 0 0 14px; padding: 10px 14px; font-size: var(--fs-sm); font-weight: 800; border: 2px solid var(--c-green); color: #1f5a30; background: color-mix(in srgb, var(--c-green) 14%, var(--paper)); border-radius: var(--wob2); }
-.checks { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; background: #fff; border: var(--stroke) solid var(--ink); border-radius: var(--wob2); max-height: 200px; overflow-y: auto; }
+.checks { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; background: #fff; border: var(--stroke) solid var(--ink); border-radius: var(--wob2); max-height: 180px; overflow-y: auto; }
 .check { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; font-size: 13px; font-weight: 800; background: var(--tint); border: 2px solid var(--ink); border-radius: var(--wob2); cursor: pointer; }
 .check input { width: 18px; height: 18px; margin: 0; accent-color: var(--blue); }
 .opt { display: flex; align-items: center; gap: 10px; min-height: var(--tap); font-size: var(--fs-md); font-weight: 700; cursor: pointer; }
@@ -126,68 +108,40 @@
 
 /* 分类标签 & 精选 */
 .rows { display: grid; gap: 10px; }
-.scrollRows { display: grid; gap: 10px; max-height: clamp(320px, 50vh, 520px); overflow-y: auto; padding: 4px 6px 4px 0; }
+.scrollRows { display: grid; gap: 10px; max-height: 480px; overflow-y: auto; padding-right: 6px; overscroll-behavior: contain; }
 .row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) 90px auto; gap: 10px; align-items: start; }
 .rowTag { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
 .row .field { margin: 0; }
 .rowActs { display: flex; gap: 8px; align-items: center; min-height: var(--tap); }
-.flist { list-style: none; margin: 0; padding: 0 6px 0 0; display: grid; gap: 10px; max-height: clamp(280px, 45vh, 480px); overflow-y: auto; }
+.flist { list-style: none; margin: 0; padding: 0 6px 0 0; display: grid; gap: 10px; max-height: 480px; overflow-y: auto; overscroll-behavior: contain; }
 .fitem { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #fff; border: 2px solid var(--ink); border-radius: var(--wob2); }
 .fitem b { flex: 1; min-width: 0; }
 .num { width: 32px; height: 32px; display: grid; place-items: center; font-weight: 900; background: var(--c-yellow); border: 2px solid var(--ink); border-radius: 50%; }
 
 /* 容器内纵向滚动条轻量样式 */
-.scroll, .scrollRows, .checks, .flist, .side, .pane {
+.scroll, .scrollRows, .checks, .flist {
   scrollbar-width: thin;
   scrollbar-color: var(--ink-2) transparent;
 }
 .scroll::-webkit-scrollbar,
 .scrollRows::-webkit-scrollbar,
 .checks::-webkit-scrollbar,
-.flist::-webkit-scrollbar,
-.side::-webkit-scrollbar,
-.pane::-webkit-scrollbar {
+.flist::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 .scroll::-webkit-scrollbar-thumb,
 .scrollRows::-webkit-scrollbar-thumb,
 .checks::-webkit-scrollbar-thumb,
-.flist::-webkit-scrollbar-thumb,
-.side::-webkit-scrollbar-thumb,
-.pane::-webkit-scrollbar-thumb {
+.flist::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--ink-2) 60%, transparent);
   border-radius: 4px;
 }
 
 @media (max-width: 960px) {
-  .viewport {
-    height: auto;
-    min-height: 100dvh;
-    overflow-y: auto;
-    padding: 12px;
-  }
-  .shell {
-    grid-template-columns: 1fr;
-    height: auto;
-  }
-  .side {
-    position: static;
-    height: auto;
-    max-height: none;
-    min-height: 0;
-  }
-  .pane {
-    height: auto;
-    overflow: visible;
-  }
-  .resourceCard {
-    height: auto;
-    overflow: visible;
-  }
-  .scroll {
-    max-height: 480px;
-  }
+  .shell { grid-template-columns: 1fr; }
+  .side { position: static; min-height: 0; transform: none; }
+  .split { grid-template-columns: 1fr; }
   .nav { flex-direction: row; flex-wrap: wrap; }
   .form { grid-template-columns: 1fr; }
   .panel { position: static; }

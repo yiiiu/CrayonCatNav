@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { AdminNav } from "@/components/admin/AdminNav";
 import styles from "@/components/admin/admin.module.css";
+import { Container } from "@/components/layout/Container";
 import { Card } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { logoutAction } from "./actions";
@@ -12,7 +13,7 @@ export const metadata: Metadata = { title: { default: "后台", template: "%s｜
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={styles.viewport}>
+    <Container>
       <div className={styles.shell}>
         <Card className={styles.side}>
           <div className={styles.brand}>
@@ -35,7 +36,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <AdminGate>{children}</AdminGate>
         </Suspense>
       </div>
-    </div>
+    </Container>
   );
 }
 
