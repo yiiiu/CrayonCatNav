@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import { type NextRequest, NextResponse } from "next/server";
 import { authConfig } from "@/lib/auth/auth.config";
 import { publishedSlugExists } from "@/lib/data/resource-exists";
+import { isToolSlug } from "@/lib/tools/metas";
 import { slugSchema } from "@/lib/validation/common";
 
 const { auth } = NextAuth(authConfig);
@@ -29,9 +30,19 @@ async function resourceGuard(req: NextRequest) {
   return NextResponse.next();
 }
 
+/** 工具页：注册表外的 slug 改写到预渲染的 404 占位（与 tools/[slug] 的 NOT_FOUND_SLUG 一致）。 */
+function toolGuard(req: NextRequest) {
+  const slug = decodeURIComponent(req.nextUrl.pathname.slice("/tools/".length));
+  if (slug === "__none__" || !isToolSlug(slug)) {
+    return NextResponse.rewrite(new URL("/tools/__none__", req.nextUrl), { status: 404 });
+  }
+  return NextResponse.next();
+}
+
 export async function proxy(req: NextRequest, ev: Parameters<typeof adminGuard>[1]) {
   if (req.nextUrl.pathname.startsWith("/resources/")) return resourceGuard(req);
+  if (req.nextUrl.pathname.startsWith("/tools/")) return toolGuard(req);
   return adminGuard(req, ev);
 }
 
-export const config = { matcher: ["/admin/:path*", "/resources/:slug"] };
+export const config = { matcher: ["/admin/:path*", "/resources/:slug", "/tools/:slug"] };
