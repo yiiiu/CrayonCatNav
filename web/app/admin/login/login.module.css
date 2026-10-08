@@ -1,0 +1,114 @@
+.center {
+  min-height: calc(100vh - 120px);
+  display: grid;
+  place-items: center;
+  padding: var(--sp-6) 0;
+}
+
+.loginCard {
+  width: min(420px, 100%);
+  padding: 30px 28px 24px !important;
+  box-shadow: 6px 7px 0 var(--ink) !important;
+  transform: rotate(-0.6deg);
+  text-align: center;
+}
+
+.bigLogo {
+  width: 104px;
+  height: 104px;
+  margin: 0 auto;
+  border-radius: 42% 58% 46% 54% / 55% 45% 55% 45%;
+  border: 3px solid var(--ink);
+  object-fit: cover;
+  filter: url(#wobble-s);
+  transform: rotate(-4deg);
+  box-shadow: 3px 4px 0 var(--ink);
+  display: block;
+}
+
+.h1 {
+  margin: 16px 0 0;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--ink);
+  text-shadow: 2px 2px 0 var(--paper), 3px 4px 0 var(--blue);
+}
+
+.note {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+.slug {
+  font: 600 12px var(--font-mono);
+  color: var(--ink-2);
+}
+
+.form {
+  text-align: left;
+  margin-top: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.alert {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--err);
+  background: color-mix(in srgb, var(--err) 10%, var(--paper));
+  border: 2px solid var(--err);
+  border-radius: var(--wob2);
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.field input {
+  font: 600 15px var(--font);
+  color: var(--ink);
+  background: #fff;
+  border: 2.5px solid var(--ink);
+  border-radius: var(--wob2);
+  padding: 9px 12px;
+  min-height: 44px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: box-shadow 0.15s;
+}
+
+.field input:focus-visible {
+  box-shadow: 0 0 0 3px var(--blue);
+}
+
+.fieldBad input {
+  border-color: var(--err);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--err) 25%, transparent);
+}
+
+.submitBtn {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.small {
+  margin: 14px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-2);
+  text-align: center;
+}

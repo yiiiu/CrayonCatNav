@@ -3,23 +3,42 @@
 import { useActionState } from "react";
 import { Button } from "@/components/ui";
 import { loginAction, type LoginState } from "./actions";
+import styles from "./login.module.css";
 
 export function LoginForm() {
   const [state, action, pending] = useActionState<LoginState, FormData>(loginAction, {});
   return (
-    <form action={action} style={{ display: "grid", gap: "var(--sp-4)" }}>
-      <label>
-        邮箱
-        <input name="email" type="email" autoComplete="username" required />
+    <form action={action} className={styles.form}>
+      {state.error ? (
+        <div className={styles.alert} role="alert">
+          <span>⚠️</span>
+          <span>{state.error}</span>
+        </div>
+      ) : null}
+      <label className={`${styles.field} ${state.error ? styles.fieldBad : ""}`}>
+        <span>邮箱</span>
+        <input
+          name="email"
+          type="email"
+          autoComplete="username"
+          placeholder="admin@example.com"
+          required
+        />
       </label>
-      <label>
-        密码
-        <input name="password" type="password" autoComplete="current-password" required />
+      <label className={`${styles.field} ${state.error ? styles.fieldBad : ""}`}>
+        <span>密码</span>
+        <input
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          placeholder="请输入管理员密码"
+          required
+        />
       </label>
-      {state.error ? <p role="alert" style={{ color: "var(--err)", margin: 0 }}>{state.error}</p> : null}
-      <Button type="submit" variant="primary" disabled={pending}>
+      <Button type="submit" variant="primary" disabled={pending} className={styles.submitBtn}>
         {pending ? "登录中…" : "登录后台"}
       </Button>
     </form>
   );
 }
+

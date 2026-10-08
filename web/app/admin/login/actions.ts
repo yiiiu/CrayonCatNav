@@ -6,10 +6,20 @@ import { signIn } from "@/lib/auth/auth";
 export type LoginState = { error?: string };
 
 export async function loginAction(_prev: LoginState, formData: FormData): Promise<LoginState> {
+  const email = formData.get("email");
+  const password = formData.get("password");
+
+  if (!email || typeof email !== "string" || !email.includes("@")) {
+    return { error: "请输入有效的管理员邮箱（例如 admin@example.com）" };
+  }
+  if (!password || typeof password !== "string" || password.length === 0) {
+    return { error: "请输入管理员密码" };
+  }
+
   try {
     await signIn("credentials", {
-      email: formData.get("email"),
-      password: formData.get("password"),
+      email: email.trim().toLowerCase(),
+      password,
       redirectTo: "/admin/resources",
     });
     return {};
