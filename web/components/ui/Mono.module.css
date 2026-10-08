@@ -1,0 +1,15 @@
+.mono {
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-lg);
+  font-weight: 900;
+  color: #fff;
+  background: var(--accent, var(--c-blue));
+  border: var(--stroke) solid var(--ink);
+  border-radius: var(--wob-blob);
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.35);
+}
+.lg { width: 60px; height: 60px; font-size: 22px; }

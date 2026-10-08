@@ -1,0 +1,32 @@
+.srch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px 6px 20px;
+  background: var(--paper);
+  border-radius: var(--wob-pill);
+  box-shadow: 4px 5px 0 var(--ink);
+}
+.srch::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: inherit;
+  filter: url(#wobble);
+  pointer-events: none;
+}
+.srch svg { flex: none; }
+.srch input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: 600 var(--fs-lg) var(--font);
+  color: var(--ink);
+  padding: 11px 4px;
+  outline: none;
+}
+.srch input::placeholder { color: var(--muted); }
+.srch:focus-within { box-shadow: 4px 5px 0 var(--ink), 0 0 0 3px var(--blue); }

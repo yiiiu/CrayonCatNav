@@ -1,0 +1,20 @@
+.card {
+  position: relative;
+  display: block;
+  min-width: 0;
+  padding: var(--sp-5);
+  background: var(--paper);
+  border-radius: var(--wob);
+  box-shadow: var(--shadow-lg);
+}
+.card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: inherit;
+  filter: url(#wobble);
+  pointer-events: none;
+}
+.interactive { cursor: pointer; transition: transform 0.15s; }
+.interactive:hover { transform: translateY(-3px) rotate(-0.5deg); }

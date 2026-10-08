@@ -4,7 +4,7 @@ work/
 files/
 
 # 大体积二进制：UI 平铺图与打包、截图脚本用字体（另行保存，不入库）
-ui/
+/ui/
 assets/NotoSansSC.ttf
 
 # 通用
