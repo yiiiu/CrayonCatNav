@@ -24,3 +24,8 @@ export function pickPrefillParams(slug: ToolSlug, params: Record<string, string 
   }
   return out;
 }
+
+/** 是否在前台公开展示（运营状态 Tool.status 接入后在 domain 层再做一次交集）。 */
+export function isPubliclyListed(meta: Pick<ToolMeta, "defaultStatus">): boolean {
+  return meta.defaultStatus !== "hidden";
+}
