@@ -1,0 +1,11 @@
+.container {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 24px 24px 48px;
+}
+
+@media (max-width: 680px) {
+  .container {
+    padding: 18px 16px 36px;
+  }
+}
