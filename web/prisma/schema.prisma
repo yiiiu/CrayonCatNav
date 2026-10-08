@@ -1,0 +1,129 @@
+// 蜡笔猫导航数据模型：见 docs/蜡笔猫导航-v1-架构.md §3
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ResourceStatus {
+  draft
+  published
+  archived
+}
+
+enum PricingType {
+  unknown
+  free
+  freemium
+  paid
+}
+
+enum ToolStatus {
+  enabled
+  hidden
+  beta
+}
+
+enum AdminRole {
+  owner
+  editor
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  sortOrder Int        @default(0)
+  resources Resource[]
+}
+
+model Tag {
+  id        String        @id @default(cuid())
+  name      String
+  slug      String        @unique
+  resources ResourceTag[]
+}
+
+model Resource {
+  id            String         @id @default(cuid())
+  slug          String         @unique
+  name          String
+  summary       String
+  description   String         @default("")
+  categoryId    String
+  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  websiteUrl    String?
+  githubUrl     String?
+  iconUrl       String?
+  pricingType   PricingType    @default(unknown)
+  status        ResourceStatus @default(draft)
+  featuredOrder Int?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  tags          ResourceTag[]
+  tools         ResourceTool[]
+  metrics       DailyMetric[]
+
+  @@index([status, categoryId])
+  @@index([featuredOrder])
+}
+
+model ResourceTag {
+  resourceId String
+  tagId      String
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([resourceId, tagId])
+  @@index([tagId])
+}
+
+/// 工具能力以代码注册表（lib/tools/registry.ts）为准；本表只存运营状态与排序
+model Tool {
+  id          String         @id @default(cuid())
+  slug        String         @unique
+  name        String
+  description String
+  status      ToolStatus     @default(enabled)
+  sortOrder   Int            @default(0)
+  resources   ResourceTool[]
+  metrics     DailyMetric[]
+}
+
+model ResourceTool {
+  resourceId   String
+  toolId       String
+  relationType String   @default("related")
+  resource     Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  tool         Tool     @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@id([resourceId, toolId])
+  @@index([toolId])
+}
+
+model Admin {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  role         AdminRole @default(editor)
+  createdAt    DateTime  @default(now())
+}
+
+/// 匿名按日聚合计数，不记录原始输入
+model DailyMetric {
+  id         String    @id @default(cuid())
+  date       DateTime  @db.Date
+  eventType  String
+  resourceId String?
+  toolId     String?
+  count      Int       @default(0)
+  resource   Resource? @relation(fields: [resourceId], references: [id], onDelete: SetNull)
+  tool       Tool?     @relation(fields: [toolId], references: [id], onDelete: SetNull)
+
+  @@unique([date, eventType, resourceId, toolId])
+  @@index([eventType, date])
+}
