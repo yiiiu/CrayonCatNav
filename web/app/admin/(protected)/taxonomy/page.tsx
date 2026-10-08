@@ -13,9 +13,14 @@ export default async function TaxonomyPage() {
     <>
       <AdminTop title="分类标签" />
       <Card>
-        <h2 className={styles.cardTitle}>分类</h2>
-        <p className={styles.hint}>名称 · slug · 排序（数字越小越靠前）。有资源的分类不能删除。</p>
-        <div className={styles.rows}>
+        <h2 className={styles.cardTitle}>分类（共 {categories.length} 个）</h2>
+        <p className={styles.hint} style={{ marginBottom: 12 }}>
+          名称 · slug · 排序（数字越小越靠前）。有资源的分类不能删除。
+        </p>
+        <div style={{ marginBottom: 12 }}>
+          <TaxonomyRow key={`new-cat-${categories.length}`} kind="category" save={saveCategoryAction.bind(null, null)} />
+        </div>
+        <div className={styles.scrollRows} style={{ maxHeight: 280 }}>
           {categories.map((c) => (
             <TaxonomyRow
               key={`${c.id}-${c.slug}-${c.name}-${c.sortOrder}`}
@@ -26,12 +31,17 @@ export default async function TaxonomyPage() {
               remove={deleteCategoryAction.bind(null, c.id)}
             />
           ))}
-          <TaxonomyRow key={`new-cat-${categories.length}`} kind="category" save={saveCategoryAction.bind(null, null)} />
         </div>
       </Card>
       <Card>
-        <h2 className={styles.cardTitle}>标签</h2>
-        <div className={styles.rows}>
+        <h2 className={styles.cardTitle}>标签（共 {tags.length} 个）</h2>
+        <p className={styles.hint} style={{ marginBottom: 12 }}>
+          支持在列表内直接修改并保存，支持容器内纵向滚动：
+        </p>
+        <div style={{ marginBottom: 12 }}>
+          <TaxonomyRow key={`new-tag-${tags.length}`} kind="tag" save={saveTagAction.bind(null, null)} />
+        </div>
+        <div className={styles.scrollRows}>
           {tags.map((t) => (
             <TaxonomyRow
               key={`${t.id}-${t.slug}-${t.name}`}
@@ -42,7 +52,6 @@ export default async function TaxonomyPage() {
               remove={deleteTagAction.bind(null, t.id)}
             />
           ))}
-          <TaxonomyRow key={`new-tag-${tags.length}`} kind="tag" save={saveTagAction.bind(null, null)} />
         </div>
       </Card>
     </>

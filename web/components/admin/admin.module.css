@@ -1,6 +1,6 @@
 /* 后台外壳 */
 .shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 26px; align-items: start; }
-.side { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 8px; min-height: calc(100vh - 60px); padding: 18px 14px !important; }
+.side { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 8px; min-height: calc(100vh - 60px); max-height: calc(100vh - 32px); overflow-y: auto; padding: 18px 14px !important; }
 .brand { display: flex; align-items: center; gap: 10px; padding: 0 4px 14px; font-size: var(--fs-lg); font-weight: 900; letter-spacing: 1px; }
 .logo { width: 40px; height: 40px; flex: none; object-fit: cover; border: var(--stroke) solid var(--ink); border-radius: 42% 58% 46% 54% / 55% 45% 55% 45%; transform: rotate(-4deg); box-shadow: 2px 2px 0 var(--ink); }
 .nav { display: flex; flex-direction: column; gap: 6px; }
@@ -21,10 +21,10 @@
 .search input { flex: 1; min-width: 0; border: 0; background: transparent; font: 600 var(--fs-md) var(--font); color: var(--ink); outline: none; }
 .sel { font: 700 var(--fs-sm) var(--font); color: var(--ink); background: #fff; border: var(--stroke) solid var(--ink); border-radius: var(--wob2); min-height: 46px; padding: 0 12px; }
 .seg { display: flex; gap: 8px; flex-wrap: wrap; }
-.scroll { overflow-x: auto; margin: 0 -8px; padding: 0 8px 6px; }
+.scroll { overflow-x: auto; overflow-y: auto; max-height: clamp(380px, 60vh, 660px); margin: 0 -8px; padding: 0 8px 6px; border: var(--stroke) solid var(--ink); border-radius: var(--wob2); background: #fff; }
 .tbl { width: 100%; min-width: 820px; border-collapse: collapse; font-size: var(--fs-sm); }
 .tbl th, .tbl td { padding: 12px 10px; text-align: left; white-space: nowrap; border-bottom: 1.5px solid color-mix(in srgb, var(--ink) 16%, transparent); vertical-align: middle; }
-.tbl thead th { font-size: 13px; font-weight: 800; color: var(--ink-2); border-bottom: var(--stroke) solid var(--ink); }
+.tbl thead th { position: sticky; top: 0; background: #fff; z-index: 2; font-size: 13px; font-weight: 800; color: var(--ink-2); border-bottom: var(--stroke) solid var(--ink); }
 .tbl tbody tr:last-child > * { border-bottom: 0; }
 .tbl tbody th { font-weight: 800; font-size: var(--fs-md); }
 .muted { color: var(--ink-2); font-variant-numeric: tabular-nums; font-weight: 600; }
@@ -55,7 +55,7 @@
 .hint { font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); }
 .alert { margin: 0 0 14px; padding: 10px 14px; font-size: var(--fs-sm); font-weight: 800; border: 2px solid var(--err); color: var(--err); background: color-mix(in srgb, var(--err) 10%, var(--paper)); border-radius: var(--wob2); }
 .ok { margin: 0 0 14px; padding: 10px 14px; font-size: var(--fs-sm); font-weight: 800; border: 2px solid var(--c-green); color: #1f5a30; background: color-mix(in srgb, var(--c-green) 14%, var(--paper)); border-radius: var(--wob2); }
-.checks { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; background: #fff; border: var(--stroke) solid var(--ink); border-radius: var(--wob2); }
+.checks { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; background: #fff; border: var(--stroke) solid var(--ink); border-radius: var(--wob2); max-height: 200px; overflow-y: auto; }
 .check { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; font-size: 13px; font-weight: 800; background: var(--tint); border: 2px solid var(--ink); border-radius: var(--wob2); cursor: pointer; }
 .check input { width: 18px; height: 18px; margin: 0; accent-color: var(--blue); }
 .opt { display: flex; align-items: center; gap: 10px; min-height: var(--tap); font-size: var(--fs-md); font-weight: 700; cursor: pointer; }
@@ -67,14 +67,37 @@
 
 /* 分类标签 & 精选 */
 .rows { display: grid; gap: 10px; }
+.scrollRows { display: grid; gap: 10px; max-height: clamp(320px, 50vh, 520px); overflow-y: auto; padding: 4px 6px 4px 0; }
 .row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) 90px auto; gap: 10px; align-items: start; }
 .rowTag { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
 .row .field { margin: 0; }
 .rowActs { display: flex; gap: 8px; align-items: center; min-height: var(--tap); }
-.flist { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.flist { list-style: none; margin: 0; padding: 0 6px 0 0; display: grid; gap: 10px; max-height: clamp(280px, 45vh, 480px); overflow-y: auto; }
 .fitem { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #fff; border: 2px solid var(--ink); border-radius: var(--wob2); }
 .fitem b { flex: 1; min-width: 0; }
 .num { width: 32px; height: 32px; display: grid; place-items: center; font-weight: 900; background: var(--c-yellow); border: 2px solid var(--ink); border-radius: 50%; }
+
+/* 容器内纵向滚动条轻量样式 */
+.scroll, .scrollRows, .checks, .flist, .side {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-2) transparent;
+}
+.scroll::-webkit-scrollbar,
+.scrollRows::-webkit-scrollbar,
+.checks::-webkit-scrollbar,
+.flist::-webkit-scrollbar,
+.side::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scroll::-webkit-scrollbar-thumb,
+.scrollRows::-webkit-scrollbar-thumb,
+.checks::-webkit-scrollbar-thumb,
+.flist::-webkit-scrollbar-thumb,
+.side::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--ink-2) 60%, transparent);
+  border-radius: 4px;
+}
 
 @media (max-width: 960px) {
   .shell { grid-template-columns: 1fr; }
