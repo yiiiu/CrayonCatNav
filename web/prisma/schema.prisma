@@ -46,6 +46,8 @@ model Tag {
   name      String
   slug      String        @unique
   resources ResourceTag[]
+
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "Tag_name_trgm_idx")
 }
 
 model Resource {
@@ -70,6 +72,8 @@ model Resource {
 
   @@index([status, categoryId])
   @@index([featuredOrder])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "Resource_name_trgm_idx")
+  @@index([summary(ops: raw("gin_trgm_ops"))], type: Gin, map: "Resource_summary_trgm_idx")
 }
 
 model ResourceTag {

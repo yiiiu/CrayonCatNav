@@ -1,8 +1,6 @@
 -- 中文模糊搜索：三元组索引
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
-Loaded Prisma config from prisma.config.ts.
-
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
@@ -163,16 +161,6 @@ ALTER TABLE "DailyMetric" ADD CONSTRAINT "DailyMetric_resourceId_fkey" FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE "DailyMetric" ADD CONSTRAINT "DailyMetric_toolId_fkey" FOREIGN KEY ("toolId") REFERENCES "Tool"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-┌─────────────────────────────────────────────────────────┐
-│  Update available 7.10.0 -> 8.0.0-rc.21                 │
-│                                                         │
-│  This is a major update - please follow the guide at    │
-│  https://pris.ly/d/major-version-upgrade                │
-│                                                         │
-│  Run the following to update                            │
-│    npm i --save-dev prisma@latest                       │
-│    npm i @prisma/client@latest                          │
-└─────────────────────────────────────────────────────────┘
 
 
 -- 资源搜索：名称、简介三元组 GIN 索引（Prisma schema 不表达，手工维护）
