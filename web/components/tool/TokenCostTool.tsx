@@ -1,7 +1,9 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useId, useState } from "react";
 import { Button, Card } from "@/components/ui";
+import { trackEvent } from "@/lib/analytics/track";
 import {
   CURRENCIES,
   estimate,
@@ -26,13 +28,30 @@ const FIELDS: FieldDef[] = [
   { key: "outTokens", label: "输出 Token", placeholder: "例如 800" },
 ];
 
-/** 按用户填写的单价实时估算；价格不是实时官方价，全部本地计算。 */
-export default function TokenCostTool() {
-  const [currency, setCurrency] = useState<Currency>("USD");
-  const [raw, setRaw] = useState<CostRaw>(INITIAL);
+function TokenCostInner() {
+  const sp = useSearchParams();
+
+  // 读取白名单参数：inPrice, outPrice, currency
+  const pIn = sp.get("inPrice");
+  const pOut = sp.get("outPrice");
+  const pCur = sp.get("currency");
+
+  const initialCurrency: Currency = pCur && isCurrency(pCur) ? pCur : "USD";
+  const initialRaw: CostRaw = {
+    ...INITIAL,
+    ...(pIn ? { inPrice: pIn } : {}),
+    ...(pOut ? { outPrice: pOut } : {}),
+  };
+
+  const [currency, setCurrency] = useState<Currency>(initialCurrency);
+  const [raw, setRaw] = useState<CostRaw>(initialRaw);
   const [touched, setTouched] = useState<Partial<Record<CostField, boolean>>>({});
   const { copy, node: toast } = useCopy();
   const uid = useId();
+
+  useEffect(() => {
+    trackEvent({ eventType: "tool_open", toolId: "token-cost" });
+  }, []);
 
   const r = estimate(raw);
   const errors = r.ok ? {} : r.errors;
@@ -70,6 +89,11 @@ export default function TokenCostTool() {
         {err ? <p className={styles.err} id={`${id}-err`}>{err}</p> : null}
       </div>
     );
+  }
+
+  function handleCopy(copyAll: string) {
+    copy(copyAll);
+    trackEvent({ eventType: "tool_execute", toolId: "token-cost" });
   }
 
   const text = r.ok ? formula(r, raw, currency) : "";
@@ -127,7 +151,7 @@ export default function TokenCostTool() {
             <>
               <pre className={`${styles.code} ${styles.wrap}`} aria-label="计算公式">{text}</pre>
               <div className={styles.acts}>
-                <Button variant="primary" onClick={() => copy(copyAll)}>
+                <Button variant="primary" onClick={() => handleCopy(copyAll)}>
                   复制结果
                 </Button>
               </div>
@@ -142,5 +166,14 @@ export default function TokenCostTool() {
       </div>
       {toast}
     </div>
+  );
+}
+
+/** 按用户填写的单价实时估算；价格不是实时官方价，全部本地计算。 */
+export default function TokenCostTool() {
+  return (
+    <Suspense fallback={<div className={styles.empty}>加载成本估算器…</div>}>
+      <TokenCostInner />
+    </Suspense>
   );
 }

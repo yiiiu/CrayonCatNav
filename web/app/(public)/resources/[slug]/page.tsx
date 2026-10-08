@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RelatedToolCTA } from "@/components/resource/RelatedToolCTA";
+import { ResourceViewTracker } from "@/components/resource/ResourceViewTracker";
 import styles from "@/components/resource/resource.module.css";
 import { Card, Chip, ExternalButton, Mono, SectionHead } from "@/components/ui";
 import { findPublishedBySlug, listPublishedSlugs, listRelatedPublished } from "@/lib/data/resource.repo";
@@ -50,6 +51,7 @@ export default async function ResourceDetailPage({ params }: Props) {
 
   return (
     <article>
+      <ResourceViewTracker slug={r.slug} />
       <nav aria-label="面包屑">
         <p className={styles.crumb}>
           <Link href="/resources">发现</Link> › <Link href={`/resources?cat=${r.category.slug}`}>{r.category.name}</Link> › {r.name}
@@ -90,7 +92,11 @@ export default async function ResourceDetailPage({ params }: Props) {
       )}
 
       {r.tools.map(({ tool }) => (
-        <RelatedToolCTA key={tool.id} toolSlug={tool.slug} />
+        <RelatedToolCTA
+          key={tool.id}
+          toolSlug={tool.slug}
+          resource={{ slug: r.slug, name: r.name, categorySlug: r.category.slug }}
+        />
       ))}
 
       {related.length > 0 && (

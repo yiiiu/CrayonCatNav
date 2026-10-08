@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import styles from "@/components/tool/tool.module.css";
 import { isPubliclyListed } from "@/lib/tools/metas";
 import { getTool, toolRegistry } from "@/lib/tools/registry";
@@ -39,7 +40,9 @@ export default async function ToolPage({ params }: Props) {
         <p>{tool.description}</p>
         <span className={styles.badge}>🔒 仅在本地浏览器处理，不上传</span>
       </header>
-      <ToolUI />
+      <Suspense fallback={<div>加载工具…</div>}>
+        <ToolUI />
+      </Suspense>
     </>
   );
 }

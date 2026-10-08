@@ -8,6 +8,7 @@ files/
 assets/NotoSansSC.ttf
 
 # 通用
+node_modules/
 .DS_Store
 *.log
 .env

@@ -1,7 +1,9 @@
 "use client";
 
-import { useId, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Button, Card } from "@/components/ui";
+import { trackEvent } from "@/lib/analytics/track";
 import {
   convert,
   FORMAT_EXT,
@@ -18,17 +20,34 @@ const MIME: Record<DataFormat, string> = { json: "application/json", yaml: "appl
 
 const EXAMPLE = '{\n  "name": "crayon-cat",\n  "version": 1,\n  "tags": ["ai", "mcp"],\n  "debug": false,\n  "owner": null\n}';
 
-/** 全部转换在浏览器内完成，输入不会发送到服务器。 */
-export default function DataConverterTool() {
-  const [from, setFrom] = useState<DataFormat>("json");
-  const [to, setTo] = useState<DataFormat>("yaml");
+function DataConverterInner() {
+  const sp = useSearchParams();
+
+  // 读取白名单参数：from, to
+  const pFrom = sp.get("from");
+  const initialFrom: DataFormat = pFrom && (FORMATS as readonly string[]).includes(pFrom) ? (pFrom as DataFormat) : "json";
+
+  const pTo = sp.get("to");
+  const initialTo: DataFormat =
+    pTo && (FORMATS as readonly string[]).includes(pTo) && pTo !== initialFrom
+      ? (pTo as DataFormat)
+      : initialFrom === "json"
+        ? "yaml"
+        : "json";
+
+  const [from, setFrom] = useState<DataFormat>(initialFrom);
+  const [to, setTo] = useState<DataFormat>(initialTo);
   const [text, setText] = useState("");
   const [result, setResult] = useState<ConvertResult | null>(null);
-  const [resultFor, setResultFor] = useState<DataFormat>("yaml");
+  const [resultFor, setResultFor] = useState<DataFormat>(initialTo);
   const { copy, node: toast } = useCopy();
   const taRef = useRef<HTMLTextAreaElement>(null);
   const gutterRef = useRef<HTMLOListElement>(null);
   const inputId = useId();
+
+  useEffect(() => {
+    trackEvent({ eventType: "tool_open", toolId: "data-converter" });
+  }, []);
 
   const lineCount = useMemo(() => Math.max(1, text.split("\n").length), [text]);
   const badLine = result && !result.ok ? result.error.line : undefined;
@@ -36,8 +55,12 @@ export default function DataConverterTool() {
 
   function run(nextTo = to, nextFrom = from) {
     if (!text.trim()) return;
-    setResult(convert(text, nextFrom, nextTo));
+    const res = convert(text, nextFrom, nextTo);
+    setResult(res);
     setResultFor(nextTo);
+    if (res.ok) {
+      trackEvent({ eventType: "tool_execute", toolId: "data-converter" });
+    }
   }
 
   function changeFrom(f: DataFormat) {
@@ -58,15 +81,32 @@ export default function DataConverterTool() {
   /** 交换：把当前输出作为新的输入 */
   function swap() {
     const out = result?.ok ? result.output : null;
-    setFrom(to);
-    setTo(from);
-    if (out !== null) {
-      setText(out);
-      setResult(convert(out, to, from));
-      setResultFor(from);
-    } else {
-      setResult(null);
-    }
+    if (!out) return;
+    const nextFrom = to;
+    const nextTo = from;
+    setFrom(nextFrom);
+    setTo(nextTo);
+    setText(out);
+    setResult(convert(out, nextFrom, nextTo));
+    setResultFor(nextTo);
+  }
+
+  function handleCopy(output: string) {
+    copy(output);
+    trackEvent({ eventType: "tool_execute", toolId: "data-converter" });
+  }
+
+  function handleDownload(fileName: string, output: string) {
+    downloadText(fileName, output, MIME[resultFor]);
+    trackEvent({ eventType: "tool_execute", toolId: "data-converter" });
+  }
+
+  function fillExample() {
+    setFrom("json");
+    setTo("yaml");
+    setText(EXAMPLE);
+    setResult(convert(EXAMPLE, "json", "yaml"));
+    setResultFor("yaml");
   }
 
   function clear() {
@@ -75,16 +115,22 @@ export default function DataConverterTool() {
     taRef.current?.focus();
   }
 
-  function jumpToError() {
-    if (!result || result.ok || !result.error.line || !taRef.current) return;
-    const lines = text.split("\n");
-    const { line, column = 1 } = result.error;
-    const offset = lines.slice(0, line - 1).reduce((n, l) => n + l.length + 1, 0) + Math.max(0, column - 1);
+  /** 点击报错位置：光标移动到对应行 */
+  function gotoLine(line: number) {
     const ta = taRef.current;
+    if (!ta) return;
+    const lines = text.split("\n");
+    let pos = 0;
+    for (let i = 0; i < Math.min(line - 1, lines.length); i++) pos += lines[i].length + 1;
+    const end = pos + (lines[line - 1]?.length ?? 0);
     ta.focus();
-    ta.setSelectionRange(offset, Math.min(offset + 1, text.length));
-    const lh = parseFloat(getComputedStyle(ta).lineHeight) || 22;
-    ta.scrollTop = Math.max(0, (line - 3) * lh);
+    ta.setSelectionRange(pos, end);
+  }
+
+  function syncScroll() {
+    if (taRef.current && gutterRef.current) {
+      gutterRef.current.scrollTop = taRef.current.scrollTop;
+    }
   }
 
   const output = result?.ok ? result.output : "";
@@ -92,91 +138,76 @@ export default function DataConverterTool() {
 
   return (
     <>
-      <Card className={styles.conv}>
-        <span className={styles.lbl}>源格式</span>
-        <Toggle label="源格式" value={from} options={OPTIONS} onChange={changeFrom} small />
-        <button type="button" className={`${styles.mini} ${styles.eye}`} onClick={swap} aria-label="交换源格式与目标格式" title="交换">
-          ⇄
-        </button>
-        <span className={styles.lbl}>目标格式</span>
-        <Toggle label="目标格式" value={to} options={OPTIONS.filter((o) => o.value !== from)} onChange={changeTo} small />
-      </Card>
+      <div className={styles.bar}>
+        <div className={styles.dir}>
+          <span className={styles.lbl}>源格式</span>
+          <Toggle label="源格式" options={OPTIONS} value={from} onChange={changeFrom} />
+          <button type="button" className={styles.swap} title="交换源与目标格式" aria-label="交换格式" disabled={!result?.ok} onClick={swap}>
+            ⇄
+          </button>
+          <span className={styles.lbl}>目标</span>
+          <Toggle label="目标格式" options={OPTIONS} value={to} onChange={changeTo} />
+        </div>
+        <div className={styles.acts}>
+          <Button variant="primary" disabled={empty} onClick={() => run()}>
+            转换
+          </Button>
+          <Button onClick={fillExample}>填入示例</Button>
+          <Button disabled={empty} onClick={clear}>
+            清空
+          </Button>
+        </div>
+      </div>
 
       <div className={styles.cols}>
         <div className={styles.stack}>
           <Card className={styles.card}>
-            <h2>
-              <label htmlFor={inputId}>输入 · {FORMAT_LABEL[from]}</label>
-            </h2>
+            <div className={styles.head}>
+              <label htmlFor={inputId} className={styles.title}>
+                输入 · {FORMAT_LABEL[from]}
+              </label>
+              <span className={styles.count}>{lineCount} 行 · {text.length} 字</span>
+            </div>
             <div className={styles.editor}>
-              <ol className={styles.gutter} ref={gutterRef} aria-hidden="true">
-                {Array.from({ length: lineCount }, (_, i) => (
-                  <li key={i} className={badLine === i + 1 ? styles.badline : undefined}>
-                    {i + 1}
+              <ol ref={gutterRef} className={styles.gutter} aria-hidden="true">
+                {Array.from({ length: lineCount }, (_, i) => i + 1).map((n) => (
+                  <li key={n} className={n === badLine ? styles.badgutter : undefined}>
+                    {n}
                   </li>
                 ))}
               </ol>
               <textarea
                 id={inputId}
                 ref={taRef}
-                className={styles.textarea}
+                className={styles.area}
                 value={text}
+                placeholder={`在此粘贴或输入 ${FORMAT_LABEL[from]} 内容…`}
                 spellCheck={false}
                 autoCapitalize="off"
-                autoCorrect="off"
-                placeholder={`粘贴 ${FORMAT_LABEL[from]} 内容…`}
-                aria-invalid={badLine ? true : undefined}
-                aria-describedby={result && !result.ok ? `${inputId}-err` : undefined}
-                onChange={(e) => {
-                  setText(e.target.value);
-                  if (result && !result.ok) setResult(null);
-                }}
-                onScroll={(e) => {
-                  if (gutterRef.current) gutterRef.current.scrollTop = e.currentTarget.scrollTop;
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                    e.preventDefault();
-                    run();
-                  }
-                }}
+                autoComplete="off"
+                onChange={(e) => setText(e.target.value)}
+                onScroll={syncScroll}
               />
-            </div>
-            <div className={styles.acts}>
-              <Button variant="primary" onClick={() => run()} disabled={empty}>
-                转换
-              </Button>
-              <Button onClick={clear} disabled={!text}>
-                清空
-              </Button>
-              {empty ? (
-                <button type="button" className={`${styles.linkbtn} ${styles.status}`} onClick={() => { setFrom("json"); setTo(to === "json" ? "yaml" : to); setText(EXAMPLE); setResult(null); }}>
-                  填入示例
-                </button>
-              ) : (
-                <span className={styles.status}>Ctrl / ⌘ + Enter 转换</span>
-              )}
             </div>
           </Card>
 
           {result && !result.ok ? (
-            <Card className={`${styles.info} ${styles.badcard}`} role="alert" id={`${inputId}-err`}>
+            <Card className={`${styles.info} ${styles.errcard}`} role="alert">
               <p className={styles.notice}>
-                <span aria-hidden="true">✖</span>
+                <span aria-hidden="true">⚠️</span>
                 <span>
-                  <b>
-                    解析失败{result.error.line ? `：第 ${result.error.line} 行${result.error.column ? `第 ${result.error.column} 列` : ""}` : ""}
-                  </b>
-                  <br />
-                  {result.error.message}
+                  <b>解析错误</b>
                   {result.error.line ? (
                     <>
-                      {" · "}
-                      <button type="button" className={styles.linkbtn} onClick={jumpToError}>
-                        定位到出错位置
+                      （第 {result.error.line} 行{result.error.column ? `第 ${result.error.column} 列` : ""}）：
+                      <button type="button" className={styles.locbtn} onClick={() => gotoLine(result.error.line!)}>
+                        定位到出错行
                       </button>
                     </>
-                  ) : null}
+                  ) : (
+                    "："
+                  )}
+                  {result.error.message}
                 </span>
               </p>
             </Card>
@@ -196,10 +227,10 @@ export default function DataConverterTool() {
               </div>
             )}
             <div className={styles.acts}>
-              <Button variant={result?.ok ? "primary" : "default"} disabled={!result?.ok} onClick={() => copy(output)}>
+              <Button variant={result?.ok ? "primary" : "default"} disabled={!result?.ok} onClick={() => handleCopy(output)}>
                 复制
               </Button>
-              <Button disabled={!result?.ok} onClick={() => downloadText(fileName, output, MIME[resultFor])}>
+              <Button disabled={!result?.ok} onClick={() => handleDownload(fileName, output)}>
                 下载 {fileName}
               </Button>
               {result?.ok ? (
@@ -235,5 +266,14 @@ export default function DataConverterTool() {
       </div>
       {toast}
     </>
+  );
+}
+
+/** 全部转换在浏览器内完成，输入不会发送到服务器。 */
+export default function DataConverterTool() {
+  return (
+    <Suspense fallback={<div className={styles.empty}>加载数据转换器…</div>}>
+      <DataConverterInner />
+    </Suspense>
   );
 }
