@@ -1,0 +1,10 @@
+.top { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-5); flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo {
+  width: 48px; height: 48px; flex: none; object-fit: cover;
+  border: 3px solid var(--ink); border-radius: 42% 58% 46% 54% / 55% 45% 55% 45%;
+  transform: rotate(-4deg); box-shadow: 3px 4px 0 var(--ink); filter: url(#wobble-s);
+}
+.name { font-size: var(--fs-xl); font-weight: 900; letter-spacing: 2px; text-shadow: 2px 2px 0 var(--paper), 3px 4px 0 var(--blue); }
+.nav { display: flex; gap: 22px; }
+.nav a { font-size: var(--fs-lg); font-weight: 800; padding: 6px 2px; }

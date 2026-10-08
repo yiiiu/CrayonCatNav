@@ -1,0 +1,60 @@
+/* 蜡笔猫设计 token：取自 prototypes/前台.html，全站唯一来源 */
+:root {
+  /* 品牌色 */
+  --pink: #e9a9cf;
+  --pink-deep: #c2609e;
+  --blue: #3a78d0;
+  --paper: #f7f2ea;
+  --ink: #1d1a1f;
+  --ink-2: #4a4350;
+  --tint: #f8cfe6;
+  --on-blue: #fff;
+  --bg1: #f3c4df;
+  --bg2: #d886b8;
+  --shade: rgba(29, 26, 31, 0.85);
+  --err: #c62828;
+  --muted: #8b8190;
+
+  /* 分类强调色（蜡笔） */
+  --c-blue: #3a78d0;
+  --c-magenta: #c2408e;
+  --c-yellow: #e8b419;
+  --c-green: #3e9e57;
+  --c-orange: #e2702b;
+  --c-purple: #7e4fc2;
+
+  /* 手绘不规则圆角 */
+  --wob: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  --wob2: 15px 225px 15px 255px / 255px 15px 225px 15px;
+  --wob-pill: 999px 40px 999px 60px / 60px 999px 40px 999px;
+  --wob-blob: 52% 48% 44% 56% / 58% 42% 58% 42%;
+
+  /* 线条与阴影 */
+  --stroke: 2.5px;
+  --shadow-sm: 2px 3px 0 var(--ink);
+  --shadow-md: 3px 4px 0 var(--ink);
+  --shadow-lg: 5px 6px 0 var(--shade);
+
+  /* 字体与字号 */
+  --font: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, Menlo, Consolas, monospace;
+  --fs-xs: 12px;
+  --fs-sm: 14px;
+  --fs-md: 15px;
+  --fs-lg: 17px;
+  --fs-xl: 24px;
+  --fs-2xl: 32px;
+
+  /* 间距 */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-12: 48px;
+
+  --container: 1240px;
+  --tap: 44px;
+}
