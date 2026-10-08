@@ -6,5 +6,31 @@
   transform: rotate(-4deg); box-shadow: 3px 4px 0 var(--ink); filter: url(#wobble-s);
 }
 .name { font-size: var(--fs-xl); font-weight: 900; letter-spacing: 2px; text-shadow: 2px 2px 0 var(--paper), 3px 4px 0 var(--blue); }
-.nav { display: flex; gap: 22px; }
-.nav a { font-size: var(--fs-lg); font-weight: 800; padding: 6px 2px; }
+.nav { display: flex; align-items: center; gap: 22px; }
+.navLink {
+  position: relative;
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  padding: 6px 2px;
+  display: inline-block;
+  color: var(--ink);
+  transition: transform 0.15s ease;
+}
+.navLink:hover {
+  transform: translateY(-1px);
+}
+.scribble {
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  width: calc(100% + 8px);
+  height: 12px;
+  color: var(--c-magenta);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+.on .scribble {
+  opacity: 1;
+}
