@@ -1,27 +1,67 @@
 import Link from "next/link";
-import { Card } from "@/components/ui";
+import { ResourceCard } from "@/components/resource/ResourceCard";
+import styles from "@/components/resource/resource.module.css";
+import { ButtonLink, Card, Mono, SearchBox, SectionHead } from "@/components/ui";
+import { countPublished, listFeatured } from "@/lib/data/resource.repo";
+import { listCategoriesWithCounts } from "@/lib/data/taxonomy.repo";
+import { isPubliclyListed } from "@/lib/tools/metas";
 import { toolRegistry } from "@/lib/tools/registry";
 
-/** 首页骨架：搜索、分类入口、精选资源将在内容闭环阶段接入数据。 */
-export default function HomePage() {
+export default async function HomePage() {
+  const [categories, featured, total] = await Promise.all([listCategoriesWithCounts(), listFeatured(6), countPublished()]);
+  const tools = toolRegistry.filter(isPubliclyListed);
+
   return (
     <>
-      <Card>
-        <h1 style={{ margin: 0 }}>发现好用的 AI 资源，顺手把它配好</h1>
-        <form action="/resources" role="search" style={{ marginTop: "var(--sp-4)" }}>
-          <label htmlFor="q" className="sr-only">搜索资源</label>
-          <input id="q" name="q" placeholder="搜索 MCP、Skills、模型 API…" />
-        </form>
+      <Card className={styles.hero}>
+        <h1>找 AI 资源，顺手把活干完</h1>
+        <SearchBox className={styles.heroSearch} />
+        <p>
+          收录 {total} 个精选 AI 资源 · {tools.length} 个浏览器本地工具
+        </p>
       </Card>
-      <section aria-labelledby="hot-tools" style={{ marginTop: "var(--sp-8)" }}>
-        <h2 id="hot-tools">热门在线工具</h2>
-        <ul>
-          {toolRegistry.map((t) => (
-            <li key={t.slug}>
-              <Link href={`/tools/${t.slug}`}>{t.name}</Link>
-            </li>
+
+      <section aria-labelledby="h-cat">
+        <SectionHead id="h-cat" title="分类" note="按用途挑，一眼看完" />
+        <div className={styles.tiles}>
+          {categories.map((c) => (
+            <Link key={c.id} href={`/resources?cat=${c.slug}`}>
+              <Card interactive className={styles.tile}>
+                <Mono name={c.name} accentKey={c.slug} />
+                <span>
+                  <b>{c.name}</b>
+                  <small>{c._count.resources} 个资源</small>
+                </span>
+              </Card>
+            </Link>
           ))}
-        </ul>
+        </div>
+      </section>
+
+      {featured.length > 0 && (
+        <section aria-labelledby="h-feat">
+          <SectionHead id="h-feat" title="精选资源" note="编辑推荐" />
+          <div className={styles.cards}>
+            {featured.map((r) => (
+              <ResourceCard key={r.id} r={r} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section aria-labelledby="h-tools">
+        <SectionHead id="h-tools" title="在线工具" note="浏览器本地运行，不上传" />
+        <div className={styles.tools}>
+          {tools.map((t) => (
+            <Card key={t.slug} className={styles.tool}>
+              <h3>{t.name}</h3>
+              <p>{t.description}</p>
+              <ButtonLink href={`/tools/${t.slug}`} variant="primary">
+                立即使用
+              </ButtonLink>
+            </Card>
+          ))}
+        </div>
       </section>
     </>
   );

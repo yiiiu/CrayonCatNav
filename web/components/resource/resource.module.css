@@ -1,0 +1,70 @@
+/* 首页 */
+.hero { text-align: center; padding: 48px 20px 42px; }
+.hero h1 { margin: 0 0 6px; font-size: clamp(28px, 4.6vw, 46px); font-weight: 900; letter-spacing: 2px; text-shadow: 2px 2px 0 var(--paper), 4px 5px 0 var(--blue); }
+.hero p { margin: 14px 0 0; font-size: var(--fs-md); font-weight: 700; color: var(--ink-2); }
+.heroSearch { max-width: 640px; margin: 28px auto 0; text-align: left; }
+
+.tiles, .cards, .tools, .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; margin-top: 16px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; margin-top: 20px; }
+
+.tile { display: flex; align-items: center; gap: 14px; padding: 18px; box-shadow: 4px 5px 0 var(--shade); }
+.tile b { display: block; font-size: var(--fs-lg); font-weight: 900; }
+.tile small, .mini small { font-size: 13px; font-weight: 700; color: var(--ink-2); }
+
+/* 资源卡片 */
+.cardLink { display: block; height: 100%; }
+.cardLink > div { height: 100%; }
+.cardTop { display: flex; align-items: center; gap: 12px; }
+.cardTop b { font-size: var(--fs-lg); font-weight: 900; overflow-wrap: anywhere; }
+.cardSummary { margin: 12px 0 0; font-size: var(--fs-sm); line-height: 1.6; color: var(--ink-2); }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: center; }
+.linkline { display: flex; gap: 14px; margin-top: 12px; font-size: 13px; font-weight: 800; color: #2b5fae; }
+
+/* 工具卡 */
+.tool h3 { margin: 0 0 8px; font-size: 19px; font-weight: 900; }
+.tool p { margin: 0 0 16px; font-size: var(--fs-sm); line-height: 1.6; color: var(--ink-2); }
+
+/* 列表 */
+.layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 28px; align-items: start; }
+.side { position: sticky; top: 16px; display: grid; gap: 18px; }
+.side h2 { margin: 0 0 10px; font-size: 16px; font-weight: 900; }
+.catList { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.catList a { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 38px; padding: 0 10px; font-size: var(--fs-md); font-weight: 700; border-radius: var(--wob2); }
+.catList a:hover { background: var(--tint); }
+.catList a[aria-current="page"] { background: var(--blue); color: var(--on-blue); }
+.catList small { font-size: var(--fs-xs); opacity: 0.8; }
+.tagwrap { display: flex; flex-wrap: wrap; gap: 8px; }
+.listtop { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.listtop > form { flex: 1; min-width: 240px; }
+.count { font-size: 16px; font-weight: 900; white-space: nowrap; }
+.pills { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; align-items: center; }
+.pills small { font-size: 13px; font-weight: 800; color: var(--ink-2); }
+.pager { display: flex; justify-content: center; align-items: center; gap: 14px; margin-top: 28px; font-weight: 800; }
+
+/* 详情 */
+.crumb { margin: 0; font-size: var(--fs-sm); font-weight: 800; color: var(--ink-2); }
+.crumb a { color: var(--blue); text-decoration: underline; }
+.titlecard { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; margin-top: 16px; }
+.titlecard h1 { margin: 0; font-size: 30px; font-weight: 900; letter-spacing: 1px; overflow-wrap: anywhere; }
+.titlecard p { margin: 10px 0 0; font-size: var(--fs-md); line-height: 1.6; color: var(--ink-2); }
+.tbody { flex: 1; min-width: 240px; }
+.acts { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; align-items: center; }
+.updated { font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.prose { margin-top: 14px; font-size: var(--fs-md); line-height: 1.85; }
+.prose p { margin: 0 0 12px; white-space: pre-wrap; }
+.hilite { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; margin-top: 26px; background: var(--blue) !important; color: var(--on-blue); }
+.hilite b { font-size: 19px; font-weight: 900; }
+.hilite small { display: block; margin-top: 6px; font-size: 13px; font-weight: 700; opacity: 0.9; }
+.mini { display: flex; align-items: center; gap: 12px; padding: 16px !important; }
+.mini b { display: block; font-size: var(--fs-md); font-weight: 900; }
+
+@media (max-width: 900px) {
+  .tiles, .cards, .tools, .grid2, .grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .layout { grid-template-columns: 1fr; }
+  .side { position: static; }
+}
+@media (max-width: 680px) {
+  .tiles, .cards, .tools, .grid2, .grid3 { grid-template-columns: 1fr; }
+  .listtop > form { min-width: 0; flex-basis: 100%; }
+  .hero { padding: 34px 16px; }
+}

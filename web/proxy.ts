@@ -1,11 +1,13 @@
 import NextAuth from "next-auth";
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { authConfig } from "@/lib/auth/auth.config";
+import { publishedSlugExists } from "@/lib/data/resource-exists";
+import { slugSchema } from "@/lib/validation/common";
 
 const { auth } = NextAuth(authConfig);
 
 /** 第一层防护：未登录访问 /admin/* 直接跳登录页；真正的权限判断在 requireAdmin()。 */
-export const proxy = auth((req) => {
+const adminGuard = auth((req) => {
   const { pathname } = req.nextUrl;
   if (pathname.startsWith("/admin/login")) return NextResponse.next();
   if (!req.auth?.user) {
@@ -16,4 +18,20 @@ export const proxy = auth((req) => {
   return NextResponse.next();
 });
 
-export const config = { matcher: ["/admin/:path*"] };
+/** 资源详情：不存在 / 未发布的 slug 在渲染前改写到 404 页，保证真实 404 状态码。 */
+async function resourceGuard(req: NextRequest) {
+  const slug = decodeURIComponent(req.nextUrl.pathname.slice("/resources/".length));
+  const exists = slugSchema.safeParse(slug).success ? await publishedSlugExists(slug) : false;
+  if (exists === false) {
+    // 目标与详情页 generateStaticParams 里的 NOT_FOUND_SLUG 保持一致
+    return NextResponse.rewrite(new URL("/resources/__none__", req.nextUrl), { status: 404 });
+  }
+  return NextResponse.next();
+}
+
+export async function proxy(req: NextRequest, ev: Parameters<typeof adminGuard>[1]) {
+  if (req.nextUrl.pathname.startsWith("/resources/")) return resourceGuard(req);
+  return adminGuard(req, ev);
+}
+
+export const config = { matcher: ["/admin/:path*", "/resources/:slug"] };
