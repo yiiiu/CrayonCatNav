@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>蜡笔猫原型 工具</title>
+<link rel="icon" href="cat-logo.png" />
+<style>
+:root{
+  --pink:#E9A9CF;--pink-deep:#C2609E;--blue:#3A78D0;--paper:#F7F2EA;--ink:#1d1a1f;--ink-2:#4a4350;
+  --c-blue:#3A78D0;--c-magenta:#C2408E;--c-yellow:#E8B419;--c-green:#3E9E57;--c-orange:#E2702B;--c-purple:#7E4FC2;
+  --wob:255px 15px 225px 15px/15px 225px 15px 255px;
+  --wob2:15px 225px 15px 255px/255px 15px 225px 15px;
+  --font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --tint:#f8cfe6;--hi:#fff;--on-blue:#fff;--bg1:#f3c4df;--bg2:#d886b8;--shade:rgba(29,26,31,.85);--err:#C62828;
+  --code:#ECE3D5;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:var(--font);color:var(--ink);min-height:100vh;
+  background-color:var(--pink);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .1 0 0 0 0 .35 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 15% 10%,var(--bg1) 0,transparent 45%),
+    radial-gradient(circle at 90% 85%,var(--bg2) 0,transparent 50%);
+  background-attachment:fixed;
+}
+a{color:inherit;text-decoration:none}
+.svgdefs{position:absolute;width:0;height:0}
+.wrap{max-width:1240px;margin:0 auto;padding:24px 24px 40px}
+.rough{position:relative;background:var(--paper);border-radius:var(--wob)}
+.rough::before{content:"";position:absolute;inset:-1px;border:2.5px solid var(--ink);border-radius:inherit;filter:url(#wobble);pointer-events:none}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:48px;height:48px;flex:none;border-radius:42% 58% 46% 54%/55% 45% 55% 45%;border:3px solid var(--ink);object-fit:cover;filter:url(#wobble-s);transform:rotate(-4deg);box-shadow:3px 4px 0 var(--ink);background:var(--paper)}
+.brand b{font-size:24px;font-weight:900;letter-spacing:2px;text-shadow:2px 2px 0 var(--paper),3px 4px 0 var(--blue)}
+.navl{display:flex;gap:10px}
+.navl a{display:inline-flex;align-items:center}
+.navl .chip[aria-current="page"]{background:var(--ink);color:var(--paper)}
+
+.chip{font:700 14px var(--font);color:var(--ink);background:var(--paper);border:2.5px solid var(--ink);border-radius:var(--wob2);
+  min-height:44px;min-width:56px;padding:6px 16px;cursor:pointer;transition:transform .15s,box-shadow .15s,background .15s;box-shadow:2px 3px 0 var(--ink);display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.chip:hover{transform:translateY(-2px) rotate(-1deg)}
+.chip:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.chip[aria-pressed="true"]{background:var(--blue);color:var(--on-blue)}
+.chip:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:2px 3px 0 var(--ink)}
+.chip:focus-visible,.field input:focus-visible,.field select:focus-visible,.mini:focus-visible,.add:focus-visible{outline:3px dashed var(--blue);outline-offset:3px}
+.chip--go{background:var(--blue);color:var(--on-blue)}
+.chip--sm{min-height:36px;padding:4px 12px;font-size:13px}
+.chip--static{cursor:default;box-shadow:none;background:var(--tint)}
+.chip--static:hover{transform:none}
+
+.crumb{margin:22px 0 0;font-size:14px;font-weight:700;color:var(--ink-2)}
+.crumb a{text-decoration:underline;text-underline-offset:3px}
+.crumb span{margin:0 6px}
+.crumb strong{color:var(--ink)}
+
+.thead{margin:14px 0 24px}
+.thead h1{margin:0;font-size:clamp(26px,4vw,34px);font-weight:900;letter-spacing:1px;text-shadow:2px 2px 0 var(--paper),3px 4px 0 var(--blue)}
+.thead p{margin:8px 0 12px;font-size:15px;font-weight:600}
+.badge{display:inline-block;padding:4px 12px;font-size:13px;font-weight:800;border:2px solid var(--ink);border-radius:var(--wob2);background:color-mix(in srgb,var(--c-green) 26%,var(--paper))}
+.path{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink-2);margin-left:8px}
+
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start}
+.stack{display:grid;gap:24px;min-width:0}
+.card{padding:22px 22px 20px;box-shadow:5px 6px 0 var(--shade);min-width:0}
+.stack>.card:nth-child(even){transform:rotate(.3deg)}
+.card h2{margin:0 0 14px;font-size:20px;font-weight:900;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.card h3{margin:18px 0 10px;font-size:15px;font-weight:900}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.lbl{font-size:13px;font-weight:800;color:var(--ink-2);margin-right:4px}
+.seg{display:inline-flex;gap:8px;flex-wrap:wrap}
+
+.field{display:grid;gap:6px;margin-bottom:14px;font-size:14px;font-weight:700}
+.field small{font-weight:600;color:var(--ink-2)}
+.field input,.field select{font:600 16px var(--font);color:var(--ink);background:var(--hi);border:2.5px solid var(--ink);border-radius:var(--wob2);padding:9px 12px;min-height:44px;outline:none;width:100%;min-width:0}
+.field input.m,.argrow input{font-family:var(--mono);font-size:14px}
+.field.bad input{border-color:var(--err);box-shadow:0 0 0 2px color-mix(in srgb,var(--err) 30%,transparent)}
+.err{margin:0;color:var(--err);font-size:13px;font-weight:800}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.argrow{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.argrow input{flex:1;min-width:0;color:var(--ink);background:var(--hi);border:2.5px solid var(--ink);border-radius:var(--wob2);padding:8px 12px;min-height:44px;outline:none;font-weight:600}
+.argrow .k{flex:1.3}
+.argrow .eq{font-family:var(--mono);font-weight:800}
+.mini{flex:none;width:36px;height:36px;padding:0;font:800 16px var(--font);color:var(--ink);background:var(--tint);border:2px solid var(--ink);border-radius:50%;cursor:pointer;box-shadow:1px 2px 0 var(--ink);display:grid;place-items:center;transition:transform .15s}
+.mini:hover{transform:rotate(-8deg) scale(1.08)}
+.mini--eye{background:var(--paper)}
+.add{display:block;width:100%;margin-top:6px;min-height:44px;font:800 15px var(--font);color:var(--ink);background:transparent;border:2.5px dashed var(--ink);border-radius:var(--wob2);cursor:pointer}
+.add:hover{background:var(--hi)}
+.emptyhint{margin:0 0 4px;font-size:13px;font-weight:600;color:var(--ink-2)}
+
+/* code */
+.code{margin:0;font:500 13.5px/1.65 var(--mono);background:var(--code);border:2px solid var(--ink);border-radius:var(--wob2);padding:14px 16px;overflow:auto;white-space:pre;color:var(--ink);min-height:120px}
+.code .k{color:#8E2263;font-weight:700}
+.code .s{color:#1F4F94}
+.code .n{color:#9A440F;font-weight:700}
+.code .c{color:#5f5666;font-style:italic}
+.ed{display:grid;grid-template-columns:auto 1fr;padding:0;overflow:auto}
+.ed .gut{padding:14px 8px 14px 12px;text-align:right;color:#8b8190;border-right:2px dashed rgba(29,26,31,.3);user-select:none}
+.ed .gut i,.ed .src i{display:block;font-style:normal;padding:0 6px}
+.ed .src{padding:14px 16px 14px 6px}
+.ed .gut i.bad{background:var(--err);color:#fff;border-radius:6px 3px 5px 4px;font-weight:800}
+.ed .src i.bad{background:color-mix(in srgb,var(--err) 16%,transparent);text-decoration:underline wavy var(--err);text-underline-offset:4px}
+.placeholder{display:grid;place-items:center;text-align:center;white-space:normal;color:#7a7080;font-family:var(--font);font-weight:700;min-height:220px}
+.dim{opacity:.45;filter:grayscale(1)}
+.acts{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+.ok{font-size:14px;font-weight:800;color:var(--c-green);display:inline-flex;align-items:center;gap:6px}
+.status{font-size:14px;font-weight:800;color:var(--ink-2)}
+
+.info{padding:16px 18px;box-shadow:4px 5px 0 var(--shade)}
+.info h2{font-size:16px;margin-bottom:8px}
+.info ul{margin:0;padding:0;list-style:none;display:grid;gap:8px;font-size:14px;font-weight:700}
+.info code{font-family:var(--mono);font-size:13px;font-weight:600;background:var(--code);padding:2px 6px;border-radius:6px 4px 7px 5px;word-break:break-all}
+.warn{background:color-mix(in srgb,var(--c-yellow) 32%,var(--paper))}
+.amber{background:color-mix(in srgb,var(--c-orange) 22%,var(--paper))}
+.bad-card{background:color-mix(in srgb,var(--err) 14%,var(--paper))}
+.bad-card b{color:var(--err)}
+.notice{display:flex;gap:10px;align-items:flex-start;font-size:14px;font-weight:700;line-height:1.6;margin:0}
+
+.conv{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px;padding:14px 18px;box-shadow:4px 5px 0 var(--shade)}
+.arrow{font-size:24px;font-weight:900;color:var(--c-magenta)}
+
+/* token */
+.unit{position:relative}
+.unit input{padding-right:62px}
+.unit em{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-style:normal;font-size:13px;font-weight:800;color:var(--ink-2)}
+.big{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.big div{padding:16px;border:2.5px solid var(--ink);border-radius:var(--wob2);background:var(--hi)}
+.big b{display:block;font-size:clamp(30px,5vw,42px);font-weight:900;line-height:1.1;color:var(--blue);text-shadow:2px 2px 0 var(--ink);font-variant-numeric:tabular-nums}
+.big div:last-child b{color:var(--c-magenta)}
+.big span{display:block;margin-top:8px;font-size:14px;font-weight:800;color:var(--ink-2)}
+.big.none b{color:#8b8190;text-shadow:none}
+.fineprint{margin:12px 0 0;font-size:13px;font-weight:700;color:var(--ink-2);line-height:1.6}
+.code.f{min-height:0;white-space:pre-wrap}
+
+.toast{position:fixed;left:50%;bottom:26px;z-index:60;padding:12px 24px;font-weight:800;box-shadow:4px 5px 0 var(--ink);
+  transform:translate(-50%,24px) rotate(-1deg);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+.toast.show{opacity:1;transform:translate(-50%,0) rotate(-1deg)}
+
+@media (max-width:860px){.cols{grid-template-columns:1fr}}
+@media (max-width:520px){
+  .wrap{padding:16px 14px 32px}
+  .top{justify-content:space-between}
+  .brand b{font-size:20px}
+  .navl{gap:6px}.navl .chip{padding:6px 10px;min-width:48px}
+  .mini{width:44px;height:44px}
+  .crumb a{display:inline-flex;align-items:center;min-height:44px;min-width:44px}
+  .card{padding:18px 14px}
+  .g2,.big{grid-template-columns:1fr}
+  .path{display:block;margin:4px 0 0}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important}}
+</style>
+</head>
+<body>
+<svg class="svgdefs" aria-hidden="true">
+  <filter id="wobble"><feTurbulence type="fractalNoise" baseFrequency=".03" numOctaves="2" seed="3"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter>
+  <filter id="wobble-s"><feTurbulence type="fractalNoise" baseFrequency=".05" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="3"/></filter>
+</svg>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="#mcp"><img class="logo" src="cat-logo.png" alt="蜡笔猫标志" /><b>蜡笔猫导航</b></a>
+    <nav class="navl" aria-label="主导航">
+      <a class="chip" href="#mcp">发现</a>
+      <a class="chip" href="#mcp" aria-current="page">工具箱</a>
+    </nav>
+  </header>
+  <main id="app"></main>
+</div>
+<div class="toast rough" id="toast" role="status"></div>
+
+<script>
+(function(){
+const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+function hlJSON(t){return esc(t).replace(/("(?:[^"\\]|\\.)*")(\s*:)?|\b(-?\d+(?:\.\d+)?|true|false|null)\b/g,(m,s,c,n)=>s?(c?'<span class="k">'+s+'</span>'+c:'<span class="s">'+s+'</span>'):'<span class="n">'+n+'</span>');}
+function hlKV(t){return t.split("\n").map(l=>{l=esc(l);if(/^\s*#/.test(l))return '<span class="c">'+l+'</span>';
+  return l.replace(/^(\s*)([\w-]+)(\s*[:=])/,'$1<span class="k">$2</span>$3').replace(/("[^"]*")/g,'<span class="s">$1</span>').replace(/\b(\d+|true|false|null)\s*$/,'<span class="n">$1</span>');}).join("\n");}
+function editor(text,hl,bad){const ls=text.split("\n");
+  return '<div class="code ed" aria-label="输入"><div class="gut">'+ls.map((_,i)=>'<i'+(i+1===bad?' class="bad"':'')+'>'+(i+1)+'</i>').join("")+
+  '</div><div class="src">'+hl(text).split("\n").map((l,i)=>'<i'+(i+1===bad?' class="bad"':'')+'>'+(l||" ")+'</i>').join("")+'</div></div>';}
+
+const eye='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M2 12c2.6-4.6 6-7 10-7s7.4 2.4 10 7c-2.6 4.6-6 7-10 7s-7.4-2.4-10-7z"/><circle cx="12" cy="12" r="3.2"/></svg>';
+const check='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6"/></svg>';
+
+const TOOLS={mcp:["MCP 配置生成器","/tools/mcp-config","填几项表单，生成 Cursor 或 Claude Desktop 可用的 MCP 服务器配置。"],
+ convert:["数据格式转换","/tools/data-converter","JSON、YAML、TOML 互相转换，并提示可能丢失的信息。"],
+ token:["Token 费用计算器","/tools/token-cost","按你填写的单价，估算大模型调用的单次与总费用。"]};
+
+function head(t){const [n,p,d]=TOOLS[t];
+ return '<p class="crumb"><a href="#mcp">工具箱</a><span>›</span><strong>'+n+'</strong><span class="path">'+p+'</span></p>'+
+  '<div class="thead"><h1>'+n+'</h1><p>'+d+'</p><span class="badge">🔒 仅在本地浏览器处理，不上传</span></div>';}
+
+/* ---------- MCP ---------- */
+function mcp(o){
+ const args=o.args.map(a=>'<div class="argrow"><input value="'+esc(a)+'" aria-label="参数" /><button type="button" class="mini" aria-label="删除参数">×</button></div>').join("");
+ const env=o.env?'<div class="argrow"><input class="k" value="'+o.env[0]+'" aria-label="变量名" /><span class="eq">=</span><input type="password" value="ghp_example" aria-label="变量值" /><button type="button" class="mini mini--eye" aria-label="显示令牌">'+eye+'</button><button type="button" class="mini" aria-label="删除变量">×</button></div>'
+   :'<p class="emptyhint">暂无环境变量</p>';
+ const fld=(l,v,e,ph)=>'<label class="field'+(e?' bad':'')+'">'+l+'<input class="m" value="'+esc(v)+'"'+(ph?' placeholder="'+ph+'"':'')+(e?' aria-invalid="true"':'')+' />'+(e?'<p class="err">'+e+'</p>':'')+'</label>';
+ const claude=o.client==="claude";
+ const left='<div class="stack"><section class="card rough"><h2>服务器设置</h2>'+
+  '<div class="row"><span class="lbl">客户端</span><div class="seg" role="group" aria-label="客户端"><button type="button" class="chip" data-go="mcp" aria-pressed="'+!claude+'">Cursor</button><button type="button" class="chip" data-go="mcp-claude" aria-pressed="'+claude+'">Claude Desktop</button></div></div>'+
+  '<div class="row"><span class="lbl">传输模式</span><span class="chip chip--sm chip--static">stdio</span></div>'+
+  fld("服务名称",o.name,o.nameErr)+fld("command",o.cmd,o.cmdErr,"例如 npx")+
+  '<h3>args 参数</h3>'+args+'<button type="button" class="add">+ 添加参数</button>'+
+  '<h3>env 环境变量</h3>'+env+'<button type="button" class="add">+ 添加环境变量</button></section>'+
+  (o.env?'<aside class="info rough warn"><p class="notice">⚠️ <span>API Key 是敏感信息：只在你本机生成，不会发送或记录。</span></p></aside>':'')+'</div>';
+ let preview,acts;
+ if(o.errors){preview='<div class="code placeholder"><span><span class="dim" style="display:block;font-family:var(--mono);margin-bottom:10px">{ "mcpServers": { … } }</span>修正 2 处错误后生成</span></div>';
+  acts='<button type="button" class="chip" disabled>复制</button><button type="button" class="chip" disabled>下载 mcp.json</button>';}
+ else{const srv={command:o.cmd,args:o.args};if(o.env)srv.env={[o.env[0]]:"<你的令牌>"};
+  const json=JSON.stringify({mcpServers:{[o.name]:srv}},null,2);
+  preview='<pre class="code" id="out">'+hlJSON(json)+'</pre>';
+  acts='<button type="button" class="chip chip--go" data-copy>复制</button><button type="button" class="chip">下载 '+(claude?"claude_desktop_config.json":"mcp.json")+'</button><span class="ok">'+check+' JSON 校验通过</span>';}
+ const loc=claude?'<li>macOS <code>~/Library/Application Support/Claude/claude_desktop_config.json</code></li><li>Windows <code>%APPDATA%\\Claude\\claude_desktop_config.json</code></li>'
+  :'<li>项目级 <code>.cursor/mcp.json</code></li><li>全局 <code>~/.cursor/mcp.json</code></li>';
+ const right='<div class="stack"><section class="card rough"><h2>配置预览</h2>'+preview+'<div class="acts">'+acts+'</div></section>'+
+  '<aside class="info rough"><h2>配置文件位置</h2><ul>'+loc+'</ul></aside></div>';
+ return head("mcp")+'<div class="cols">'+left+right+'</div>';
+}
+
+/* ---------- Convert ---------- */
+const J_OK='{\n  "name": "crayon-cat",\n  "version": 1,\n  "tags": ["ai", "mcp"],\n  "debug": false,\n  "owner": null\n}';
+const J_BAD='{\n    "name": "crayon-cat"\n    "version": 1,\n    "tags": ["ai", "mcp"],\n    "debug": false,\n    "owner": null\n}';
+const Y_OUT='name: crayon-cat\nversion: 1\ntags:\n  - ai\n  - mcp\ndebug: false\nowner: null';
+const Y_IN='# 蜡笔猫项目配置\nname: crayon-cat\nversion: 1\ntags:\n  - ai\n  - mcp\ndebug: false\nowner: null';
+const T_OUT='name = "crayon-cat"\nversion = 1\ntags = ["ai", "mcp"]\ndebug = false';
+function convert(kind){
+ const src=kind==="warn"?"YAML":"JSON",dst=kind==="warn"?"TOML":"YAML";
+ const set=(on,lab)=>'<div class="seg" role="group" aria-label="'+lab+'">'+["JSON","YAML","TOML"].map(f=>'<button type="button" class="chip chip--sm" aria-pressed="'+(f===on)+'">'+f+'</button>').join("")+'</div>';
+ const bar='<div class="conv rough"><span class="lbl">源格式</span>'+set(src,"源格式")+'<span class="arrow" aria-hidden="true">→</span><span class="lbl">目标格式</span>'+set(dst,"目标格式")+'</div>';
+ const input=kind==="err"?editor(J_BAD,hlJSON,3):kind==="warn"?editor(Y_IN,hlKV):editor(J_OK,hlJSON);
+ const left='<div class="stack"><section class="card rough"><h2>输入 · '+src+'</h2>'+input+
+  '<div class="acts"><button type="button" class="chip chip--go">转换</button><button type="button" class="chip">清空</button></div></section>'+
+  (kind==="err"?'<aside class="info rough bad-card" role="alert"><p class="notice">✖ <span><b>解析失败：第 3 行第 5 列 · 缺少逗号</b><br/>在 "name": "crayon-cat" 后补一个逗号。</span></p></aside>':'')+'</div>';
+ let out,acts;
+ if(kind==="err"){out='<div class="code placeholder">修正输入后，转换结果会显示在这里</div>';
+  acts='<button type="button" class="chip" disabled>复制</button><button type="button" class="chip" disabled>下载</button><span class="status">等待有效输入</span>';}
+ else{out='<pre class="code" id="out">'+hlKV(kind==="warn"?T_OUT:Y_OUT)+'</pre>';
+  acts='<button type="button" class="chip" data-copy>复制</button><button type="button" class="chip">下载</button><span class="ok">'+check+(kind==="warn"?' 转换成功 · 4 个键':' 转换成功 · 5 个键')+'</span>';}
+ const right='<div class="stack"><section class="card rough"><h2>输出 · '+dst+'</h2>'+out+'<div class="acts">'+acts+'</div></section>'+
+  (kind==="warn"?'<aside class="info rough amber"><p class="notice">⚠️ <span>可能有损：YAML 注释不会保留；TOML 不支持 null，owner 字段已省略。</span></p></aside>':'')+'</div>';
+ return head("convert")+bar+'<div class="cols">'+left+right+'</div>';
+}
+
+/* ---------- Token ---------- */
+function token(bad){
+ const f=(l,v,u,e)=>'<label class="field'+(e?' bad':'')+'">'+l+'<span class="unit"><input inputmode="decimal" value="'+v+'"'+(e?' aria-invalid="true"':'')+' />'+(u?'<em>'+u+'</em>':'')+'</span>'+(e?'<p class="err">'+e+'</p>':'')+'</label>';
+ const left='<section class="card rough"><h2>填写参数</h2>'+
+  '<label class="field">币种<select><option selected>USD</option><option>CNY</option><option>EUR</option></select></label>'+
+  '<div class="g2">'+f('输入单价 <small>每百万 Token</small>',"3","$")+f('输出单价 <small>每百万 Token</small>',"15","$")+
+  f("输入 Token",bad?"-100":"1200","",bad?"请输入 ≥ 0 的整数":"")+f("输出 Token","800","")+'</div>'+
+  f("请求次数",bad?"":"1000","次",bad?"必填":"")+'</section>';
+ const right=bad?'<section class="card rough"><h2>费用结果</h2><div class="big none"><div><b>—</b><span>单次</span></div><div><b>—</b><span>总计</span></div></div><p class="status">请先修正输入</p><div class="acts"><button type="button" class="chip" disabled>复制结果</button></div></section>'
+  :'<section class="card rough"><h2>费用结果</h2><div class="big"><div><b>$0.0156</b><span>单次</span></div><div><b>$15.60</b><span>总计 · 1000 次</span></div></div>'+
+   '<pre class="code f" id="out">(1200 × 3 + 800 × 15) ÷ 1,000,000 = $0.0156\n× 1000 次 = $15.60</pre>'+
+   '<div class="acts"><button type="button" class="chip chip--go" data-copy>复制结果</button></div>'+
+   '<p class="fineprint">单价由你填写，并非实时官方价格 · 保留 4 位小数，四舍五入</p></section>';
+ return head("token")+'<div class="cols">'+left+'<div class="stack">'+right+'</div></div>';
+}
+
+const STATES={
+ "mcp":()=>mcp({client:"cursor",name:"filesystem",cmd:"npx",args:["-y","@modelcontextprotocol/server-filesystem","/Users/me/Projects"]}),
+ "mcp-claude":()=>mcp({client:"claude",name:"github",cmd:"npx",args:["-y","@modelcontextprotocol/server-github"],env:["GITHUB_PERSONAL_ACCESS_TOKEN"]}),
+ "mcp-error":()=>mcp({client:"cursor",name:"my server",nameErr:"仅限字母、数字、- 和 _",cmd:"",cmdErr:"command 为必填项",args:["-y","@modelcontextprotocol/server-filesystem","/Users/me/Projects"],errors:true}),
+ "convert":()=>convert("ok"),"convert-error":()=>convert("err"),"convert-warn":()=>convert("warn"),
+ "token":()=>token(false),"token-error":()=>token(true)
+};
+const app=document.getElementById("app");
+window.showState=function(id){
+ if(!STATES[id])id="mcp";
+ app.innerHTML=STATES[id]();
+ const t=id.split("-")[0],titles={mcp:"MCP 配置生成器",convert:"数据格式转换",token:"Token 费用计算器"};
+ document.title=titles[t]+" · 蜡笔猫原型 工具";
+ if(location.hash.slice(1)!==id)history.replaceState(null,"","#"+id);
+ window.scrollTo(0,0);
+ return id;
+};
+const toast=document.getElementById("toast");let tt;
+app.addEventListener("click",e=>{
+ const g=e.target.closest("[data-go]");if(g){showState(g.dataset.go);return;}
+ if(e.target.closest("[data-copy]")){const o=document.getElementById("out");
+  if(o&&navigator.clipboard)navigator.clipboard.writeText(o.textContent).catch(()=>{});
+  toast.textContent="已复制 ✓";toast.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove("show"),1600);}
+});
+window.addEventListener("hashchange",()=>showState(location.hash.slice(1)));
+showState(location.hash.slice(1)||"mcp");
+})();
+</script>
+</body>
+</html>

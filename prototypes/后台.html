@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>蜡笔猫原型 后台</title>
+    <link rel="icon" href="cat-logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400&display=swap"
+    />
+    <link rel="stylesheet" href="hark.css" />
+    <link rel="stylesheet" href="hark-hero.css" />
+    <style>
+:root{
+  --pink:#E9A9CF;--pink-deep:#C2609E;--blue:#3A78D0;--paper:#F7F2EA;--ink:#1d1a1f;--ink-2:#4a4350;
+  --c-blue:#3A78D0;--c-magenta:#C2408E;--c-yellow:#E8B419;--c-green:#3E9E57;--c-orange:#E2702B;--c-purple:#7E4FC2;
+  --wob:255px 15px 225px 15px/15px 225px 15px 255px;
+  --wob2:15px 225px 15px 255px/255px 15px 225px 15px;
+  --font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --tint:#f8cfe6;--hi:#fff;--on-blue:#fff;--bg1:#f3c4df;--bg2:#d886b8;--shade:rgba(29,26,31,.85);--err:#C62828;
+}
+body{
+  font-family:var(--font);color:var(--ink);min-height:100vh;
+  background-color:var(--pink);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .1 0 0 0 0 .35 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 15% 10%,var(--bg1) 0,transparent 45%),
+    radial-gradient(circle at 90% 85%,var(--bg2) 0,transparent 50%);
+  background-attachment:fixed;
+}
+#app,#app input,#app select,#app textarea,#app button{font-family:var(--font)}
+#app{display:block;padding-top:16px}
+.x-defs{position:absolute;width:0;height:0}
+.x-rough{position:relative;background:var(--paper);border-radius:var(--wob)}
+.x-rough::before{content:"";position:absolute;inset:-1px;border:2.5px solid var(--ink);border-radius:inherit;filter:url(#wobble);pointer-events:none}
+.x-card{padding:22px 22px 20px;box-shadow:5px 6px 0 var(--shade);min-width:0}
+.x-card h3{margin:0 0 4px;font-size:20px;font-weight:900}
+.x-scrib{display:block;width:110px;height:12px;margin:0 0 14px;color:var(--pink-deep)}
+.x-note{margin:0;font-size:13px;line-height:1.6;color:var(--ink-2);font-weight:600}
+
+/* buttons / chips */
+.x-chip{display:inline-flex;align-items:center;justify-content:center;gap:6px;font:700 14px var(--font);color:var(--ink);background:var(--paper);border:2.5px solid var(--ink);border-radius:var(--wob2);
+  min-height:44px;padding:6px 16px;cursor:pointer;box-shadow:2px 3px 0 var(--ink);transition:transform .15s,box-shadow .15s;white-space:nowrap}
+.x-chip:hover{transform:translateY(-2px) rotate(-1deg)}
+.x-chip:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.x-chip[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.x-chip--go{background:var(--blue);color:var(--on-blue)}
+.x-chip--sm{min-height:34px;padding:2px 12px;font-size:13px;box-shadow:1px 2px 0 var(--ink)}
+.x-chip--del{background:var(--tint)}
+.x-chip:focus-visible,.x-field input:focus-visible,.x-field select:focus-visible,.x-field textarea:focus-visible,.x-side a:focus-visible{outline:3px dashed var(--blue);outline-offset:3px}
+.x-add{display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;font:800 15px var(--font);color:var(--ink);background:transparent;border:2.5px dashed var(--ink);border-radius:var(--wob2);cursor:pointer}
+.x-add:hover{background:var(--hi)}
+
+/* fields */
+.x-field{display:grid;gap:6px;margin-bottom:14px;font-size:14px;font-weight:700}
+.x-field input,.x-field select,.x-field textarea{font:600 15px var(--font);color:var(--ink);background:var(--hi);border:2.5px solid var(--ink);border-radius:var(--wob2);padding:9px 12px;min-height:44px;outline:none;width:100%}
+.x-field textarea{min-height:96px;resize:vertical;line-height:1.6;border-radius:12px 18px 14px 16px}
+.x-field.is-bad input{border-color:var(--err);box-shadow:0 0 0 2px color-mix(in srgb,var(--err) 25%,transparent)}
+.x-err{margin:0;color:var(--err);font-size:13px;font-weight:800}
+.x-hint{font-size:12px;font-weight:600;color:var(--ink-2)}
+.x-opt{display:flex;align-items:center;gap:10px;min-height:44px;font-size:15px;font-weight:700;cursor:pointer}
+.x-opt input{flex:none;width:22px;height:22px;margin:0;accent-color:var(--blue)}
+
+/* login */
+.x-center{min-height:calc(100vh - 80px);display:grid;place-items:center;padding:24px 0}
+.x-login{width:min(420px,100%);padding:30px 28px 24px;box-shadow:6px 7px 0 var(--ink);transform:rotate(-.6deg);text-align:center}
+.x-login form{text-align:left;margin-top:18px}
+.x-biglogo{width:104px;height:104px;margin:0 auto;border-radius:42% 58% 46% 54%/55% 45% 55% 45%;border:3px solid var(--ink);object-fit:cover;filter:url(#wobble-s);transform:rotate(-4deg);box-shadow:3px 4px 0 var(--ink)}
+.x-h1{margin:16px 0 0;font-size:28px;font-weight:900;letter-spacing:2px;text-shadow:2px 2px 0 var(--paper),3px 4px 0 var(--blue)}
+.x-alert{display:flex;gap:8px;align-items:center;margin:0 0 14px;padding:10px 14px;font-size:14px;font-weight:800;color:var(--err);background:color-mix(in srgb,var(--err) 10%,var(--paper));border:2px solid var(--err);border-radius:var(--wob2)}
+.x-login .x-chip{width:100%;margin-top:4px}
+.x-small{margin:14px 0 0;font-size:12px;font-weight:700;color:var(--ink-2);text-align:center}
+.x-denied{width:min(460px,100%);padding:30px 28px 26px;text-align:center;box-shadow:6px 7px 0 var(--ink);transform:rotate(.5deg)}
+.x-denied p{margin:10px 0 20px;font-size:15px;line-height:1.7;color:var(--ink-2);font-weight:600}
+.x-denied code{font-family:ui-monospace,Menlo,monospace;background:var(--tint);padding:1px 6px;border-radius:6px;color:var(--ink)}
+
+/* shell */
+.x-shell{display:grid;grid-template-columns:220px minmax(0,1fr);gap:26px;align-items:start}
+.x-side{position:sticky;top:16px;display:flex;flex-direction:column;gap:8px;padding:18px 14px;min-height:calc(100vh - 60px);box-shadow:5px 6px 0 var(--shade);transform:rotate(-.4deg)}
+.x-brand{display:flex;align-items:center;gap:10px;padding:0 4px 14px;font-size:17px;font-weight:900;letter-spacing:1px}
+.x-logo{width:40px;height:40px;flex:none;border-radius:42% 58% 46% 54%/55% 45% 55% 45%;border:2.5px solid var(--ink);object-fit:cover;transform:rotate(-4deg);box-shadow:2px 2px 0 var(--ink)}
+.x-nav{display:flex;flex-direction:column;gap:6px}
+.x-side a{position:relative;display:flex;align-items:center;gap:10px;min-height:44px;padding:0 14px;font-size:15px;font-weight:800;border-radius:var(--wob2);white-space:nowrap}
+.x-side a:hover{background:var(--hi)}
+.x-side a.is-on{background:var(--hi);box-shadow:0 0 0 2px var(--ink),2px 3px 0 var(--ink)}
+.x-side a.is-on::after{content:"";position:absolute;left:10px;right:30%;bottom:8px;height:9px;z-index:-0;background:var(--pink);opacity:.75;border-radius:6px 12px 5px 10px;filter:url(#wobble-s);mix-blend-mode:multiply}
+.x-side a span{position:relative;z-index:1}
+.x-side__bot{margin-top:auto;display:flex;flex-direction:column;gap:4px;padding-top:14px;border-top:2px dashed var(--ink-2)}
+.x-side__bot a{font-size:14px;color:var(--ink-2)}
+.x-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+.x-top h2{margin:0;font-size:26px;font-weight:900;letter-spacing:1px;text-shadow:2px 2px 0 var(--paper),3px 4px 0 var(--blue)}
+.x-path{display:block;margin-top:6px;font:700 12px ui-monospace,Menlo,monospace;color:var(--ink-2);text-shadow:none;letter-spacing:0}
+.x-me{display:flex;align-items:center;gap:10px;padding:6px 16px 6px 6px;font-size:14px;font-weight:800;border-radius:999px 40px 999px 60px/60px 999px 40px 999px;box-shadow:3px 4px 0 var(--ink)}
+.x-ava{width:36px;height:36px;display:grid;place-items:center;border:2.5px solid var(--ink);border-radius:50%;background:var(--c-yellow);font-weight:900;font-size:15px}
+.x-pane{display:grid;gap:24px;min-width:0}
+
+/* toolbar + table */
+.x-tools{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px}
+.x-search{flex:1 1 220px;display:flex;align-items:center;gap:8px;padding:0 14px;min-height:46px;background:var(--hi);border:2.5px solid var(--ink);border-radius:999px 40px 999px 60px/60px 999px 40px 999px}
+.x-search input{flex:1;min-width:0;border:0;background:transparent;font:600 15px var(--font);color:var(--ink);outline:none}
+.x-sel{font:700 14px var(--font);color:var(--ink);background:var(--hi);border:2.5px solid var(--ink);border-radius:var(--wob2);min-height:46px;padding:0 12px}
+.x-seg{display:flex;gap:8px;flex-wrap:wrap}
+.x-tools .x-grow{margin-left:auto}
+.x-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -8px;padding:0 8px 6px}
+.x-tbl{width:100%;min-width:820px;border-collapse:collapse;font-size:14px}
+.x-tbl th,.x-tbl td{padding:12px 10px;text-align:left;white-space:nowrap;border-bottom:1.5px solid color-mix(in srgb,var(--ink) 16%,transparent);vertical-align:middle}
+.x-tbl thead th{font-size:13px;font-weight:800;color:var(--ink-2);border-bottom:2.5px solid var(--ink)}
+.x-tbl tbody tr:last-child>*{border-bottom:0}
+.x-tbl tbody tr:hover{background:color-mix(in srgb,var(--hi) 60%,transparent)}
+.x-tbl tbody th{font-weight:800;font-size:15px}
+.x-tbl td.x-muted{color:var(--ink-2);font-variant-numeric:tabular-nums;font-weight:600}
+.x-tag{display:inline-block;padding:1px 9px;margin-right:4px;font-size:12px;font-weight:700;border:1.5px solid var(--ink-2);border-radius:var(--wob2);background:var(--hi)}
+.x-st{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;font-size:13px;font-weight:800;border:2px solid var(--ink);border-radius:var(--wob2)}
+.x-st::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.x-st--pub{background:color-mix(in srgb,var(--c-green) 26%,var(--paper));color:#1f5a30}
+.x-st--draft{background:color-mix(in srgb,var(--ink) 10%,var(--paper));color:var(--ink-2)}
+.x-st--off{background:color-mix(in srgb,var(--err) 16%,var(--paper));color:#9b1e1e}
+.x-star{font-weight:900;color:#a8480f}
+.x-act a{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;font-weight:800;color:var(--blue);text-decoration:underline;text-underline-offset:3px}
+@media (max-width:760px){.x-chip--sm{min-height:44px}}
+.x-act a.x-warn{color:#9b1e1e}
+.x-act span{margin:0 2px;color:var(--ink-2)}
+.x-tbl td.x-act{padding-top:2px;padding-bottom:2px}
+.x-pager{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:2.5px solid var(--ink);font-size:14px;font-weight:700;color:var(--ink-2)}
+.x-pages{display:flex;gap:6px}
+.x-pages .x-chip{min-width:44px;padding:0 10px}
+
+/* edit form */
+.x-form{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start}
+.x-two{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+.x-two .x-wide{grid-column:1/-1}
+.x-sugg{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;font-weight:700;color:var(--ink-2)}
+.x-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px;background:var(--hi);border:2.5px solid var(--ink);border-radius:var(--wob2)}
+.x-tchip{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 6px 0 12px;font-size:13px;font-weight:800;background:var(--tint);border:2px solid var(--ink);border-radius:var(--wob2)}
+.x-tchip button{width:24px;height:24px;border:0;background:none;font:900 14px var(--font);cursor:pointer;color:var(--ink)}
+.x-tchip--add{background:transparent;border-style:dashed;padding:0 12px;cursor:pointer}
+.x-checks{display:grid;gap:0}
+.x-panel{position:sticky;top:16px;display:grid;gap:20px}
+.x-panel .x-chip{flex:1}
+.x-btns{display:flex;gap:10px;flex-wrap:wrap}
+.x-sub{margin:0 0 8px;font-size:14px;font-weight:800}
+.x-prev{display:flex;align-items:center;gap:12px;padding:12px;background:var(--hi);border-radius:var(--wob2);box-shadow:0 0 0 2px var(--ink),3px 4px 0 var(--ink)}
+.x-mono{flex:none;width:42px;height:42px;display:grid;place-items:center;font-size:18px;font-weight:900;color:#fff;background:var(--accent,var(--c-blue));border:2.5px solid var(--ink);border-radius:52% 48% 44% 56%/58% 42% 58% 42%;text-shadow:1px 1px 0 rgba(0,0,0,.35)}
+.x-prev b{display:block;font-size:15px;font-weight:800}
+.x-prev small{display:block;font-size:13px;color:var(--ink-2);margin-top:2px}
+
+/* taxonomy */
+.x-split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:24px;align-items:start}
+.x-list{list-style:none;margin:0 0 14px;padding:0}
+.x-list li{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1.5px solid color-mix(in srgb,var(--ink) 16%,transparent)}
+.x-list li:last-child{border-bottom:0}
+.x-handle{flex:none;width:22px;font-weight:900;color:var(--ink-2);cursor:grab;letter-spacing:-3px;user-select:none}
+.x-list b{font-size:15px;font-weight:800}
+.x-slug{font:600 12px ui-monospace,Menlo,monospace;color:var(--ink-2)}
+.x-cnt{flex:none;margin-left:auto;padding:1px 10px;font-size:12px;font-weight:800;border:1.5px solid var(--ink-2);border-radius:999px;background:var(--hi);font-variant-numeric:tabular-nums}
+.x-list .x-btns{gap:6px;flex:none}
+.x-cloud{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;position:relative}
+.x-cloud .x-chip{min-height:40px;padding:4px 12px}
+.x-cloud .x-chip i{font-style:normal;font-size:12px;font-weight:800;padding:0 7px;border-radius:999px;background:var(--tint);border:1.5px solid var(--ink)}
+.x-cloud .x-chip[aria-pressed="true"] i{background:var(--paper);color:var(--ink)}
+.x-mono--s{width:32px;height:32px;font-size:14px;border-width:2px}
+.x-pop{position:relative;margin:4px 0 18px;width:min(280px,100%);padding:16px 16px 14px;box-shadow:4px 5px 0 var(--ink)}
+.x-pop::after{content:"";position:absolute;top:-10px;left:var(--arrow,40px);width:16px;height:16px;background:var(--paper);border-left:2.5px solid var(--ink);border-top:2.5px solid var(--ink);transform:rotate(45deg)}
+.x-pop .x-field{margin-bottom:10px}
+.x-pop .x-field input{min-height:40px}
+.x-anchor{position:relative}
+.x-inline{display:flex;gap:8px}
+.x-inline input{flex:1;min-width:0;font:600 15px var(--font);color:var(--ink);background:var(--hi);border:2.5px dashed var(--ink);border-radius:var(--wob2);padding:0 12px;min-height:44px;outline:none}
+
+/* featured */
+.x-feat{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:12px}
+.x-feat li{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--hi);border-radius:var(--wob2);box-shadow:0 0 0 2px var(--ink),2px 3px 0 var(--ink)}
+.x-feat li:nth-child(odd){transform:rotate(-.3deg)}
+.x-rank{flex:none;width:34px;font-size:24px;font-weight:900;color:var(--pink-deep);text-shadow:1px 1px 0 var(--ink);text-align:center}
+.x-feat .x-mono{width:36px;height:36px;font-size:15px}
+.x-feat .x-txt{min-width:0;flex:1}
+.x-feat b{display:block;font-size:15px;font-weight:800}
+.x-feat small{font-size:12px;color:var(--ink-2);font-weight:700}
+.x-feat li.is-draft{background:color-mix(in srgb,var(--c-yellow) 18%,var(--hi))}
+.x-wnote{display:block;margin-top:3px;font-size:12px;font-weight:800;color:#8a5a00}
+.x-x{flex:none;width:36px;height:36px;border:2px solid var(--ink);border-radius:50%;background:var(--paper);font:900 16px var(--font);cursor:pointer;box-shadow:1px 2px 0 var(--ink)}
+.x-mini{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:14px;background:color-mix(in srgb,var(--pink) 45%,var(--paper));border-radius:16px 22px 14px 20px;border:2px dashed var(--ink-2)}
+.x-mini div{display:flex;align-items:center;gap:8px;padding:10px;background:var(--paper);border-radius:var(--wob2);box-shadow:0 0 0 2px var(--ink),2px 3px 0 var(--ink);min-width:0}
+.x-mini .x-mono{width:30px;height:30px;font-size:13px;border-width:2px}
+.x-mini b{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.x-mini em{font-style:normal;font-size:11px;font-weight:900;color:var(--pink-deep);margin-left:auto}
+
+@media (max-width:900px){
+  .x-form,.x-split{grid-template-columns:1fr}
+  .x-panel{position:static}
+}
+@media (max-width:760px){
+  .x-shell{grid-template-columns:1fr;gap:18px}
+  .x-side{position:static;min-height:0;flex-direction:row;align-items:center;overflow-x:auto;padding:10px 12px;transform:none;gap:6px}
+  .x-brand{padding:0 6px 0 0;font-size:15px;flex:none}
+  .x-brand span{display:none}
+  .x-nav,.x-side__bot{flex-direction:row;flex:none;gap:4px}
+  .x-side__bot{margin:0;padding:0 0 0 8px;border-top:0;border-left:2px dashed var(--ink-2)}
+  .x-side a{padding:0 12px;font-size:14px}
+  .x-top h2{font-size:22px}
+  .x-card{padding:18px 16px}
+  .x-two{grid-template-columns:1fr}
+  .x-tools .x-grow{margin-left:0;width:100%}
+  .x-list li{flex-wrap:wrap}
+  .x-list .x-btns{width:100%;padding-left:34px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+    </style>
+  </head>
+  <body>
+    <svg class="x-defs" aria-hidden="true">
+      <filter id="wobble"><feTurbulence type="fractalNoise" baseFrequency=".03" numOctaves="2" seed="3"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter>
+      <filter id="wobble-s"><feTurbulence type="fractalNoise" baseFrequency=".05" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="3"/></filter>
+    </svg>
+    <div class="page" id="top">
+      <main class="main" id="app" aria-live="polite"></main>
+    </div>
+    <img id="logoSrc" src="cat-logo.png" alt="" hidden />
+    <script>
+(function () {
+  var LOGO = document.getElementById("logoSrc").src;
+  var app = document.getElementById("app");
+  var SCRIB = '<svg class="x-scrib" viewBox="0 0 120 12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M3 8c14-5 26 3 40-1s24-4 38 0 22 2 36-3"/></svg>';
+  var SEARCH = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M10.5 3.5c4 .2 6.8 3 6.6 6.9-.2 3.8-3.2 6.4-6.9 6.2C6.4 16.4 3.6 13.6 3.8 10 4 6.1 6.9 3.3 10.5 3.5z"/><path d="M15.4 15.6l5.1 5"/></svg>';
+  var ACC = { "AI 编程": "--c-blue", "MCP": "--c-magenta", "Agent Skills": "--c-purple", "AI 模型/API": "--c-green", "开源项目": "--c-orange", "AI 创作": "--c-yellow" };
+  function mono(name, cat) { return '<span class="x-mono" style="--accent:var(' + (ACC[cat] || "--c-blue") + ')" aria-hidden="true">' + name.charAt(0) + "</span>"; }
+
+  var ROWS = [
+    ["Claude Code", "AI 编程", ["官方", "CLI"], "pub", "★1", "2026-10-08"],
+    ["GitHub MCP Server", "MCP", ["官方", "GitHub"], "pub", "★2", "2026-10-08"],
+    ["Playwright MCP", "MCP", ["浏览器"], "pub", "★3", "2026-10-07"],
+    ["Anthropic Skills", "Agent Skills", ["官方"], "draft", "—", "2026-10-07"],
+    ["DeepSeek API", "AI 模型/API", ["API"], "pub", "—", "2026-10-06"],
+    ["Ollama", "开源项目", ["本地"], "pub", "★5", "2026-10-06"],
+    ["Midjourney", "AI 创作", ["付费"], "off", "—", "2026-10-05"]
+  ];
+  var ST = { pub: "已发布", draft: "草稿", off: "已下架" };
+  var CATS = [["AI 编程", "ai-coding", 8], ["MCP", "mcp", 9], ["Agent Skills", "agent-skills", 5], ["AI 模型/API", "models-api", 7], ["开源项目", "open-source", 8], ["AI 创作", "ai-creation", 6]];
+  var TAGS = [["官方", 12], ["stdio", 7], ["GitHub", 5], ["浏览器", 3], ["文件系统", 2], ["数据库", 3], ["本地", 4], ["付费", 6], ["API", 7]];
+  var FEAT = [
+    ["Claude Code", "AI 编程", "Anthropic 官方命令行编程助手"],
+    ["GitHub MCP Server", "MCP", "让 AI 读写仓库、Issue 与 PR"],
+    ["Playwright MCP", "MCP", "让 AI 操作真实浏览器"],
+    ["Anthropic Skills", "Agent Skills", "官方 Agent 技能包", 1],
+    ["Ollama", "开源项目", "在本地运行开源大模型"],
+    ["Dify", "开源项目", "开源 LLM 应用开发平台"]
+  ];
+
+  function catOpts(sel, all) {
+    return (all ? '<option>全部分类</option>' : "") + CATS.map(function (c) { return "<option" + (c[0] === sel ? " selected" : "") + ">" + c[0] + "</option>"; }).join("");
+  }
+
+  function shell(active, title, path, body) {
+    var items = [["resources", "资源管理"], ["taxonomy", "分类标签"], ["featured", "精选管理"]];
+    return '<div class="x-shell">' +
+      '<aside class="x-side x-rough" aria-label="后台导航">' +
+        '<div class="x-brand"><img class="x-logo" src="' + LOGO + '" alt="蜡笔猫标志" /><span>蜡笔猫后台</span></div>' +
+        '<nav class="x-nav">' + items.map(function (it) {
+          return '<a href="#' + it[0] + '"' + (it[0] === active ? ' class="is-on" aria-current="page"' : "") + "><span>" + it[1] + "</span></a>";
+        }).join("") + "</nav>" +
+        '<div class="x-side__bot"><a href="#" onclick="return false">查看前台 ↗</a><a href="#login">退出登录</a></div>' +
+      "</aside>" +
+      '<div class="x-content"><header class="x-top"><h2>' + title + '<span class="x-path">' + path + "</span></h2>" +
+        '<div class="x-me x-rough"><span class="x-ava" aria-hidden="true">A</span>admin</div></header>' +
+        '<div class="x-pane">' + body + "</div></div></div>";
+  }
+
+  function login(err) {
+    return '<div class="x-center"><section class="x-login x-rough" aria-label="管理员登录">' +
+      '<img class="x-biglogo" src="' + LOGO + '" alt="蜡笔猫标志：拿着咖啡杯的蓝色小猫" />' +
+      '<h1 class="x-h1">管理员登录</h1><p class="x-note" style="margin-top:6px">蜡笔猫导航 · 后台 <span class="x-slug">/admin/login</span></p>' +
+      '<form onsubmit="showState(\'resources\');return false">' +
+        (err ? '<p class="x-alert" role="alert">⚠ 邮箱或密码错误</p>' : "") +
+        '<label class="x-field">邮箱<input type="email" value="' + (err ? "admin@crayoncat.dev" : "") + '" placeholder="admin@example.com" /></label>' +
+        '<label class="x-field' + (err ? " is-bad" : "") + '">密码<input type="password" value="' + (err ? "wrongpass" : "") + '" placeholder="请输入密码"' + (err ? ' aria-invalid="true"' : "") + " /></label>" +
+        '<button type="submit" class="x-chip x-chip--go">登录</button>' +
+      '</form><p class="x-small">仅限管理员 · 不开放注册</p></section></div>';
+  }
+
+  var LOCK = '<svg width="96" height="96" viewBox="0 0 96 96" fill="none" stroke="#1d1a1f" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="filter:url(#wobble-s)"><path d="M30 44c-1-12 3-26 18-27 16-1 20 13 19 27"/><path d="M38 44c0-9 2-17 10-17s11 8 10 17" stroke-width="3"/><path d="M20 46c18-3 38-3 56 0 2 12 2 25-1 37-17 3-36 3-54 0-3-12-3-25-1-37z" fill="#E9A9CF"/><path d="M26 56l40-1M24 66l46 0M27 76l38 1" stroke="#C2609E" stroke-width="2.5" opacity=".7"/><path d="M48 58c3 0 5 2 5 5 0 2-2 4-3 4l1 7h-6l1-7c-1 0-3-2-3-4 0-3 2-5 5-5z" fill="#1d1a1f"/></svg>';
+  function denied() {
+    return '<div class="x-center"><section class="x-denied x-rough" role="alert">' + LOCK +
+      '<h1 class="x-h1">请先登录</h1><p>访问 <code>/admin/resources</code> 需要管理员身份，已为你跳转到登录页</p>' +
+      '<a class="x-chip x-chip--go" href="#login">去登录</a></section></div>';
+  }
+
+  function resources() {
+    var rows = ROWS.map(function (r) {
+      var toggle = r[3] === "pub" ? '<a class="x-warn" href="#resources">下架</a>' : '<a href="#resources">发布</a>';
+      return "<tr><th scope=\"row\">" + r[0] + "</th><td>" + r[1] + "</td><td>" + r[2].map(function (t) { return '<span class="x-tag">' + t + "</span>"; }).join("") +
+        '</td><td><span class="x-st x-st--' + r[3] + '">' + ST[r[3]] + '</span></td><td' + (r[4] === "—" ? ' class="x-muted"' : ' class="x-star"') + ">" + r[4] +
+        '</td><td class="x-muted">' + r[5] + '</td><td class="x-act"><a href="#resource-edit">编辑</a><span>·</span>' + toggle + "</td></tr>";
+    }).join("");
+    var body = '<section class="x-card x-rough">' +
+      '<div class="x-tools"><label class="x-search">' + SEARCH + '<input type="search" placeholder="搜索名称、标签…" aria-label="搜索资源" /></label>' +
+      '<select class="x-sel" aria-label="分类">' + catOpts("", true) + "</select>" +
+      '<div class="x-seg" role="group" aria-label="状态">' + ["全部", "已发布", "草稿", "已下架"].map(function (s, i) { return '<button type="button" class="x-chip x-chip--sm" aria-pressed="' + (i === 0) + '">' + s + "</button>"; }).join("") + "</div>" +
+      '<a class="x-chip x-chip--go x-grow" href="#resource-edit">+ 新增资源</a></div>' +
+      '<div class="x-scroll"><table class="x-tbl"><thead><tr><th scope="col">名称</th><th scope="col">分类</th><th scope="col">标签</th><th scope="col">状态</th><th scope="col">精选</th><th scope="col">更新时间</th><th scope="col">操作</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
+      '<div class="x-pager"><span>共 38 条</span><div class="x-pages"><button class="x-chip x-chip--sm" aria-pressed="true" aria-current="page">1</button><button class="x-chip x-chip--sm">2</button><button class="x-chip x-chip--sm">3</button><button class="x-chip x-chip--sm" aria-label="下一页">›</button></div></div>' +
+      "</section>";
+    return shell("resources", "资源管理", "/admin/resources", body);
+  }
+
+  function edit() {
+    var main = '<section class="x-card x-rough"><h3>基本信息</h3>' + SCRIB + '<div class="x-two">' +
+      '<label class="x-field">名称<input value="Filesystem MCP" /></label>' +
+      '<div class="x-field is-bad"><label for="slug">slug</label><input id="slug" value="filesystem mcp" aria-invalid="true" aria-describedby="slugErr" />' +
+        '<p class="x-err" id="slugErr">slug 只能包含小写字母、数字和 -</p>' +
+        '<span class="x-sugg">建议：<button type="button" class="x-chip x-chip--sm">filesystem-mcp</button></span></div>' +
+      '<label class="x-field x-wide">简介<input value="让 AI 安全读写本地文件的官方 MCP 服务" /></label>' +
+      '<label class="x-field x-wide">描述<textarea>Anthropic 官方维护的文件系统 MCP Server，通过 stdio 运行。可配置允许访问的目录，支持读取、写入、搜索与移动文件。</textarea></label>' +
+      '<label class="x-field">分类<select>' + catOpts("MCP") + "</select></label>" +
+      '<label class="x-field">定价类型<select><option selected>免费</option><option>免费增值</option><option>付费</option></select></label>' +
+      '<div class="x-field x-wide"><span>标签</span><div class="x-chips">' + ["stdio", "官方", "文件系统"].map(function (t) { return '<span class="x-tchip">' + t + '<button type="button" aria-label="移除 ' + t + '">×</button></span>'; }).join("") + '<button type="button" class="x-tchip x-tchip--add">+ 添加</button></div></div>' +
+      '<label class="x-field">官网 URL<input type="url" placeholder="https://" /></label>' +
+      '<label class="x-field">GitHub URL<input type="url" value="https://github.com/modelcontextprotocol/servers" /></label>' +
+      '<label class="x-field x-wide">图标 URL<input type="url" placeholder="https://…/icon.png" /><span class="x-hint">留空时显示首字母色块</span></label>' +
+      '<fieldset class="x-field x-wide" style="border:0;padding:0;margin:0"><legend style="padding:0;margin-bottom:4px">关联工具</legend><div class="x-checks">' +
+        '<label class="x-opt"><input type="checkbox" checked />MCP 配置生成器</label><label class="x-opt"><input type="checkbox" />格式转换器</label><label class="x-opt"><input type="checkbox" />Token 成本估算器</label></div></fieldset>' +
+      "</div></section>";
+    var side = '<aside class="x-panel">' +
+      '<section class="x-card x-rough"><h3>发布设置</h3>' + SCRIB +
+        '<fieldset style="border:0;padding:0;margin:0 0 10px"><legend class="x-sub" style="padding:0">状态</legend>' +
+        '<label class="x-opt"><input type="radio" name="st" checked />草稿</label><label class="x-opt"><input type="radio" name="st" />发布</label></fieldset>' +
+        '<label class="x-field">精选排序<input type="number" min="0" placeholder="0 = 不精选" /><span class="x-hint">数字越小越靠前</span></label>' +
+        '<div class="x-btns"><button type="button" class="x-chip">保存草稿</button><button type="button" class="x-chip x-chip--go">发布</button></div></section>' +
+      '<section class="x-card x-rough" style="transform:rotate(.4deg)"><p class="x-sub">前台预览</p>' +
+        '<div class="x-prev">' + mono("Filesystem MCP", "MCP") + '<div><b>Filesystem MCP</b><small>让 AI 安全读写本地文件的官方 MCP 服务</small></div></div>' +
+        '<p class="x-note" style="margin-top:12px">MCP · stdio · 官方 · 文件系统</p></section></aside>';
+    return shell("resources", "新增资源", "/admin/resources/new", '<div class="x-form">' + main + side + "</div>");
+  }
+
+  function taxonomy() {
+    var cats = '<section class="x-card x-rough"><h3>分类</h3>' + SCRIB + '<p class="x-note" style="margin:-6px 0 8px">拖动 ⋮⋮ 调整前台显示顺序</p><ul class="x-list">' +
+      CATS.map(function (c) {
+        return '<li><span class="x-handle" aria-label="拖动排序">⋮⋮</span>' + mono(c[0], c[0]).replace("x-mono", "x-mono x-mono--s") + '<div><b>' + c[0] + '</b><br /><span class="x-slug">' + c[1] + '</span></div><span class="x-cnt">' + c[2] + ' 个资源</span><div class="x-btns"><button type="button" class="x-chip x-chip--sm">编辑</button><button type="button" class="x-chip x-chip--sm x-chip--del">删除</button></div></li>';
+      }).join("") + '</ul><button type="button" class="x-add">+ 新增分类</button></section>';
+    var tags = '<section class="x-card x-rough" style="transform:rotate(.3deg)"><h3>标签</h3>' + SCRIB + '<div class="x-cloud">' +
+      TAGS.map(function (t, i) {
+        var on = t[0] === "stdio";
+        var chip = '<button type="button" class="x-chip" aria-pressed="' + on + '"' + (on ? ' aria-expanded="true" aria-controls="tagPop"' : "") + ">" + t[0] + " <i>" + t[1] + "</i></button>";
+        if (i === 3) chip = '</div><div class="x-pop x-rough" id="tagPop" role="dialog" aria-label="编辑标签 stdio" style="--arrow:126px">' +
+          '<label class="x-field">名称<input value="stdio" /></label><label class="x-field">slug<input value="stdio" /></label>' +
+          '<div class="x-btns"><button type="button" class="x-chip x-chip--sm x-chip--del">删除</button><button type="button" class="x-chip x-chip--sm x-chip--go" style="margin-left:auto">保存</button></div></div><div class="x-cloud">' + chip;
+        return chip;
+      }).join("") + "</div>" +
+      '<div class="x-inline"><input placeholder="输入新标签名，回车添加" aria-label="新标签" /><button type="button" class="x-chip">添加</button></div></section>';
+    return shell("taxonomy", "分类标签", "/admin/taxonomy", '<div class="x-split">' + cats + tags + "</div>");
+  }
+
+  function featured() {
+    var list = '<section class="x-card x-rough"><h3>精选顺序</h3>' + SCRIB + '<ol class="x-feat">' +
+      FEAT.map(function (f, i) {
+        return '<li' + (f[3] ? ' class="is-draft"' : "") + '><span class="x-handle" aria-label="拖动排序">⋮⋮</span><span class="x-rank">' + (i + 1) + "</span>" + mono(f[0], f[1]) +
+          '<div class="x-txt"><b>' + f[0] + (f[3] ? ' <span class="x-st x-st--draft" style="font-size:12px;padding:0 8px">草稿</span>' : "") + "</b><small>" + f[1] + "</small>" +
+          (f[3] ? '<span class="x-wnote">⚠ 草稿不会在首页显示</span>' : "") + '</div><button type="button" class="x-x" aria-label="移除 ' + f[0] + '">×</button></li>';
+      }).join("") + "</ol>" +
+      '<label class="x-search" style="border-style:dashed">' + SEARCH + '<input type="search" placeholder="+ 从已发布资源添加…" aria-label="从已发布资源添加" /></label>' +
+      '<div class="x-btns" style="margin-top:16px;justify-content:flex-end"><button type="button" class="x-chip x-chip--go">保存排序</button></div></section>';
+    var n = 0;
+    var prev = '<section class="x-card x-rough" style="transform:rotate(.3deg)"><h3>首页预览</h3>' + SCRIB + '<p class="x-note" style="margin:-6px 0 12px">只显示已发布的精选，共 5 个</p><div class="x-mini">' +
+      FEAT.filter(function (f) { return !f[3]; }).map(function (f) { n++; return "<div>" + mono(f[0], f[1]) + "<b>" + f[0] + "</b><em>★" + n + "</em></div>"; }).join("") + "</div></section>";
+    return shell("featured", "精选管理", "/admin/featured", '<div class="x-split">' + list + prev + "</div>");
+  }
+
+  var STATES = {
+    login: [function () { return login(false); }, "管理员登录"],
+    "login-error": [function () { return login(true); }, "管理员登录"],
+    denied: [denied, "请先登录"],
+    resources: [resources, "资源管理"],
+    "resource-edit": [edit, "新增资源"],
+    taxonomy: [taxonomy, "分类标签"],
+    featured: [featured, "精选管理"]
+  };
+
+  window.showState = function (id) {
+    if (!STATES[id]) id = "login";
+    app.innerHTML = STATES[id][0]();
+    app.setAttribute("data-state", id);
+    document.title = STATES[id][1] + " · 蜡笔猫原型 后台";
+    if (location.hash.slice(1) !== id) history.replaceState(null, "", "#" + id);
+    window.scrollTo(0, 0);
+    return id;
+  };
+  window.addEventListener("hashchange", function () { showState(location.hash.slice(1)); });
+  showState(location.hash.slice(1) || "login");
+})();
+    </script>
+    <script src="hark.js"></script>
+  </body>
+</html>
