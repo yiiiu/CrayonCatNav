@@ -131,3 +131,33 @@ model DailyMetric {
   @@unique([date, eventType, resourceId, toolId])
   @@index([eventType, date])
 }
+
+/// 自建访问统计：页面浏览按日聚合（无 Cookie、匿名）。日期按 Asia/Shanghai 自然日。
+/// source：direct / internal / google / bing / other_search / social / referral；
+/// refDomain 只存来源域名（不存完整 URL），direct / internal / google / bing 为空串。
+model PageViewDaily {
+  id        String   @id @default(cuid())
+  date      DateTime @db.Date
+  path      String   @db.VarChar(160)
+  source    String   @db.VarChar(16)
+  refDomain String   @default("") @db.VarChar(253)
+  device    String   @db.VarChar(8)
+  views     Int      @default(0)
+
+  @@unique([date, path, source, refDomain, device])
+  @@index([date])
+}
+
+/// 当日独立访客：hash = sha256(当日随机盐 + IP + UA) 截断，不存 IP/UA 原文；盐每日轮换并删除，无法跨天关联。
+model DailyVisitor {
+  date DateTime @db.Date
+  hash String   @db.VarChar(32)
+
+  @@id([date, hash])
+}
+
+/// 访客哈希用的当日随机盐；只保留当天一条，过期即删。
+model AnalyticsSalt {
+  date DateTime @id @db.Date
+  salt String   @db.VarChar(64)
+}

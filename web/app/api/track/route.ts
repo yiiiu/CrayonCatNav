@@ -1,67 +1,40 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/data/prisma";
+import { classifySource, deviceOf, isBotUA, normalizePath, statDay } from "@/lib/analytics/traffic";
+import { clientIp, visitorHash } from "@/lib/analytics/visitor";
+import { dailySalt, recordEvent, recordPageView, recordVisitor } from "@/lib/data/analytics.repo";
 import { trackPayloadSchema } from "@/lib/validation/analytics";
 
+/**
+ * 匿名埋点入口：无 Cookie、不存 IP / UA / 完整来源 URL。
+ * - 业务事件（resource_view / tool_* / resource_to_tool_click）→ DailyMetric 按日计数；
+ * - page_view → PageViewDaily 按日聚合 + DailyVisitor 当日去重哈希。
+ * 机器人 UA 与后台 / 接口路径一律忽略。统计日按北京时间。
+ */
 export async function POST(req: NextRequest) {
   try {
-    const json = await req.json();
-    const parsed = trackPayloadSchema.safeParse(json);
+    const parsed = trackPayloadSchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json({ ok: false, error: "Invalid payload" }, { status: 400 });
     }
+    const ua = req.headers.get("user-agent") ?? "";
+    if (isBotUA(ua)) return new NextResponse(null, { status: 204 });
 
-    const { eventType, toolId: toolSlug, resourceId: resourceSlug } = parsed.data;
+    const day = statDay();
+    const p = parsed.data;
 
-    let toolDbId: string | null = null;
-    if (toolSlug) {
-      const tool = await prisma.tool.findUnique({
-        where: { slug: toolSlug },
-        select: { id: true },
-      });
-      toolDbId = tool?.id ?? null;
-    }
-
-    let resourceDbId: string | null = null;
-    if (resourceSlug) {
-      const res = await prisma.resource.findUnique({
-        where: { slug: resourceSlug },
-        select: { id: true },
-      });
-      resourceDbId = res?.id ?? null;
-    }
-
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
-
-    const existing = await prisma.dailyMetric.findFirst({
-      where: {
-        date: today,
-        eventType,
-        resourceId: resourceDbId,
-        toolId: toolDbId,
-      },
-    });
-
-    if (existing) {
-      await prisma.dailyMetric.update({
-        where: { id: existing.id },
-        data: { count: { increment: 1 } },
-      });
+    if (p.eventType === "page_view") {
+      const path = normalizePath(p.path);
+      if (!path) return new NextResponse(null, { status: 204 });
+      const { source, refDomain } = classifySource(p.ref ?? "", req.nextUrl.hostname);
+      await recordPageView(day, { path, source, refDomain, device: deviceOf(ua) });
+      const salt = await dailySalt(day);
+      await recordVisitor(day, visitorHash(salt, clientIp(req.headers), ua));
     } else {
-      await prisma.dailyMetric.create({
-        data: {
-          date: today,
-          eventType,
-          resourceId: resourceDbId,
-          toolId: toolDbId,
-          count: 1,
-        },
-      });
+      await recordEvent(day, p.eventType, p.toolId, p.resourceId);
     }
-
     return NextResponse.json({ ok: true });
   } catch {
-    // 埋点异常静默，返回 200 保证客户端主流程不被打断
+    // 埋点异常静默，返回 200 保证客户端主流程不被打断；不记录请求内容
     return NextResponse.json({ ok: false }, { status: 200 });
   }
 }

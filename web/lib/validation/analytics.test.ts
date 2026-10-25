@@ -44,3 +44,26 @@ describe("trackPayloadSchema", () => {
     expect(invalid.success).toBe(false);
   });
 });
+
+describe("page_view 载荷", () => {
+  it("合法：路径 + 来源主机名", () => {
+    expect(trackPayloadSchema.safeParse({ eventType: "page_view", path: "/resources/cursor", ref: "www.google.com" }).success).toBe(true);
+    expect(trackPayloadSchema.safeParse({ eventType: "page_view", path: "/" }).success).toBe(true);
+  });
+  it("拒绝完整来源 URL（只允许主机名）", () => {
+    expect(trackPayloadSchema.safeParse({ eventType: "page_view", path: "/", ref: "https://www.google.com/search?q=x" }).success).toBe(false);
+  });
+  it("拒绝后台 / 接口路径与非页面路径", () => {
+    expect(trackPayloadSchema.safeParse({ eventType: "page_view", path: "/admin/resources" }).success).toBe(false);
+    expect(trackPayloadSchema.safeParse({ eventType: "page_view", path: "/api/track" }).success).toBe(false);
+    expect(trackPayloadSchema.safeParse({ eventType: "page_view", path: "https://evil.com/" }).success).toBe(false);
+  });
+  it("严格拒绝额外字段（UA、IP、query 等）", () => {
+    expect(trackPayloadSchema.safeParse({ eventType: "page_view", path: "/", ua: "x" }).success).toBe(false);
+    expect(trackPayloadSchema.safeParse({ eventType: "page_view", path: "/", toolId: "mcp-config" }).success).toBe(false);
+  });
+  it("业务事件不能携带 path", () => {
+    expect(trackPayloadSchema.safeParse({ eventType: "tool_open", toolId: "mcp-config", path: "/" }).success).toBe(false);
+  });
+});
+
