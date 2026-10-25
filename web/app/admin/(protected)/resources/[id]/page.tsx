@@ -9,7 +9,7 @@ import { deleteResourceAction, saveResourceAction } from "../../actions";
 
 export const metadata = { title: "编辑资源" };
 
-type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string }> };
+type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string; note?: string }> };
 
 export default async function EditResourcePage({ params, searchParams }: Props) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
@@ -32,7 +32,7 @@ export default async function EditResourcePage({ params, searchParams }: Props) 
         categories={categories}
         tags={tags}
         tools={tools}
-        notice={sp.created ? "已创建" : undefined}
+        notice={sp.created === "candidate" ? `已从候选箱存为草稿，完善后可发布${sp.note ? `。${sp.note.slice(0, 200)}` : ""}` : sp.created ? "已创建" : undefined}
         initial={{
           slug: r.slug,
           name: r.name,
