@@ -40,6 +40,29 @@
 .pv { stroke: var(--blue); }
 .uv { stroke: var(--c-magenta); stroke-dasharray: 7 5; }
 .dot { fill: var(--paper); stroke: var(--ink); stroke-width: 2; }
+/* 悬浮浮层 */
+.plot { position: relative; }
+.svgHit { cursor: crosshair; touch-action: pan-y; border-radius: var(--wob2); }
+.svgHit:focus { outline: none; }
+.svgHit:focus-visible { outline: 3px dashed var(--blue); outline-offset: 4px; }
+.guide { stroke: var(--ink); stroke-width: 1.8; stroke-dasharray: 3 4; stroke-linecap: round; opacity: 0.55; }
+.hot { pointer-events: none; }
+.hotPv { fill: var(--blue); stroke: var(--ink); stroke-width: 2.4; }
+.hotUv { fill: var(--c-magenta); stroke: var(--ink); stroke-width: 2.2; }
+.tip {
+  position: absolute; z-index: 2; pointer-events: none;
+  display: grid; gap: 3px; min-width: 128px; padding: 8px 12px;
+  transform: translate(14px, -50%) rotate(-0.6deg);
+  background: #fff; border: 2px solid var(--ink); border-radius: var(--wob2); box-shadow: var(--shadow-sm);
+  font-size: 12px; font-weight: 700; color: var(--ink-2); white-space: nowrap;
+}
+.tipFlip { transform: translate(calc(-100% - 14px), -50%) rotate(0.6deg); }
+.tip b { font-size: 13px; font-weight: 900; color: var(--ink); }
+.tip span { display: flex; align-items: center; gap: 6px; }
+.tip em { margin-left: auto; padding-left: 12px; font-style: normal; font-size: 15px; font-weight: 900; color: var(--ink); font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: no-preference) {
+  .tip { transition: left 90ms ease-out, top 90ms ease-out; }
+}
 .legend { display: flex; gap: 18px; justify-content: flex-end; margin-top: 6px; font-size: 12px; font-weight: 800; color: var(--ink-2); }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .kPv, .kUv { display: inline-block; width: 22px; height: 0; border-top: 3px solid var(--blue); border-radius: 2px; }
