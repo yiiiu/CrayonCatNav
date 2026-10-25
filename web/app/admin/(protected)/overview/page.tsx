@@ -6,7 +6,7 @@ import { Bars } from "@/components/admin/overview/Bars";
 import ov from "@/components/admin/overview/overview.module.css";
 import { SearchPanel } from "@/components/admin/overview/SearchPanel";
 import { TrendChart } from "@/components/admin/overview/TrendChart";
-import { Card } from "@/components/ui";
+import { Card, ScrollArea } from "@/components/ui";
 import { deviceLabels, sourceLabels, type Device, type TrafficSource } from "@/lib/analytics/traffic";
 import { trafficOverview } from "@/lib/data/analytics.repo";
 import { getBingPanel, getGscPanel } from "@/lib/data/search-console";
@@ -20,7 +20,7 @@ export default function OverviewPage() {
       <AdminTop title="数据总览">
         <span className={ov.sub}>自建统计无 Cookie、匿名；按北京时间自然日统计</span>
       </AdminTop>
-      <div className={styles.scrollPane}>
+      <ScrollArea className={styles.scrollPane} viewportClassName={styles.scrollPaneVp}>
         <Suspense fallback={<Card className={ov.card}><p className={ov.empty}>统计加载中…</p></Card>}>
           <Traffic />
         </Suspense>
@@ -32,7 +32,7 @@ export default function OverviewPage() {
             <Bing />
           </Suspense>
         </div>
-      </div>
+      </ScrollArea>
     </>
   );
 }

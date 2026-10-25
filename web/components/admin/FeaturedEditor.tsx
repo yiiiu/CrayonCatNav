@@ -19,7 +19,7 @@ import {
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent, type TouchEvent } from "react";
-import { Button } from "@/components/ui";
+import { Button, ScrollArea } from "@/components/ui";
 import { useToast } from "@/components/tool/shared";
 import type { ActionResult } from "@/lib/domain/result";
 import { moveById, previewOrder, toFeaturedFormData } from "@/lib/ui/reorder";
@@ -149,7 +149,9 @@ export function FeaturedEditor({ action, initial, candidates, max }: Props) {
         onDragCancel={reset}
       >
         <SortableContext items={items.map((x) => x.id)} strategy={verticalListSortingStrategy}>
-          <ol className={styles.flist}>
+          {/* viewport 是原生滚动容器，dnd-kit 拖到边缘时据此自动滚动 */}
+          <ScrollArea className={styles.flist}>
+            <ol className={styles.flistOl}>
             {items.map((it) => (
               <SortableRow
                 key={it.id}
@@ -158,7 +160,8 @@ export function FeaturedEditor({ action, initial, candidates, max }: Props) {
                 onRemove={() => void persist(items.filter((x) => x.id !== it.id), `已移除「${it.name}」`)}
               />
             ))}
-          </ol>
+            </ol>
+          </ScrollArea>
         </SortableContext>
         <DragOverlay dropAnimation={{ duration: 180, easing: "ease-out" }}>
           {active ? <RowBody item={active} index={numberOf(active.id)} lifted /> : null}

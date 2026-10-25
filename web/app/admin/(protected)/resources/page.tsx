@@ -3,7 +3,7 @@ import { AdminTop } from "@/components/admin/AdminTop";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import styles from "@/components/admin/admin.module.css";
 import { StatusBadge } from "@/components/admin/StatusBadge";
-import { ButtonLink, Card, ChipLink } from "@/components/ui";
+import { ButtonLink, Card, ChipLink, ScrollArea } from "@/components/ui";
 import type { ResourceStatus } from "@/generated/prisma/client";
 import { adminSearch } from "@/lib/data/resource.repo";
 import { adminListCategories } from "@/lib/data/taxonomy.repo";
@@ -61,7 +61,7 @@ export default async function AdminResourcesPage({ searchParams }: { searchParam
           <ButtonLink href="/admin/resources/new" variant="primary" className={styles.grow}>+ 新增资源</ButtonLink>
         </form>
 
-        <div className={`${styles.scroll} ${styles.body}`}>
+        <ScrollArea orientation="both" className={`${styles.scroll} ${styles.body}`} viewportClassName={styles.scrollVp}>
           <table className={styles.tbl}>
             <thead>
               <tr>
@@ -111,7 +111,7 @@ export default async function AdminResourcesPage({ searchParams }: { searchParam
               })}
             </tbody>
           </table>
-        </div>
+        </ScrollArea>
 
         <div className={styles.pager}>
           <span>共 {total} 条</span>

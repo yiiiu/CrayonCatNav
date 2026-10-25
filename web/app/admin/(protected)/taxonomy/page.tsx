@@ -1,7 +1,7 @@
 import { AdminTop } from "@/components/admin/AdminTop";
 import styles from "@/components/admin/admin.module.css";
 import { TaxonomyRow } from "@/components/admin/TaxonomyRow";
-import { Card } from "@/components/ui";
+import { Card, ScrollArea } from "@/components/ui";
 import { adminListCategories, adminListTags } from "@/lib/data/taxonomy.repo";
 import { deleteCategoryAction, deleteTagAction, saveCategoryAction, saveTagAction } from "../actions";
 
@@ -21,7 +21,7 @@ export default async function TaxonomyPage() {
           <div style={{ marginBottom: 12 }}>
             <TaxonomyRow key={`new-cat-${categories.length}`} kind="category" save={saveCategoryAction.bind(null, null)} />
           </div>
-          <div className={`${styles.scrollRows} ${styles.body}`}>
+          <ScrollArea className={styles.body} viewportClassName={styles.scrollRows}>
             {categories.map((c) => (
               <TaxonomyRow
                 key={`${c.id}-${c.slug}-${c.name}-${c.sortOrder}`}
@@ -32,7 +32,7 @@ export default async function TaxonomyPage() {
                 remove={deleteCategoryAction.bind(null, c.id)}
               />
             ))}
-          </div>
+          </ScrollArea>
         </Card>
         <Card className={styles.fill} style={{ transform: "rotate(0.3deg)" }}>
           <h2 className={styles.cardTitle}>标签（共 {tags.length} 个）</h2>
@@ -42,7 +42,7 @@ export default async function TaxonomyPage() {
           <div style={{ marginBottom: 12 }}>
             <TaxonomyRow key={`new-tag-${tags.length}`} kind="tag" save={saveTagAction.bind(null, null)} />
           </div>
-          <div className={`${styles.scrollRows} ${styles.body}`}>
+          <ScrollArea className={styles.body} viewportClassName={styles.scrollRows}>
             {tags.map((t) => (
               <TaxonomyRow
                 key={`${t.id}-${t.slug}-${t.name}`}
@@ -53,7 +53,7 @@ export default async function TaxonomyPage() {
                 remove={deleteTagAction.bind(null, t.id)}
               />
             ))}
-          </div>
+          </ScrollArea>
         </Card>
       </div>
     </>

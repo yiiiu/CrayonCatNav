@@ -43,13 +43,16 @@
 /* 主区：纵向弹性列，最后的主卡片（.fill）吃掉剩余高度并在内部滚动 */
 .pane { display: flex; flex-direction: column; gap: 0; min-width: 0; min-height: 0; height: 100%; }
 .pane > * { flex: none; }
-.pane > .fill, .pane > .split, .pane > .form { flex: 1 1 auto; min-height: 0; }
+.pane > .fill, .pane > .split, .pane > .formArea { flex: 1 1 auto; min-height: 0; }
 /* 可填充卡片（提高优先级以覆盖 Card 的 display:block）：标题/工具条/分页固定，中间 .body 区滚动 */
 .pane .fill { display: flex; flex-direction: column; min-height: 0; }
 .pane .fill > * { flex: none; }
+/* 内部滚动区统一用 <ScrollArea>：外层（className）负责在弹性列里占位，viewport（viewportClassName）才是滚动容器并承载内容布局。
+   viewport 右侧留 14px 给叠加的手绘滚动条，外层用负外边距抵消，保持视觉对齐。 */
 /* 多卡片页面（数据总览）：整个内容区作为一个滚动容器，留出卡片阴影空间 */
-.pane > .scrollPane { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; align-content: start; gap: 22px; margin: -6px -14px 0 -6px; padding: 6px 14px 14px 6px; }
-.pane .fill > .body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.pane > .scrollPane { flex: 1 1 auto; min-height: 0; margin: -6px -14px 0 -6px; }
+.scrollPaneVp { display: grid; align-content: start; gap: 22px; padding: 6px 14px 14px 6px; }
+.pane .fill > .body { flex: 1 1 auto; min-height: 0; }
 .cardTitle { margin: 0 0 12px; font-size: 18px; font-weight: 900; }
 
 /* 双栏并排容器，对齐原型 .x-split */
@@ -68,12 +71,8 @@
 .search input { flex: 1; min-width: 0; border: 0; background: transparent; font: 600 var(--fs-md) var(--font); color: var(--ink); outline: none; }
 .sel { font: 700 var(--fs-sm) var(--font); color: var(--ink); background: #fff; border: var(--stroke) solid var(--ink); border-radius: var(--wob2); min-height: 46px; padding: 0 12px; }
 .seg { display: flex; gap: 8px; flex-wrap: wrap; }
-.scroll {
-  overflow: auto;
-  margin: 0 -8px;
-  padding: 0 8px 6px;
-  overscroll-behavior: contain;
-}
+.scroll { margin: 0 -14px 0 -8px; }
+.scrollVp { padding: 0 14px 10px 8px; }
 .tbl { width: 100%; min-width: 820px; border-collapse: collapse; font-size: var(--fs-sm); }
 .tbl th, .tbl td { padding: 12px 10px; text-align: left; white-space: nowrap; border-bottom: 1.5px solid color-mix(in srgb, var(--ink) 16%, transparent); vertical-align: middle; }
 .tbl thead th {
@@ -104,11 +103,13 @@
 .pager a { color: var(--blue); text-decoration: underline; }
 
 /* 表单 */
-.form { display: grid; grid-template-columns: minmax(0, 1fr) 300px; grid-template-rows: minmax(0, 1fr); gap: 24px; align-items: stretch; }
+.formArea > .formVp { display: flex; flex-direction: column; overflow: visible; }
+.form { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 300px; grid-template-rows: minmax(0, 1fr); gap: 24px; align-items: stretch; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
 .wide { grid-column: 1 / -1; }
 /* 表单滚动区：内容是两列网格，留出聚焦光圈空间 */
-.formBody { align-content: start; margin: 0 -8px; padding: 4px 8px 6px; }
+.formBody { margin: 0 -14px 0 -8px; }
+.formBodyVp { align-content: start; padding: 4px 14px 6px 8px; }
 .field { display: grid; gap: 6px; margin-bottom: 14px; font-size: var(--fs-sm); font-weight: 700; }
 .field input, .field select, .field textarea { font: 600 var(--fs-md) var(--font); color: var(--ink); background: #fff; border: var(--stroke) solid var(--ink); border-radius: var(--wob2); padding: 9px 12px; min-height: var(--tap); outline: none; width: 100%; }
 .field textarea { min-height: 140px; resize: vertical; line-height: 1.6; border-radius: 12px 18px 14px 16px; }
@@ -118,21 +119,23 @@
 .hint { font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); }
 .alert { margin: 0 0 14px; padding: 10px 14px; font-size: var(--fs-sm); font-weight: 800; border: 2px solid var(--err); color: var(--err); background: color-mix(in srgb, var(--err) 10%, var(--paper)); border-radius: var(--wob2); }
 .ok { margin: 0 0 14px; padding: 10px 14px; font-size: var(--fs-sm); font-weight: 800; border: 2px solid var(--c-green); color: #1f5a30; background: color-mix(in srgb, var(--c-green) 14%, var(--paper)); border-radius: var(--wob2); }
-.checks { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; background: #fff; border: var(--stroke) solid var(--ink); border-radius: var(--wob2); max-height: 180px; overflow-y: auto; }
+.checks { background: #fff; border: var(--stroke) solid var(--ink); border-radius: var(--wob2); }
+.checksVp { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 14px 8px 8px; max-height: 180px; }
 .check { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; font-size: 13px; font-weight: 800; background: var(--tint); border: 2px solid var(--ink); border-radius: var(--wob2); cursor: pointer; }
 .check input { width: 18px; height: 18px; margin: 0; accent-color: var(--blue); }
 .opt { display: flex; align-items: center; gap: 10px; min-height: var(--tap); font-size: var(--fs-md); font-weight: 700; cursor: pointer; }
 .opt input { width: 22px; height: 22px; margin: 0; accent-color: var(--blue); }
 .panel { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
 /* 右栏卡片区自身滚动，阴影留出空间；保存按钮固定在底部 */
-.panelScroll { flex: 1 1 auto; min-height: 0; display: grid; align-content: start; gap: 20px; overflow-y: auto; overscroll-behavior: contain; margin: -4px -10px 0 -4px; padding: 4px 10px 10px 4px; }
+.panelScroll { flex: 1 1 auto; min-height: 0; margin: -4px -14px 0 -4px; }
+.panelScrollVp { display: grid; align-content: start; gap: 20px; padding: 4px 14px 10px 4px; }
 .btns { flex: none; display: flex; gap: 10px; flex-wrap: wrap; }
 .sugg { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; font-weight: 700; color: var(--ink-2); }
 .linkBtn { background: none; border: 0; padding: 0; font: inherit; color: var(--blue); text-decoration: underline; cursor: pointer; }
 
 /* 分类标签 & 精选 */
 .rows { display: grid; gap: 10px; }
-.scrollRows { display: grid; align-content: start; gap: 10px; overflow-y: auto; padding-right: 6px; overscroll-behavior: contain; }
+.scrollRows { display: grid; align-content: start; gap: 10px; padding-right: 14px; }
 .row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) 90px auto; gap: 10px; align-items: start; }
 .rowTag { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
 .row .field { margin: 0; }
@@ -141,7 +144,8 @@
 .feditor { display: flex; flex-direction: column; min-height: 0; }
 .fhead { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .saveState { flex: none; font-size: 13px; font-weight: 800; color: var(--blue); }
-.flist { flex: 1 1 auto; min-height: 0; list-style: none; margin: 0; padding: 2px 8px 8px 2px; display: grid; align-content: start; gap: 10px; overflow-y: auto; overscroll-behavior: contain; }
+.flist { flex: 1 1 auto; min-height: 0; }
+.flistOl { list-style: none; margin: 0; padding: 2px 14px 8px 2px; display: grid; align-content: start; gap: 10px; }
 .fitem { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #fff; border: 2px solid var(--ink); border-radius: var(--wob2); cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
 .fitem:hover { background: color-mix(in srgb, var(--tint) 35%, #fff); }
 /* 拖动中：原位置变成虚线占位，跟手的是抬起的副本 */
@@ -154,34 +158,6 @@
 .fitem b { flex: 1; min-width: 0; }
 .num { flex: none; width: 32px; height: 32px; display: grid; font-variant-numeric: tabular-nums; place-items: center; font-weight: 900; background: var(--c-yellow); border: 2px solid var(--ink); border-radius: 50%; }
 
-/* 容器内纵向滚动条轻量样式 */
-.scroll, .scrollRows, .checks, .flist, .scrollPane, .panelScroll, .formBody, .form {
-  scrollbar-width: thin;
-  scrollbar-color: var(--ink-2) transparent;
-}
-.scrollPane::-webkit-scrollbar,
-.panelScroll::-webkit-scrollbar,
-.formBody::-webkit-scrollbar,
-.form::-webkit-scrollbar,
-.scroll::-webkit-scrollbar,
-.scrollRows::-webkit-scrollbar,
-.checks::-webkit-scrollbar,
-.flist::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-.scrollPane::-webkit-scrollbar-thumb,
-.panelScroll::-webkit-scrollbar-thumb,
-.formBody::-webkit-scrollbar-thumb,
-.form::-webkit-scrollbar-thumb,
-.scroll::-webkit-scrollbar-thumb,
-.scrollRows::-webkit-scrollbar-thumb,
-.checks::-webkit-scrollbar-thumb,
-.flist::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--ink-2) 60%, transparent);
-  border-radius: 4px;
-}
-
 @media (max-width: 960px) {
   /* 侧栏收成顶部横条，主区仍锁在视口内 */
   .shell { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); gap: 16px; }
@@ -192,11 +168,14 @@
   .bottom { flex-direction: row; flex: none; margin: 0 0 0 auto; padding: 0 0 0 8px; border-top: 0; border-left: 2px dashed var(--ink-2); }
   .nav a, .bottom a, .bottom button { padding: 0 12px; font-size: 14px; }
   .split { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
-  /* 表单单栏：整张表单作为一个滚动区 */
-  .form { grid-template-columns: 1fr; grid-template-rows: none; overflow-y: auto; overscroll-behavior: contain; padding: 0 8px 8px 0; margin-right: -8px; }
-  .pane .form > .fill > .body { overflow: visible; }
+  /* 表单单栏：整张表单作为一个滚动区（内部两个滚动区解除锁定） */
+  .pane > .formArea { margin-right: -14px; }
+  .formArea > .formVp { overflow-x: hidden; overflow-y: auto; padding: 0 14px 8px 0; }
+  .form { flex: none; grid-template-columns: 1fr; grid-template-rows: none; }
+  .formBody > .formBodyVp { overflow: visible; }
   .panel { min-height: auto; }
-  .panelScroll { overflow: visible; margin: 0; padding: 0; }
+  .panelScroll { margin: 0; }
+  .panelScroll > .panelScrollVp { overflow: visible; padding: 0; }
 }
 
 /* 窄屏 / 矮屏：解除视口锁定，允许整页滚动；内部滚动区给上限，杜绝溢出 */
@@ -204,10 +183,12 @@
   .viewport { height: auto; min-height: 100vh; overflow: visible; padding: 14px 14px 32px; }
   .shell { height: auto; grid-template-rows: auto auto; }
   .pane { height: auto; }
-  .pane > .scrollPane { overflow: visible; margin: 0; padding: 0; }
+  .pane > .scrollPane { margin: 0; }
+  .scrollPane > .scrollPaneVp { overflow: visible; padding: 0; }
   .pane .fill > .body, .flist { max-height: 65vh; max-height: 65dvh; }
   .split { grid-template-rows: auto auto; }
-  .form { overflow: visible; padding: 0; margin: 0; }
+  .pane > .formArea { margin: 0; }
+  .formArea > .formVp { overflow: visible; padding: 0; }
   .pane .form > .fill > .body { max-height: none; }
   .top h1 { font-size: 22px; }
 }
