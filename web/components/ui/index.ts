@@ -1,4 +1,5 @@
 export { Button } from "./Button";
+export { ConfirmButton, ConfirmDialog, type ConfirmOptions, type ConfirmTone } from "./ConfirmDialog";
 export { Card } from "./Card";
 export { Chip, ChipLink } from "./Chip";
 export { EmptyState } from "./EmptyState";

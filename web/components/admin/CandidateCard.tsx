@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { Button } from "@/components/ui";
+import { Button, ConfirmButton } from "@/components/ui";
 import type { ActionResult } from "@/lib/domain/result";
 import styles from "./admin.module.css";
 import a from "./agent.module.css";
@@ -137,17 +137,16 @@ export function CandidateCard({ c, categories, review, reject }: Props) {
               <Button type="submit" name="intent" value="draft" disabled={busy}>
                 存为草稿并编辑
               </Button>
-              <button
-                type="submit"
+              <ConfirmButton
                 className={a.reject}
                 formAction={rejectAction}
                 disabled={busy}
-                onClick={(e) => {
-                  if (!window.confirm(`拒绝「${c.name}」？之后同一链接不会再推送。`)) e.preventDefault();
-                }}
+                title="拒绝候选"
+                message={`拒绝「${c.name}」？之后同一链接不会再推送。`}
+                confirmText="拒绝"
               >
                 {rPending ? "处理中…" : "拒绝"}
-              </button>
+              </ConfirmButton>
             </div>
           </form>
         </>

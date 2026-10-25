@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AdminTop } from "@/components/admin/AdminTop";
-import { ConfirmButton } from "@/components/admin/ConfirmButton";
+import { ConfirmButton } from "@/components/ui";
 import styles from "@/components/admin/admin.module.css";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { ButtonLink, Card, ChipLink, ScrollArea } from "@/components/ui";
@@ -99,7 +99,7 @@ export default async function AdminResourcesPage({ searchParams }: { searchParam
                         <form action={changeStatusAction.bind(null, r.id)}>
                           <input type="hidden" name="to" value={toggleTo} />
                           {toggleTo === "archived" ? (
-                            <ConfirmButton className={styles.warn} message={`确定下架「${r.name}」？前台将立即不可见。`}>下架</ConfirmButton>
+                            <ConfirmButton className={styles.warn} title="下架资源" message={`确定下架「${r.name}」？前台将立即不可见。`} confirmText="下架">下架</ConfirmButton>
                           ) : (
                             <button type="submit">发布</button>
                           )}

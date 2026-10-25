@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import type { ActionResult } from "@/lib/domain/result";
+import { ConfirmButton } from "@/components/ui";
 import styles from "./admin.module.css";
 
 type Props = {
@@ -43,19 +44,17 @@ export function TaxonomyRow({ kind, save, remove, initial, usage }: Props) {
         <div className={styles.rowActs}>
           <button type="submit" className={styles.linkBtn} disabled={saving}>{isNew ? "+ 新增" : "保存"}</button>
           {!isNew && remove && (
-            <button
-              type="submit"
+            <ConfirmButton
               formAction={delAction}
               className={styles.linkBtn}
               style={{ color: "#9b1e1e" }}
               disabled={deleting}
-              onClick={(e) => {
-                const extra = kind === "tag" && usage ? `，将从 ${usage} 个资源上移除` : "";
-                if (!window.confirm(`确定删除${label}「${initial.name}」${extra}？`)) e.preventDefault();
-              }}
+              title={`删除${label}`}
+              message={`确定删除${label}「${initial.name}」${kind === "tag" && usage ? `，将从 ${usage} 个资源上移除` : ""}？`}
+              confirmText="删除"
             >
               删除
-            </button>
+            </ConfirmButton>
           )}
           {usage !== undefined && <span className={styles.hint}>{usage} 个资源</span>}
         </div>

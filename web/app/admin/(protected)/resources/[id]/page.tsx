@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminTop } from "@/components/admin/AdminTop";
-import { ConfirmButton } from "@/components/admin/ConfirmButton";
+import { ConfirmButton } from "@/components/ui";
 import { ResourceForm } from "@/components/admin/ResourceForm";
 import { findById } from "@/lib/data/resource.repo";
 import { adminListCategories, adminListTags, adminListTools } from "@/lib/data/taxonomy.repo";
@@ -21,7 +21,7 @@ export default async function EditResourcePage({ params, searchParams }: Props) 
         <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
           <Link href="/admin/resources">‹ 返回列表</Link>
           <form action={deleteResourceAction.bind(null, r.id)}>
-            <ConfirmButton message={`确定永久删除「${r.name}」？此操作不可恢复。`} style={{ font: "800 14px var(--font)", color: "#9b1e1e", background: "none", border: 0, textDecoration: "underline", cursor: "pointer", minHeight: 44 }}>
+            <ConfirmButton title="永久删除资源" message={`确定永久删除「${r.name}」？此操作不可恢复。`} confirmText="永久删除" style={{ font: "800 14px var(--font)", color: "#9b1e1e", background: "none", border: 0, textDecoration: "underline", cursor: "pointer", minHeight: 44 }}>
               删除资源
             </ConfirmButton>
           </form>
