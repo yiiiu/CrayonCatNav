@@ -1,0 +1,43 @@
+[
+ {
+  "_id": "67e454cdd4f34388bcd19c38",
+  "id": "enzostvs/deepsite",
+  "cardData": {
+   "title": "DeepSite v4",
+   "sdk": "docker",
+   "short_description": "Generate any application by Vibe Coding it"
+  },
+  "lastModified": "2026-02-06T12:47:43.000Z",
+  "likes": 16604,
+  "private": false,
+  "sdk": "docker",
+  "tags": [
+   "docker",
+   "region:us"
+  ]
+ },
+ {
+  "_id": "643d3016d2c1e08a5eca0c22",
+  "id": "open-llm-leaderboard/open_llm_leaderboard",
+  "cardData": {
+   "title": "Open LLM Leaderboard",
+   "sdk": "docker",
+   "short_description": "Track, rank and evaluate open LLMs and chatbots"
+  },
+  "lastModified": "2026-05-27T08:54:50.000Z",
+  "likes": 14144,
+  "private": false,
+  "sdk": "docker",
+  "tags": [
+   "docker",
+   "leaderboard",
+   "modality:text",
+   "submission:automatic",
+   "test:public",
+   "language:english",
+   "eval:code",
+   "eval:math",
+   "region:us"
+  ]
+ }
+]

@@ -1,0 +1,129 @@
+{
+ "servers": [
+  {
+   "server": {
+    "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+    "name": "academy.ase/periodic-system",
+    "description": "Practices for building software with coding agents, each with a test you check on your repo.",
+    "title": "Agentic Engineering Periodic System",
+    "version": "2026.4.1",
+    "websiteUrl": "https://ase.academy/agentic-engineering/periodic-system/",
+    "remotes": [
+     {
+      "type": "streamable-http",
+      "url": "https://ase.academy/mcp"
+     }
+    ]
+   },
+   "_meta": {
+    "io.modelcontextprotocol.registry/official": {
+     "status": "active",
+     "statusChangedAt": "2026-10-22T20:23:57.545065Z",
+     "publishedAt": "2026-10-22T20:23:57.545065Z",
+     "updatedAt": "2026-10-22T20:23:57.545065Z",
+     "isLatest": true
+    }
+   }
+  },
+  {
+   "server": {
+    "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+    "name": "ai.achromat/mcp-server",
+    "description": "Recall and calibrate agent tool calls against verified policy lessons from Achromat MOM.",
+    "title": "Achromat MOM",
+    "repository": {
+     "url": "https://github.com/achromat-ai/achromat-mcp-server",
+     "source": "github"
+    },
+    "version": "0.1.3",
+    "websiteUrl": "https://mom.achromat.ai",
+    "remotes": [
+     {
+      "type": "streamable-http",
+      "url": "https://mom.achromat.ai/mcp"
+     }
+    ]
+   },
+   "_meta": {
+    "io.modelcontextprotocol.registry/official": {
+     "status": "active",
+     "statusChangedAt": "2026-10-22T08:00:48.478963Z",
+     "publishedAt": "2026-10-22T08:00:48.478963Z",
+     "updatedAt": "2026-10-22T08:00:48.478963Z",
+     "isLatest": true
+    }
+   }
+  },
+  {
+   "server": {
+    "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+    "name": "ai.engineware/docs-mcp",
+    "description": "EngineWare developer docs: search_docs and get_doc. Read-only. API key required (owner-approved).",
+    "title": "EngineWare Docs",
+    "version": "1.0.0",
+    "websiteUrl": "https://engineware.ai/developers",
+    "remotes": [
+     {
+      "type": "streamable-http",
+      "url": "https://engineware.ai/api/docs-mcp",
+      "headers": [
+       {
+        "description": "EngineWare API key, issued only after owner approval (request: cware@engineware.ai). OAuth 2.1 + PKCE also accepted; it asks for the same key.",
+        "isRequired": true,
+        "isSecret": true,
+        "name": "X-API-Key"
+       }
+      ]
+     }
+    ]
+   },
+   "_meta": {
+    "io.modelcontextprotocol.registry/official": {
+     "status": "deleted",
+     "statusChangedAt": "2026-10-22T20:55:11.28568Z",
+     "statusMessage": "Withdrawn by owner order 2026-10-22",
+     "publishedAt": "2026-10-22T20:41:54.289296Z",
+     "updatedAt": "2026-10-22T20:55:11.28568Z",
+     "isLatest": true
+    }
+   }
+  },
+  {
+   "server": {
+    "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+    "name": "ae.waggle/vera",
+    "description": "Scrape, search and extract the public web. 3,000 free credits at https://vera.waggle.ae/signup",
+    "title": "Vera",
+    "version": "0.2.0",
+    "remotes": [
+     {
+      "type": "streamable-http",
+      "url": "https://vera.waggle.ae/v1/mcp",
+      "headers": [
+       {
+        "description": "Your Vera API key as a Bearer token. Create a key, with 3,000 free credits, at https://vera.waggle.ae/signup.",
+        "isRequired": true,
+        "isSecret": true,
+        "placeholder": "Bearer vera_live_...",
+        "name": "Authorization"
+       }
+      ]
+     }
+    ]
+   },
+   "_meta": {
+    "io.modelcontextprotocol.registry/official": {
+     "status": "active",
+     "statusChangedAt": "2026-10-21T08:17:47.171381Z",
+     "publishedAt": "2026-10-21T08:17:47.171381Z",
+     "updatedAt": "2026-10-21T08:17:47.171381Z",
+     "isLatest": true
+    }
+   }
+  }
+ ],
+ "metadata": {
+  "nextCursor": "x",
+  "count": 4
+ }
+}
