@@ -12,6 +12,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { PrismaClient, type PricingType } from "../generated/prisma/client";
 import { toolMetas } from "../lib/tools/metas";
+import { tagSlugFor } from "./tag-slugs";
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
@@ -497,12 +498,14 @@ async function main() {
 
     // 处理标签
     for (const tagName of item.tags) {
-      const tagSlug = encodeURIComponent(tagName.toLowerCase().replace(/\s+/g, "-"));
-      const tag = await prisma.tag.upsert({
-        where: { slug: tagSlug },
-        update: { name: tagName },
-        create: { name: tagName, slug: tagSlug },
-      });
+      const tagSlug = tagSlugFor(tagName);
+      // 旧版种子把中文标签写成了 URL 编码的 slug（如 gui%E6%93%8D%E4%BD%9C），按名称找到后原地改正
+      const existing =
+        (await prisma.tag.findUnique({ where: { slug: tagSlug } })) ??
+        (await prisma.tag.findFirst({ where: { name: tagName, slug: { contains: "%" } } }));
+      const tag = existing
+        ? await prisma.tag.update({ where: { id: existing.id }, data: { name: tagName, slug: tagSlug } })
+        : await prisma.tag.create({ data: { name: tagName, slug: tagSlug } });
       await prisma.resourceTag.upsert({
         where: { resourceId_tagId: { resourceId: resource.id, tagId: tag.id } },
         update: {},
