@@ -15,30 +15,61 @@
   text-align: center;
 }
 
-.bigLogo {
+/* 卡片描边改用小幅抖动：大幅位移会让描边整体偏离盒子，看起来内容不居中 */
+.center .loginCard::before { filter: url(#wobble-s); }
+
+/* 头像：外框（描边、抖动、旋转、阴影）放在容器上，位图与闭眼层一起被裁切、一起旋转，保证对齐 */
+.avatar {
+  position: relative;
+  display: block;
   width: 104px;
   height: 104px;
   margin: 0 auto;
+  overflow: hidden;
   border-radius: 42% 58% 46% 54% / 55% 45% 55% 45%;
   border: 3px solid var(--ink);
-  object-fit: cover;
   filter: url(#wobble-s);
   transform: rotate(-4deg);
   box-shadow: 3px 4px 0 var(--ink);
+  background: var(--c-magenta);
+}
+
+.avatarImg,
+.lids {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   display: block;
 }
 
-.h1 {
-  margin: 16px 0 0;
-  font-size: 28px;
-  font-weight: 900;
-  letter-spacing: 2px;
-  color: var(--ink);
-  text-shadow: 2px 2px 0 var(--paper), 3px 4px 0 var(--blue);
+.avatarImg { object-fit: cover; }
+
+/* 闭眼：眼皮从上往下合上（约 180ms），睫毛线稍后淡入；失焦反向睁开 */
+.lid {
+  transform: scaleY(0);
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  transition: transform 180ms cubic-bezier(0.3, 0.7, 0.4, 1);
 }
 
+.lash {
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+
+.loginCard:has(.pwField:focus-within) .lid { transform: scaleY(1); }
+.loginCard:has(.pwField:focus-within) .lash { opacity: 1; transition-delay: 70ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lid, .lash { transition: none; }
+}
+
+/* 标题：letter-spacing 会在最后一个字后多出 2px，左侧补同样的内边距抵消；
+   蓝色投影改为以纵向为主，避免整体视觉右偏 */
 .note {
   margin: 6px 0 0;
+  text-align: center;
   font-size: 13px;
   line-height: 1.6;
   color: var(--ink-2);
@@ -104,6 +135,7 @@
 
 .submitBtn {
   width: 100%;
+  justify-content: center;
   margin-top: 4px;
 }
 

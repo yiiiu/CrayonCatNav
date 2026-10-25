@@ -25,7 +25,7 @@ export function LoginForm() {
           required
         />
       </label>
-      <label className={`${styles.field} ${state.error ? styles.fieldBad : ""}`}>
+      <label className={`${styles.field} ${styles.pwField} ${state.error ? styles.fieldBad : ""}`}>
         <span>密码</span>
         <input
           name="password"
@@ -41,4 +41,3 @@ export function LoginForm() {
     </form>
   );
 }
-
