@@ -28,6 +28,7 @@ app/(public)/      前台：首页、/resources、/tools/[slug]
 app/admin/         后台：login + (protected) 受保护路由
 lib/tools/         工具注册表（registry.ts / metas.ts）与各工具逻辑
 lib/data/          Prisma 仓储层（publishedOnly 防草稿泄漏）
+lib/agent/         采集 Agent：URL 规范化、SSRF 防护、密钥加解密、白名单来源解析、模型调用
 lib/auth/          Auth.js 配置、requireAdmin、登录限流
 lib/validation/    zod schema（前后端共用）
 components/        ui / layout / tool
