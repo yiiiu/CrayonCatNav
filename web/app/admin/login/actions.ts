@@ -20,7 +20,7 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
     await signIn("credentials", {
       email: email.trim().toLowerCase(),
       password,
-      redirectTo: "/admin/resources",
+      redirectTo: "/admin/overview",
     });
     return {};
   } catch (err) {
