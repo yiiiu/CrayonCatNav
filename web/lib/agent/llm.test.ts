@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildUserPrompt, chat, LlmError, normalizeBaseUrl } from "./llm";
+import { buildUserPrompt, chat, LlmError, normalizeBaseUrl, SYSTEM_PROMPT } from "./llm";
 
 const cfg = { baseUrl: "https://llm.example.com/v1/", apiKey: "sk-secret-123456", model: "test-model" };
 
@@ -63,5 +63,24 @@ describe("buildUserPrompt", () => {
     expect(p).toContain("star/点赞：1200");
     expect(p).toContain("来源更新时间：2026-10-01");
     expect(p).toContain("主要语言：Go");
+  });
+  const raw = { source: "github" as const, sourceUrl: "https://github.com/a/b", title: "b", websiteUrl: null, githubUrl: "https://github.com/a/b", description: "desc", stars: null, sourceUpdatedAt: null };
+  const categories = [
+    { slug: "mcp", name: "MCP 服务", description: "实现 MCP 协议的服务" },
+    { slug: "ai-creation", name: "AI 创作", description: "" },
+  ];
+  it("给出目标分类时包含目标分类、说明与归类要求", () => {
+    const p = buildUserPrompt(raw, { categories, target: categories[0], tagNames: [], tools: [] });
+    expect(p).toContain("mcp: MCP 服务——实现 MCP 协议的服务");
+    expect(p).toContain("ai-creation: AI 创作\n");
+    expect(p).toContain("【本次目标分类】\nmcp: MCP 服务\n分类说明：实现 MCP 协议的服务");
+    expect(p).toContain("属于这个分类就把 categorySlug 设为 mcp");
+    expect(p).toContain("confidence 不要超过 0.5");
+    expect(p).toContain("输出 skip");
+    expect(SYSTEM_PROMPT).toContain("本次目标分类");
+  });
+  it("贴链接整理（无目标分类）时不出现目标分类段落", () => {
+    expect(buildUserPrompt(raw, { categories, tagNames: [], tools: [] })).not.toContain("本次目标分类");
+    expect(buildUserPrompt(raw, { categories, target: null, tagNames: [], tools: [] })).not.toContain("本次目标分类");
   });
 });

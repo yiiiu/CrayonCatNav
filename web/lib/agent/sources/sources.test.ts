@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { orderAwesome, parseAwesomeMarkdown } from "./awesome";
 import { githubQueries, parseGithubSearch } from "./github";
-import { parseHfSpaces } from "./huggingface";
+import { hfSpacesUrl, parseHfSpaces } from "./huggingface";
 import { parseMcpRegistry } from "./mcp-registry";
 import { decodeEntities, extractPageInfo, pageToRaw } from "./page";
 import { parseProductHunt } from "./producthunt";
@@ -40,11 +40,49 @@ describe("GitHub 搜索解析", () => {
     expect(items[0].hints?.some((h) => h.startsWith("topics："))).toBe(true);
     expect(items.some((i) => i.githubUrl?.includes("old-thing"))).toBe(false);
   });
-  it("查询覆盖三个主题，并带时间窗口", () => {
-    const qs = githubQueries(new Date("2026-10-25T00:00:00Z"));
-    expect(qs).toHaveLength(6);
-    expect(qs[0]).toBe("topic:mcp-server stars:>=500 pushed:>=2026-09-25 archived:false fork:false");
-    expect(qs[1]).toContain("created:>=2026-06-27");
+  const now = new Date("2026-10-25T00:00:00Z");
+  it("按分类的主题构造查询：每个主题热门 + 新秀两条，带时间窗口与门槛", () => {
+    const qs = githubQueries({ topics: ["mcp-server", "model-context-protocol"], keywords: [] }, now);
+    expect(qs).toEqual([
+      "topic:mcp-server stars:>=500 pushed:>=2026-09-25 archived:false fork:false",
+      "topic:mcp-server stars:>=100 created:>=2026-06-27 archived:false fork:false",
+      "topic:model-context-protocol stars:>=500 pushed:>=2026-09-25 archived:false fork:false",
+      "topic:model-context-protocol stars:>=100 created:>=2026-06-27 archived:false fork:false",
+    ]);
+  });
+  it("关键词按短语匹配名称/简介/topics，可按分类设门槛", () => {
+    const qs = githubQueries({ topics: [], keywords: ['ai "code" review'], minStars: 1000, newMinStars: 200 }, now);
+    expect(qs).toEqual([
+      '"ai code review" in:name,description,topics stars:>=1000 pushed:>=2026-09-25 archived:false fork:false',
+      '"ai code review" in:name,description,topics stars:>=200 created:>=2026-06-27 archived:false fork:false',
+    ]);
+  });
+  it("超过查询上限时按天轮换主题，几天内覆盖全部", () => {
+    const topics = ["a1", "a2", "a3", "a4", "a5"];
+    const covered = new Set<string>();
+    for (let d = 0; d < 3; d++) {
+      const qs = githubQueries({ topics, keywords: ["k1"] }, new Date(now.getTime() + d * 86_400_000));
+      expect(qs).toHaveLength(8);
+      for (const q of qs) covered.add(q.split(" stars")[0]);
+    }
+    expect(covered).toEqual(new Set([...topics.map((t) => `topic:${t}`), '"k1" in:name,description,topics']));
+  });
+  it("没有主题和关键词时不生成查询", () => {
+    expect(githubQueries({ topics: [], keywords: [] }, now)).toEqual([]);
+  });
+});
+
+describe("Hugging Face 查询地址", () => {
+  it("有搜索词时用 search 参数，按点赞取 30 个；无搜索词取全站前 100", () => {
+    const u = new URL(hfSpacesUrl("text to"));
+    expect(u.origin + u.pathname).toBe("https://huggingface.co/api/spaces");
+    expect(u.searchParams.get("search")).toBe("text to");
+    expect(u.searchParams.get("sort")).toBe("likes");
+    expect(u.searchParams.get("limit")).toBe("30");
+    expect(u.searchParams.getAll("expand[]")).toContain("cardData");
+    const all = new URL(hfSpacesUrl());
+    expect(all.searchParams.has("search")).toBe(false);
+    expect(all.searchParams.get("limit")).toBe("100");
   });
 });
 
