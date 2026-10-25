@@ -1,9 +1,10 @@
 /**
- * 种子脚本：
- * 1. 初始 6 大分类（PRD §4.1）
- * 2. 初始工具表同步（来自代码注册表 metas.ts）
- * 3. 首批 36 条经审核的真实优质 AI 资源（含标签与 ResourceTool 关联）
- * 4. 按环境变量创建首个管理员
+ * 种子脚本（每次部署都会执行，只补缺、不覆盖后台改动）：
+ * 1. 初始 6 大分类：只创建缺失的，已有分类的名称和排序归后台管理
+ * 2. 工具表同步：名称与描述以代码注册表 metas.ts 为准；状态与排序归后台
+ * 3. 修复旧版 URL 编码的标签 slug
+ * 4. 首批 36 条资源（含标签与 ResourceTool 关联）：仅在资源表为空时初始化一次
+ * 5. 按环境变量创建首个管理员（已存在则不改）
  *
  * 运行：pnpm db:seed
  */
@@ -442,18 +443,20 @@ const SEED_RESOURCES: SeedItem[] = [
 ];
 
 async function main() {
-  console.log("1. 同步分类...");
+  // 每次部署（vercel-build）都会跑种子，所以这里只「补缺」，绝不覆盖后台改过的内容：
+  // 分类只建缺失的；资源只在空库时初始化；标签只修复旧版 URL 编码的 slug。
+  console.log("1. 补齐分类（已存在的不改名称和排序）...");
   const categoryMap = new Map<string, string>();
   for (const [i, c] of categories.entries()) {
     const saved = await prisma.category.upsert({
       where: { slug: c.slug },
-      update: { name: c.name, sortOrder: i },
+      update: {},
       create: { ...c, sortOrder: i },
     });
     categoryMap.set(c.slug, saved.id);
   }
 
-  console.log("2. 同步工具注册表...");
+  console.log("2. 同步工具注册表（名称与描述以代码为准，状态和排序归后台）...");
   const toolMap = new Map<string, string>();
   for (const t of toolMetas) {
     const saved = await prisma.tool.upsert({
@@ -464,25 +467,59 @@ async function main() {
     toolMap.set(t.slug, saved.id);
   }
 
-  console.log("3. 同步首批 36 条真实资源与标签/关联工具...");
+  console.log("3. 修复旧版 URL 编码的标签 slug...");
+  await repairEncodedTagSlugs();
+
+  const existing = await prisma.resource.count();
+  if (existing > 0) {
+    console.log(`4. 资源库已有 ${existing} 条，跳过首批资源（后台的编辑、下架、删除和精选顺序都保留）。`);
+  } else {
+    console.log(`4. 空库初始化：录入首批 ${SEED_RESOURCES.length} 条资源与标签/关联工具...`);
+    await seedResources(categoryMap, toolMap);
+  }
+
+  console.log("5. 检查首个管理员...");
+  const email = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.SEED_ADMIN_PASSWORD;
+  if (email && password) {
+    if (password.length < 12) throw new Error("SEED_ADMIN_PASSWORD 至少 12 位");
+    const passwordHash = await bcrypt.hash(password, 12);
+    await prisma.admin.upsert({ where: { email }, update: {}, create: { email, passwordHash, role: "owner" } });
+    console.log(`管理员已就绪：${email}`);
+  }
+
+  console.log("种子完成。");
+}
+
+/** 旧版种子把中文标签写成了 URL 编码的 slug（如 gui%E6%93%8D%E4%BD%9C），按名称映射原地改正，资源关联不变。 */
+async function repairEncodedTagSlugs() {
+  const broken = await prisma.tag.findMany({ where: { slug: { contains: "%" } } });
+  for (const tag of broken) {
+    let slug: string;
+    try {
+      slug = tagSlugFor(tag.name);
+    } catch {
+      console.warn(`  跳过标签「${tag.name}」：prisma/tag-slugs.ts 里没有映射，请到后台手动改 slug`);
+      continue;
+    }
+    const clash = await prisma.tag.findUnique({ where: { slug } });
+    if (clash && clash.id !== tag.id) {
+      console.warn(`  跳过标签「${tag.name}」：slug ${slug} 已被「${clash.name}」占用，请到后台合并`);
+      continue;
+    }
+    await prisma.tag.update({ where: { id: tag.id }, data: { slug } });
+    console.log(`  已修复：${tag.name} → ${slug}`);
+  }
+}
+
+/** 首批资源：只在资源表为空时执行一次。 */
+async function seedResources(categoryMap: Map<string, string>, toolMap: Map<string, string>) {
   for (const item of SEED_RESOURCES) {
     const categoryId = categoryMap.get(item.categorySlug);
     if (!categoryId) continue;
 
-    const resource = await prisma.resource.upsert({
-      where: { slug: item.slug },
-      update: {
-        name: item.name,
-        summary: item.summary,
-        description: item.description,
-        categoryId,
-        websiteUrl: item.websiteUrl ?? null,
-        githubUrl: item.githubUrl ?? null,
-        pricingType: item.pricingType,
-        status: "published",
-        featuredOrder: item.featuredOrder ?? null,
-      },
-      create: {
+    const resource = await prisma.resource.create({
+      data: {
         slug: item.slug,
         name: item.name,
         summary: item.summary,
@@ -496,49 +533,17 @@ async function main() {
       },
     });
 
-    // 处理标签
     for (const tagName of item.tags) {
       const tagSlug = tagSlugFor(tagName);
-      // 旧版种子把中文标签写成了 URL 编码的 slug（如 gui%E6%93%8D%E4%BD%9C），按名称找到后原地改正
-      const existing =
-        (await prisma.tag.findUnique({ where: { slug: tagSlug } })) ??
-        (await prisma.tag.findFirst({ where: { name: tagName, slug: { contains: "%" } } }));
-      const tag = existing
-        ? await prisma.tag.update({ where: { id: existing.id }, data: { name: tagName, slug: tagSlug } })
-        : await prisma.tag.create({ data: { name: tagName, slug: tagSlug } });
-      await prisma.resourceTag.upsert({
-        where: { resourceId_tagId: { resourceId: resource.id, tagId: tag.id } },
-        update: {},
-        create: { resourceId: resource.id, tagId: tag.id },
-      });
+      const tag = await prisma.tag.upsert({ where: { slug: tagSlug }, update: {}, create: { name: tagName, slug: tagSlug } });
+      await prisma.resourceTag.create({ data: { resourceId: resource.id, tagId: tag.id } });
     }
 
-    // 处理关联工具
-    if (item.toolSlugs) {
-      for (const tSlug of item.toolSlugs) {
-        const toolDbId = toolMap.get(tSlug);
-        if (toolDbId) {
-          await prisma.resourceTool.upsert({
-            where: { resourceId_toolId: { resourceId: resource.id, toolId: toolDbId } },
-            update: {},
-            create: { resourceId: resource.id, toolId: toolDbId },
-          });
-        }
-      }
+    for (const tSlug of item.toolSlugs ?? []) {
+      const toolId = toolMap.get(tSlug);
+      if (toolId) await prisma.resourceTool.create({ data: { resourceId: resource.id, toolId } });
     }
   }
-
-  console.log("4. 检查首个管理员...");
-  const email = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
-  const password = process.env.SEED_ADMIN_PASSWORD;
-  if (email && password) {
-    if (password.length < 12) throw new Error("SEED_ADMIN_PASSWORD 至少 12 位");
-    const passwordHash = await bcrypt.hash(password, 12);
-    await prisma.admin.upsert({ where: { email }, update: {}, create: { email, passwordHash, role: "owner" } });
-    console.log(`管理员已就绪：${email}`);
-  }
-
-  console.log(`种子完成：已录入 ${SEED_RESOURCES.length} 条已核实真实资源。`);
 }
 
 main()
