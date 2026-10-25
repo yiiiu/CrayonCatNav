@@ -1,6 +1,6 @@
 "use server";
 
-import { updateTag } from "next/cache";
+import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { signOut } from "@/lib/auth/auth";
 import { requireAdmin } from "@/lib/auth/require-admin";
@@ -135,6 +135,7 @@ export async function saveAgentSettingsAction(_prev: ActionResult, fd: FormData)
   } catch (e) {
     return fromDomainError(e);
   }
+  refresh(); // 让页面重新渲染：表单回填新值、密钥末四位提示更新
   return { ok: true, message: "设置已保存" };
 }
 
@@ -152,6 +153,7 @@ export async function runCollectAction(_prev: ActionResult): Promise<ActionResul
   await requireAdmin();
   try {
     const r = await runCollection("manual");
+    refresh(); // 刷新运行记录与导航里的待审核数量
     return r.status === "failed" ? { ok: false, formError: r.message } : { ok: true, message: r.message };
   } catch (e) {
     return fromDomainError(e);
@@ -164,6 +166,7 @@ export async function collectLinkAction(_prev: ActionResult, fd: FormData): Prom
   if (!parsed.success) return fromZodError(parsed.error);
   try {
     const r = await collectLink(parsed.data.url);
+    refresh(); // 刷新运行记录与导航里的待审核数量
     if (r.status === "failed" || r.failed > 0) return { ok: false, formError: r.error ?? r.message };
     if (r.created === 0) return { ok: true, message: "没有新增：该链接已在资源库或候选箱中，或模型判断不适合收录（详见运行记录）" };
     return { ok: true, message: "已整理进候选箱，去「候选箱」审核" };
