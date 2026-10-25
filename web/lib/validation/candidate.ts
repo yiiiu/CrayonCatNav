@@ -3,6 +3,7 @@ import { canonicalGithubUrl, isHttpsUrl, normalizeUrl } from "@/lib/agent/url";
 import type { RawCandidate } from "@/lib/agent/types";
 import { pricingTypes } from "./resource";
 import { suggestSlug } from "./search";
+import { cleanTagOutput, parseTagInput, type SuggestedTag, type TagEntry, type TagVocab } from "./tag-vocab";
 
 /** 模型的结构化输出（宽松接收，随后清洗）。skip=true 表示模型判断不值得收录。 */
 export const modelSkipSchema = z.object({ skip: z.literal(true), reason: z.string().trim().max(500).default("") });
@@ -20,6 +21,7 @@ export const modelOutputSchema = z.object({
     description: z.string().trim().max(4000, "description 最多 4000 字").default(""),
     categorySlug: z.string().trim().min(1, "必须选择 categorySlug"),
     tags: z.array(z.string()).max(20).default([]),
+    suggestedTags: z.array(z.unknown()).max(10).default([]),
     websiteUrl: z.string().nullish(),
     githubUrl: z.string().nullish(),
     pricingType: z.string().nullish(),
@@ -36,6 +38,8 @@ export const candidatePayloadSchema = z.object({
   description: z.string(),
   categorySlug: z.string(),
   tags: z.array(z.string()),
+  /** 模型建议的新标签（进待定池）；旧候选没有这一项 */
+  suggestedTags: z.array(z.object({ name: z.string(), slug: z.string() })).default([]),
   websiteUrl: z.string().nullable(),
   githubUrl: z.string().nullable(),
   pricingType: z.enum(pricingTypes),
@@ -45,7 +49,8 @@ export type CandidatePayload = z.infer<typeof candidatePayloadSchema>;
 
 export type CleanContext = {
   categorySlugs: readonly string[];
-  tagNames: readonly string[];
+  /** 标签受控词表（现有标签名称、别名、slug 与已忽略的建议词） */
+  tags: TagVocab;
   toolSlugs: readonly string[];
 };
 
@@ -67,24 +72,6 @@ export function extractJson(text: string): unknown {
     if (start >= 0 && end > start) return JSON.parse(body.slice(start, end + 1));
     throw new Error("模型回复不是合法 JSON");
   }
-}
-
-/** 标签清洗：去 #、去空白、单个 ≤20 字、大小写不敏感去重、最多 6 个；与现有标签同名（忽略大小写）时用现有写法。 */
-export function cleanTags(tags: readonly string[], existing: readonly string[]): string[] {
-  const byLower = new Map(existing.map((n) => [n.toLowerCase(), n]));
-  const out: string[] = [];
-  const seen = new Set<string>();
-  for (const raw of tags) {
-    const t = String(raw).replace(/^#+/, "").replace(/\s+/g, " ").trim();
-    if (!t || t.length > 20) continue;
-    const name = byLower.get(t.toLowerCase()) ?? t;
-    const key = name.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(name);
-    if (out.length >= 6) break;
-  }
-  return out;
 }
 
 function slugFrom(model: string, name: string, github: string | null, website: string | null): string {
@@ -132,7 +119,7 @@ export function cleanModelOutput(json: unknown, raw: Pick<RawCandidate, "website
       summary: v.summary,
       description: v.description,
       categorySlug: v.categorySlug,
-      tags: cleanTags(v.tags, ctx.tagNames),
+      ...cleanTagOutput(v.tags, v.suggestedTags, ctx.tags),
       websiteUrl,
       githubUrl,
       pricingType: pricing,
@@ -143,7 +130,7 @@ export function cleanModelOutput(json: unknown, raw: Pick<RawCandidate, "website
 
 /* ---------- 候选箱审核表单 ---------- */
 
-/** 审核时管理员可改的字段；tags 用逗号（中英文）或换行分隔。 */
+/** 审核时管理员可改的字段；tags 用逗号（中英文）或换行分隔，新标签写成「名字:slug」。 */
 export const candidateReviewSchema = z.object({
   name: z.string().trim().min(1, "请填写名称").max(80, "名称最多 80 字"),
   slug: z.string().trim(),
@@ -152,9 +139,17 @@ export const candidateReviewSchema = z.object({
   tags: z
     .string()
     .default("")
-    .transform((s) => s.split(/[,，、\n]/).map((t) => t.trim()).filter(Boolean)),
+    .transform((s): TagEntry[] => parseTagInput(s)),
 });
 export type CandidateReview = z.infer<typeof candidateReviewSchema>;
+
+/** 审核条目 → payload 的 tags / suggestedTags（带 slug 的算新标签）。 */
+export function splitTagEntries(entries: readonly TagEntry[]): { tags: string[]; suggestedTags: SuggestedTag[] } {
+  return {
+    tags: entries.filter((e) => !e.slug).map((e) => e.name),
+    suggestedTags: entries.filter((e): e is SuggestedTag => !!e.slug),
+  };
+}
 
 export function candidateReviewFromForm(fd: FormData) {
   const str = (k: string) => (fd.get(k) ?? "").toString();

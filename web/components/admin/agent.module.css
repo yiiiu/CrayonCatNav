@@ -85,3 +85,15 @@ details[open] > .catHead .catName::before { transform: rotate(90deg); }
 @media (max-width: 680px) {
   .formBodyVp, .edit, .catStars { grid-template-columns: 1fr; }
 }
+/* 建议的新标签（待定池）：虚线框区分于正式标签 */
+.tagNew { border-style: dashed; background: color-mix(in srgb, var(--c-yellow) 22%, var(--paper)); }
+/* 待定标签列表 */
+.sugRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 16px; align-items: center; padding: 12px 0; border-bottom: 1.5px dashed var(--ink-2); }
+.sugRow:last-child { border-bottom: 0; }
+.sugName { font-weight: 900; }
+.sugMeta { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); }
+.sugHot { color: var(--ink); background: var(--c-yellow); padding: 0 6px; border-radius: 999px; border: 1.5px solid var(--ink); }
+.sugActs { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
+.sugActs form { display: flex; gap: 6px; align-items: center; }
+.sugActs select { max-width: 160px; }
+@media (max-width: 720px) { .sugRow { grid-template-columns: 1fr; } .sugActs { justify-content: flex-start; } }

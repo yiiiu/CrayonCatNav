@@ -138,7 +138,7 @@
 .rows { display: grid; gap: 10px; }
 .scrollRows { display: grid; align-content: start; gap: 10px; padding-right: 14px; }
 .row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) 90px auto; gap: 10px; align-items: start; }
-.rowTag { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+.rowTag { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) auto; }
 .row .field { margin: 0; }
 .rowActs { display: flex; gap: 8px; align-items: center; min-height: var(--tap); }
 .pane .fill > .feditor { flex: 1 1 auto; }

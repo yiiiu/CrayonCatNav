@@ -12,6 +12,7 @@ import { collectLink, runCollection } from "@/lib/domain/collector.service";
 import { setFeatured } from "@/lib/domain/featured.service";
 import { changeStatus, removeResource, saveResource, validateResource } from "@/lib/domain/resource.service";
 import { type ActionResult, fromDomainError, fromZodError } from "@/lib/domain/result";
+import { acceptSuggestion, ignoreSuggestionById, mergeSuggestion } from "@/lib/domain/tag-suggestion.service";
 import { removeCategory, removeTag, saveCategory, saveTag } from "@/lib/domain/taxonomy.service";
 import { agentSettingsFromForm, collectLinkSchema } from "@/lib/validation/agent";
 import { candidateReviewFromForm } from "@/lib/validation/candidate";
@@ -219,6 +220,43 @@ export async function rejectCandidateAction(id: string, _prev: ActionResult, _fd
     return fromDomainError(e);
   }
   redirect(`/admin/candidates?done=${encodeURIComponent("已拒绝，之后不会再推送同一链接")}`);
+}
+
+/* ---------- 标签待定池 ---------- */
+
+const SUG_PATH = "/admin/tag-suggestions";
+const back = (key: "done" | "error", msg: string): never => redirect(`${SUG_PATH}?${key}=${encodeURIComponent(msg.slice(0, 200))}`);
+
+async function suggestionStep(run: () => Promise<string>) {
+  let msg: string;
+  try {
+    msg = await run();
+  } catch (e) {
+    return back("error", fromDomainError(e).formError ?? "操作失败");
+  }
+  updateTag(cacheTags.taxonomy);
+  back("done", msg);
+}
+
+export async function acceptSuggestionAction(id: string) {
+  await requireAdmin();
+  await suggestionStep(async () => `已启用标签「${(await acceptSuggestion(id)).name}」`);
+}
+
+export async function mergeSuggestionAction(id: string, fd: FormData) {
+  await requireAdmin();
+  await suggestionStep(async () => {
+    const r = await mergeSuggestion(id, String(fd.get("tagId") ?? ""));
+    return `已把「${r.name}」归到「${r.target}」，以后会自动映射`;
+  });
+}
+
+export async function ignoreSuggestionAction(id: string) {
+  await requireAdmin();
+  await suggestionStep(async () => {
+    await ignoreSuggestionById(id);
+    return "已忽略，以后模型再提这个词会直接丢弃";
+  });
 }
 
 /* ---------- 会话 ---------- */

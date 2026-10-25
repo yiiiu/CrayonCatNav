@@ -15,6 +15,7 @@ import * as repo from "@/lib/data/agent.repo";
 import { toolMetas } from "@/lib/tools/metas";
 import { cleanModelOutput, extractJson, type CandidatePayload, type CleanContext } from "@/lib/validation/candidate";
 import { parseStoredConfig } from "@/lib/validation/collect-config";
+import { buildVocab } from "@/lib/validation/tag-vocab";
 import { loadRuntimeConfig, type RuntimeConfig } from "./agent-settings.service";
 import { resolveTarget, type CollectTarget } from "./category-collect.service";
 import { DomainError } from "./result";
@@ -152,11 +153,19 @@ async function processOne(raw: RawCandidate, ctx: Ctx): Promise<ItemOutcome> {
     linkStatus: verified.status,
     runId: ctx.runId,
   });
-  return saved ? { kind: "created" } : { kind: "duplicate" };
+  if (!saved) return { kind: "duplicate" };
+  // 建议的新标签进待定池；记录失败不影响候选本身
+  if (payload.suggestedTags.length) await repo.recordTagSuggestions(saved.id, payload.suggestedTags).catch(() => undefined);
+  return { kind: "created" };
 }
 
 async function buildContext(cfg: RuntimeConfig, runId: string, target: CollectTarget | null): Promise<Ctx> {
-  const [{ tags, tools }, cats, urls] = await Promise.all([repo.loadTaxonomy(), repo.listCategoriesWithCollectConfig(), repo.loadKnownUrls()]);
+  const [{ tags, tools }, cats, urls, closed] = await Promise.all([
+    repo.loadTaxonomy(),
+    repo.listCategoriesWithCollectConfig(),
+    repo.loadKnownUrls(),
+    repo.loadClosedSuggestions(),
+  ]);
   // 分类说明来自分类采集配置，帮助模型判断归类
   const categories = cats.map((c) => ({ slug: c.slug, name: c.name, description: parseStoredConfig(c.rawConfig)?.description ?? "" }));
   if (categories.length === 0) throw new DomainError("还没有任何分类，请先在「分类标签」里新增");
@@ -180,7 +189,7 @@ async function buildContext(cfg: RuntimeConfig, runId: string, target: CollectTa
       tagNames: tags.map((t) => t.name),
       tools: toolList,
     },
-    clean: { categorySlugs: categories.map((c) => c.slug), tagNames: tags.map((t) => t.name), toolSlugs: toolList.map((t) => t.slug) },
+    clean: { categorySlugs: categories.map((c) => c.slug), tags: buildVocab(tags, closed), toolSlugs: toolList.map((t) => t.slug) },
   };
 }
 

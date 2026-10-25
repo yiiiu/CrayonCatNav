@@ -8,6 +8,7 @@ import { Card } from "@/components/ui";
 import { auth } from "@/lib/auth/auth";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { countPending } from "@/lib/data/agent.repo";
+import { countOpenSuggestions } from "@/lib/data/tag-suggestion.repo";
 import { logoutAction } from "./actions";
 
 export const metadata: Metadata = { title: { default: "后台", template: "%s｜蜡笔猫后台" }, robots: { index: false } };
@@ -48,12 +49,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   );
 }
 
-/** 导航 + 候选箱待审核数徽标：只有已登录会话才查询数量；查询失败不影响导航。 */
+/** 导航 + 候选箱待审核数、待定标签数徽标：只有已登录会话才查询数量；查询失败不影响导航。 */
 async function NavWithBadge() {
   await connection();
   const session = await auth();
-  const pending = session?.user?.id ? await countPending().catch(() => 0) : 0;
-  return <AdminNav pending={pending} />;
+  const [pending, tagPending] = session?.user?.id
+    ? await Promise.all([countPending().catch(() => 0), countOpenSuggestions().catch(() => 0)])
+    : [0, 0];
+  return <AdminNav pending={pending} tagPending={tagPending} />;
 }
 
 /** 服务端校验会话 + Admin 表，未通过直接 redirect。 */

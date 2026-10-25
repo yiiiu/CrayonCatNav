@@ -14,6 +14,10 @@ describe("tagSlugFor", () => {
   it("未收录的中文标签直接报错，不生成编码 slug", () => {
     expect(() => tagSlugFor("未知标签")).toThrow(/tag-slugs/);
   });
+  it("中英混合且未收录时报错，不再退化成英文部分", () => {
+    expect(() => tagSlugFor("AI绘画")).toThrow(/英文 slug/);
+    expect(() => tagSlugFor("GPT 插件")).toThrow();
+  });
   it("映射表里的 slug 全部合法且互不重复", () => {
     const values = Object.values(TAG_SLUGS);
     for (const v of values) expect(slugSchema.safeParse(v).success).toBe(true);

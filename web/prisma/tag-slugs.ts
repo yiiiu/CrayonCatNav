@@ -80,16 +80,29 @@ export const TAG_SLUGS: Record<string, string> = {
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-/** 标签名 → slug：中文查表，英文按规则转换；结果不合法时抛错。 */
+/**
+ * 标签名 → slug：映射表优先；纯英文名按规则转换；含中文等非 ASCII 字符且不在映射表时直接抛错
+ * （不再删掉中文拼剩下的部分，避免「AI绘画」退化成 `ai` 并入别的标签）。
+ * 映射表只给种子与历史标签用；采集 / 审核产生的新标签由模型或审核员给出英文 slug（见 docs/plan/标签治理方案.md）。
+ */
 export function tagSlugFor(name: string): string {
+  const mapped = TAG_SLUGS[name];
+  if (!mapped && /[^\x00-\x7f]/.test(name)) {
+    throw new Error(`标签「${name}」没有英文 slug，请写成「${name}:英文-slug」，或在 prisma/tag-slugs.ts 补充映射`);
+  }
   const slug =
-    TAG_SLUGS[name] ??
+    mapped ??
     name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
   if (!SLUG_RE.test(slug) || slug.length < 2 || slug.length > 64) {
-    throw new Error(`标签「${name}」没有合法 slug，请在 prisma/tag-slugs.ts 补充映射`);
+    throw new Error(`标签「${name}」没有合法 slug，请写成「${name}:英文-slug」，或在 prisma/tag-slugs.ts 补充映射`);
   }
   return slug;
+}
+
+/** slug 是否合法（小写字母、数字、连字符，2–64 位）。 */
+export function isTagSlug(slug: string): boolean {
+  return SLUG_RE.test(slug) && slug.length >= 2 && slug.length <= 64;
 }

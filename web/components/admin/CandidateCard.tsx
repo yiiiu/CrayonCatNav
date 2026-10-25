@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { Button, ConfirmButton } from "@/components/ui";
 import type { ActionResult } from "@/lib/domain/result";
+import { formatTagInput } from "@/lib/validation/tag-vocab";
 import styles from "./admin.module.css";
 import a from "./agent.module.css";
 import { Field } from "./Field";
@@ -23,6 +24,8 @@ export type CandidateView = {
   /** 归入的分类与目标分类不同 */
   offTarget: boolean;
   tags: string[];
+  /** 模型建议的新标签（在待定池里） */
+  suggestedTags: { name: string; slug: string }[];
   websiteUrl: string | null;
   githubUrl: string | null;
   pricingLabel: string;
@@ -101,6 +104,11 @@ export function CandidateCard({ c, categories, review, reject }: Props) {
             {t}
           </span>
         ))}
+        {c.suggestedTags.map((t) => (
+          <span key={t.slug} className={`${styles.tag} ${a.tagNew}`} title={`建议新标签，slug：${t.slug}（在待定池中）`}>
+            +{t.name}
+          </span>
+        ))}
         {c.toolSlugs.length > 0 && <span className={styles.hint}> 关联工具：{c.toolSlugs.join("、")}</span>}
       </div>
       {c.reason && <p className={a.reason}>推荐理由：{c.reason}</p>}
@@ -137,8 +145,8 @@ export function CandidateCard({ c, categories, review, reject }: Props) {
                 ))}
               </select>
             </Field>
-            <Field label="标签" name={`tags-${c.id}`} error={err("tags")} hint="逗号分隔；新的中文标签需在 tag-slugs.ts 有映射">
-              <input id={`f-tags-${c.id}`} name="tags" defaultValue={v("tags", c.tags.join("，"))} />
+            <Field label="标签" name={`tags-${c.id}`} error={err("tags")} hint="逗号分隔；新标签写成「名字:slug」，如 视频剪辑:video-editing">
+              <input id={`f-tags-${c.id}`} name="tags" defaultValue={v("tags", formatTagInput(c.tags, c.suggestedTags))} />
             </Field>
             <div className={`${a.acts} ${styles.wide}`}>
               <Button type="submit" variant="primary" name="intent" value="publish" disabled={busy}>

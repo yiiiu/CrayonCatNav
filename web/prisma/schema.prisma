@@ -45,10 +45,13 @@ model Category {
 }
 
 model Tag {
-  id        String        @id @default(cuid())
-  name      String
-  slug      String        @unique
-  resources ResourceTag[]
+  id          String          @id @default(cuid())
+  name        String
+  slug        String          @unique
+  /// 别名：模型或审核员写这些词时直接映射到本标签（见 docs/plan/标签治理方案.md）
+  aliases     String[]        @default([])
+  resources   ResourceTag[]
+  suggestions TagSuggestion[]
 
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "Tag_name_trgm_idx")
 }
@@ -264,4 +267,28 @@ model ResourceCandidate {
   updatedAt       DateTime        @updatedAt
 
   @@index([status, createdAt])
+}
+
+enum TagSuggestionStatus {
+  open
+  accepted
+  merged
+  ignored
+}
+
+/// 标签待定池：模型建议的新标签，由管理员启用 / 归并为别名 / 忽略；不会出现在前台。
+model TagSuggestion {
+  id           String              @id @default(cuid())
+  name         String
+  slug         String              @unique
+  status       TagSuggestionStatus @default(open)
+  hits         Int                 @default(1)
+  candidateIds String[]            @default([])
+  /// 启用后建出的标签，或归并到的目标标签
+  tagId        String?
+  tag          Tag?                @relation(fields: [tagId], references: [id], onDelete: SetNull)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([status, hits])
 }

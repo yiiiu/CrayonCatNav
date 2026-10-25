@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { candidateReviewSchema, cleanModelOutput, cleanTags, extractJson } from "./candidate";
+import { candidateReviewSchema, cleanModelOutput, extractJson, splitTagEntries } from "./candidate";
+import { buildVocab } from "./tag-vocab";
 
 const ctx = {
   categorySlugs: ["mcp", "ai-coding", "github-oss"],
-  tagNames: ["数据库", "开源", "LangChain"],
+  tags: buildVocab([
+    { name: "数据库", slug: "database" },
+    { name: "开源", slug: "open-source" },
+    { name: "LangChain", slug: "langchain" },
+  ]),
   toolSlugs: ["mcp-config", "token-cost"],
 };
 const raw = { githubUrl: "https://github.com/Acme/pg-mcp", websiteUrl: "https://pg-mcp.dev/" };
@@ -24,12 +29,13 @@ const good = {
 };
 
 describe("cleanModelOutput", () => {
-  it("合格输出：slug 规范化、标签复用现有写法、工具只留注册表内、链接只用来源给的", () => {
+  it("合格输出：slug 规范化、只保留现有标签、工具只留注册表内、链接只用来源给的", () => {
     const r = cleanModelOutput(good, raw, ctx);
     expect(r.ok && !r.skip).toBe(true);
     if (!r.ok || r.skip) return;
     expect(r.payload.slug).toBe("pg-mcp-server");
-    expect(r.payload.tags).toEqual(["数据库", "开源", "LangChain", "Postgres"]);
+    expect(r.payload.tags).toEqual(["数据库", "开源", "LangChain"]); // 「Postgres」不是现有标签，丢弃
+    expect(r.payload.suggestedTags).toEqual([]);
     expect(r.payload.toolSlugs).toEqual(["mcp-config"]);
     expect(r.payload.githubUrl).toBe("https://github.com/Acme/pg-mcp"); // 模型给的 evil/other 被忽略
     expect(r.payload.websiteUrl).toBe("https://pg-mcp.dev/");
@@ -90,17 +96,39 @@ describe("extractJson", () => {
   });
 });
 
-describe("cleanTags", () => {
-  it("最多 6 个，大小写不敏感去重", () => {
-    expect(cleanTags(["a", "A", "b", "c", "d", "e", "f", "g"], [])).toEqual(["a", "b", "c", "d", "e", "f"]);
-    expect(cleanTags(["  ", "#", "x  y"], [])).toEqual(["x y"]);
+describe("cleanModelOutput 的建议标签", () => {
+  it("合法建议进入 suggestedTags，命中现有标签的并入 tags", () => {
+    const r = cleanModelOutput(
+      { ...good, tags: ["数据库"], suggestedTags: [{ name: "向量检索", slug: "Vector-Search" }, { name: "开源", slug: "oss" }] },
+      raw,
+      ctx,
+    );
+    expect(r.ok && !r.skip).toBe(true);
+    if (!r.ok || r.skip) return;
+    expect(r.payload.tags).toEqual(["数据库", "开源"]);
+    expect(r.payload.suggestedTags).toEqual([{ name: "向量检索", slug: "vector-search" }]);
+  });
+  it("旧格式的 payload 没有 suggestedTags 时默认为空", async () => {
+    const { candidatePayloadSchema } = await import("./candidate");
+    const p = candidatePayloadSchema.parse({ name: "a", slug: "a", summary: "s", description: "", categorySlug: "mcp", tags: [], websiteUrl: null, githubUrl: null, pricingType: "free", toolSlugs: [] });
+    expect(p.suggestedTags).toEqual([]);
   });
 });
 
 describe("candidateReviewSchema", () => {
   it("标签支持中英文逗号、顿号与换行", () => {
     const r = candidateReviewSchema.parse({ name: "A", slug: "a", summary: "简介", categorySlug: "mcp", tags: "数据库，开源,MCP、 搜索\n记忆管理" });
-    expect(r.tags).toEqual(["数据库", "开源", "MCP", "搜索", "记忆管理"]);
+    expect(r.tags.map((t) => t.name)).toEqual(["数据库", "开源", "MCP", "搜索", "记忆管理"]);
+  });
+  it("新标签写成「名字:slug」，拆成 tags 与 suggestedTags", () => {
+    const r = candidateReviewSchema.parse({ name: "A", slug: "a", summary: "简介", categorySlug: "mcp", tags: "数据库，视频剪辑:video-editing，AI绘画：AI-Painting" });
+    expect(splitTagEntries(r.tags)).toEqual({
+      tags: ["数据库"],
+      suggestedTags: [
+        { name: "视频剪辑", slug: "video-editing" },
+        { name: "AI绘画", slug: "ai-painting" },
+      ],
+    });
   });
   it("简介超长报错", () => {
     expect(candidateReviewSchema.safeParse({ name: "A", slug: "a", summary: "中".repeat(201), categorySlug: "mcp", tags: "" }).success).toBe(false);

@@ -123,10 +123,37 @@ export async function loadKnownUrls() {
 export async function loadTaxonomy() {
   const [categories, tags, tools] = await Promise.all([
     prisma.category.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, slug: true, name: true } }),
-    prisma.tag.findMany({ orderBy: { name: "asc" }, select: { id: true, slug: true, name: true } }),
+    prisma.tag.findMany({ orderBy: { name: "asc" }, select: { id: true, slug: true, name: true, aliases: true } }),
     prisma.tool.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, slug: true, name: true, description: true } }),
   ]);
   return { categories, tags, tools };
+}
+
+/** 已处理过的待定词（构建词表时用：已忽略的建议词不再推送）。 */
+export function loadClosedSuggestions() {
+  return prisma.tagSuggestion.findMany({ where: { status: "ignored" }, select: { name: true, slug: true, status: true } });
+}
+
+/**
+ * 候选入库后把模型建议的新标签记入待定池：按 slug upsert，已存在则 hits + 1 并记下候选 id。
+ * 已启用 / 已归并的词理论上已能被词表识别，不会走到这里；已忽略的不改状态，只累计次数。
+ */
+export async function recordTagSuggestions(candidateId: string, items: readonly { name: string; slug: string }[]) {
+  for (const it of items) {
+    const write = () =>
+      prisma.tagSuggestion.upsert({
+        where: { slug: it.slug },
+        create: { name: it.name, slug: it.slug, candidateIds: [candidateId] },
+        update: { hits: { increment: 1 }, candidateIds: { push: candidateId } },
+      });
+    try {
+      await write();
+    } catch (e) {
+      // 并发采集同一 slug 时 create 可能撞唯一约束，重试一次即走 update
+      if ((e as { code?: string }).code === "P2002") await write();
+      else throw e;
+    }
+  }
 }
 
 /* ---------- 候选 ---------- */
@@ -236,6 +263,8 @@ export function convertCandidateTx(args: {
     for (const t of args.newTags) {
       const tag = await tx.tag.upsert({ where: { slug: t.slug }, create: t, update: {} });
       tagIds.push(tag.id);
+      // 审核员上架时写的新标签等于直接启用：同 slug 的待定词标为已启用
+      await tx.tagSuggestion.updateMany({ where: { slug: t.slug, status: "open" }, data: { status: "accepted", tagId: tag.id } });
     }
     const { categoryId, ...data } = args.resource;
     const created = await tx.resource.create({
@@ -256,7 +285,7 @@ export function convertCandidateTx(args: {
 
 export const reviewLookups = {
   categoryBySlug: (slug: string) => prisma.category.findUnique({ where: { slug }, select: { id: true } }),
-  allTags: () => prisma.tag.findMany({ select: { id: true, name: true, slug: true } }),
+  allTags: () => prisma.tag.findMany({ select: { id: true, name: true, slug: true, aliases: true } }),
   toolsBySlugs: (slugs: string[]) => prisma.tool.findMany({ where: { slug: { in: slugs } }, select: { id: true } }),
   resourceUrls: () => prisma.resource.findMany({ select: { name: true, websiteUrl: true, githubUrl: true } }),
 };

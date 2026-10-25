@@ -63,6 +63,7 @@ describe("buildUserPrompt", () => {
     expect(p).toContain("star/点赞：1200");
     expect(p).toContain("来源更新时间：2026-10-01");
     expect(p).toContain("主要语言：Go");
+    expect(p).toContain('"suggestedTags"');
   });
   const raw = { source: "github" as const, sourceUrl: "https://github.com/a/b", title: "b", websiteUrl: null, githubUrl: "https://github.com/a/b", description: "desc", stars: null, sourceUpdatedAt: null };
   const categories = [

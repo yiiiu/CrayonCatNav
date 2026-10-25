@@ -2,26 +2,36 @@ import "server-only";
 import { urlKeysOf } from "@/lib/agent/url";
 import * as repo from "@/lib/data/agent.repo";
 import { findBySlugAny } from "@/lib/data/resource.repo";
-import { candidatePayloadSchema, candidateReviewSchema, type CandidatePayload } from "@/lib/validation/candidate";
+import { candidatePayloadSchema, candidateReviewSchema, splitTagEntries, type CandidatePayload } from "@/lib/validation/candidate";
 import { resourceInputSchema } from "@/lib/validation/resource";
+import type { TagEntry } from "@/lib/validation/tag-vocab";
 import { tagInputSchema } from "@/lib/validation/taxonomy";
 import { tagSlugFor } from "@/prisma/tag-slugs";
 import { DomainError } from "./result";
 
 /**
  * 候选箱审核：直接上架 / 存为草稿 / 拒绝。
- * 上架与草稿都复用资源校验（resourceInputSchema），新标签按 prisma/tag-slugs.ts 规则生成 slug。
+ * 上架与草稿都复用资源校验（resourceInputSchema）；新标签写成「名字:slug」，规则见 docs/plan/标签治理方案.md。
  */
 
 export type TagPlan = { existingIds: string[]; newTags: { name: string; slug: string }[]; dropped: string[] };
 
-/** 标签名 → 现有标签 id 或待新建标签；无法生成 slug 的中文标签：上架时报错，草稿时丢弃并提示。 */
-export async function planTags(names: string[], strict: boolean): Promise<TagPlan> {
+/**
+ * 审核条目 → 现有标签 id 或待新建标签。查找顺序：现有标签同名 → 别名 → 条目自带 slug → tag-slugs.ts 映射 → 纯英文名按规则转换。
+ * 无法得到 slug，或 slug 已被另一名称的标签占用：上架（strict）时报错，存草稿时丢弃并提示。绝不静默并入别的标签。
+ */
+export async function planTags(entries: readonly TagEntry[], strict: boolean): Promise<TagPlan> {
   const all = await repo.reviewLookups.allTags();
-  const byName = new Map(all.map((t) => [t.name.toLowerCase(), t.id]));
-  const bySlug = new Map(all.map((t) => [t.slug, t.id]));
+  const byName = new Map<string, string>();
+  for (const t of all) byName.set(t.name.toLowerCase(), t.id);
+  for (const t of all) for (const a of t.aliases) if (!byName.has(a.toLowerCase())) byName.set(a.toLowerCase(), t.id);
+  const bySlug = new Map(all.map((t) => [t.slug, t]));
   const plan: TagPlan = { existingIds: [], newTags: [], dropped: [] };
-  for (const name of names) {
+  const fail = (name: string, msg: string) => {
+    if (strict) throw new DomainError(msg, "tags");
+    plan.dropped.push(name);
+  };
+  for (const { name, slug: given } of entries) {
     const hit = byName.get(name.toLowerCase());
     if (hit) {
       plan.existingIds.push(hit);
@@ -29,23 +39,22 @@ export async function planTags(names: string[], strict: boolean): Promise<TagPla
     }
     let slug: string;
     try {
-      slug = tagSlugFor(name);
+      slug = given ?? tagSlugFor(name);
     } catch {
-      if (strict) {
-        throw new DomainError(`标签「${name}」没有对应的英文 slug：请改成已有标签或英文标签，或先在 prisma/tag-slugs.ts 补一条映射`, "tags");
-      }
-      plan.dropped.push(name);
+      fail(name, `新标签「${name}」需要英文 slug：请写成「${name}:英文-slug」（如 视频剪辑:video-editing），或改用已有标签`);
       continue;
     }
     const checked = tagInputSchema.safeParse({ name, slug });
     if (!checked.success) {
-      if (strict) throw new DomainError(`标签「${name}」不合法：${checked.error.issues[0]?.message ?? ""}`, "tags");
-      plan.dropped.push(name);
+      fail(name, `标签「${name}」不合法：${checked.error.issues[0]?.message ?? ""}`);
       continue;
     }
-    const sameSlug = bySlug.get(slug);
-    if (sameSlug) plan.existingIds.push(sameSlug);
-    else if (!plan.newTags.some((t) => t.slug === slug)) plan.newTags.push({ name, slug });
+    const owner = bySlug.get(slug);
+    if (owner) {
+      fail(name, `slug「${slug}」已被标签「${owner.name}」使用：同一个意思请直接写「${owner.name}」，否则换一个 slug`);
+      continue;
+    }
+    if (!plan.newTags.some((t) => t.slug === slug)) plan.newTags.push({ name, slug });
   }
   plan.existingIds = [...new Set(plan.existingIds)];
   return plan;
@@ -65,7 +74,8 @@ export async function convertCandidate(id: string, intent: "publish" | "draft", 
     const issue = review.error.issues[0];
     throw new DomainError(issue?.message ?? "请检查填写内容", issue?.path.join(".") || undefined);
   }
-  const payload: CandidatePayload = { ...stored.data, ...review.data };
+  const { tags: entries, ...edits } = review.data;
+  const payload: CandidatePayload = { ...stored.data, ...edits, ...splitTagEntries(entries) };
   // 先把管理员的修改写回候选，失败后再打开也不丢
   await repo.updateCandidatePayload(id, payload, payload.name);
 
@@ -73,7 +83,7 @@ export async function convertCandidate(id: string, intent: "publish" | "draft", 
   if (!category) throw new DomainError("分类不存在，请重新选择", "categorySlug");
 
   const strict = intent === "publish";
-  const tags = await planTags(payload.tags, strict);
+  const tags = await planTags(entries, strict);
   const tools = await repo.reviewLookups.toolsBySlugs(payload.toolSlugs);
 
   // 复用资源校验：新标签先用占位 id 参与「至少一个标签」与数量检查
@@ -127,7 +137,7 @@ export async function convertCandidate(id: string, intent: "publish" | "draft", 
   return {
     resourceId: created.id,
     slug: created.slug,
-    note: tags.dropped.length ? `以下标签没有英文 slug，未添加：${tags.dropped.join("、")}` : undefined,
+    note: tags.dropped.length ? `以下标签缺少英文 slug 或与已有标签冲突，未添加：${tags.dropped.join("、")}` : undefined,
   };
 }
 

@@ -37,7 +37,7 @@ export default async function TaxonomyPage() {
         <Card className={styles.fill} style={{ transform: "rotate(0.3deg)" }}>
           <h2 className={styles.cardTitle}>标签（共 {tags.length} 个）</h2>
           <p className={styles.hint} style={{ marginBottom: 12 }}>
-            支持在列表内直接修改并保存，支持容器内纵向滚动：
+            名称 · slug · 别名。别名会让模型和审核时写的近义词自动映射到该标签。模型建议的新词在「待定标签」里处理。
           </p>
           <div style={{ marginBottom: 12 }}>
             <TaxonomyRow key={`new-tag-${tags.length}`} kind="tag" save={saveTagAction.bind(null, null)} />
@@ -45,7 +45,7 @@ export default async function TaxonomyPage() {
           <ScrollArea className={styles.body} viewportClassName={styles.scrollRows}>
             {tags.map((t) => (
               <TaxonomyRow
-                key={`${t.id}-${t.slug}-${t.name}`}
+                key={`${t.id}-${t.slug}-${t.name}-${t.aliases.join(",")}`}
                 kind="tag"
                 initial={t}
                 usage={t._count.resources}

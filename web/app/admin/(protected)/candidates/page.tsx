@@ -6,7 +6,7 @@ import a from "@/components/admin/agent.module.css";
 import { CandidateCard, type CandidateView } from "@/components/admin/CandidateCard";
 import { Card, ChipLink, ScrollArea } from "@/components/ui";
 import { candidateStatuses, candidateStatusLabels, sourceLabels, type CandidateSource, type CandidateStatusValue } from "@/lib/agent/types";
-import { countCandidatesByStatus, listCandidates, loadTaxonomy } from "@/lib/data/agent.repo";
+import { countCandidatesByStatus, listCandidates, loadClosedSuggestions, loadTaxonomy } from "@/lib/data/agent.repo";
 import { candidatePayloadSchema } from "@/lib/validation/candidate";
 import { pricingLabels } from "@/lib/validation/resource";
 import { rejectCandidateAction, reviewCandidateAction } from "../actions";
@@ -23,7 +23,9 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
   const sp = await searchParams;
   const status: CandidateStatusValue = candidateStatuses.includes(sp.status as CandidateStatusValue) ? (sp.status as CandidateStatusValue) : "pending";
   const page = Math.max(1, Math.min(500, Number.parseInt(sp.page ?? "1", 10) || 1));
-  const { categories } = await loadTaxonomy();
+  const [{ categories }, ignored] = await Promise.all([loadTaxonomy(), loadClosedSuggestions()]);
+  // 已忽略的建议词不再预填到审核输入框
+  const ignoredSlugs = new Set(ignored.map((x) => x.slug));
   // 分类筛选：按候选当前的 categorySlug；不认识的值忽略
   const cat = categories.some((c) => c.slug === sp.cat) ? sp.cat! : null;
   const [counts, { total, items, pageSize }] = await Promise.all([countCandidatesByStatus(cat), listCandidates(status, page, cat)]);
@@ -44,7 +46,7 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
     const parsed = candidatePayloadSchema.safeParse(c.payload);
     const p = parsed.success
       ? parsed.data
-      : { name: c.name, slug: "", summary: "", description: "", categorySlug: "", tags: [], websiteUrl: null, githubUrl: null, pricingType: "unknown" as const, toolSlugs: [] };
+      : { name: c.name, slug: "", summary: "", description: "", categorySlug: "", tags: [], websiteUrl: null, githubUrl: null, pricingType: "unknown" as const, toolSlugs: [], suggestedTags: [] };
     return {
       id: c.id,
       status: c.status,
@@ -59,6 +61,7 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
       targetName: c.run?.category?.name ?? null,
       offTarget: !!c.run?.category && c.run.category.slug !== p.categorySlug,
       tags: p.tags,
+      suggestedTags: p.suggestedTags.filter((t) => !ignoredSlugs.has(t.slug)),
       websiteUrl: p.websiteUrl,
       githubUrl: p.githubUrl,
       pricingLabel: pricingLabels[p.pricingType],

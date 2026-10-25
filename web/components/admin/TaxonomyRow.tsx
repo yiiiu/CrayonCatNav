@@ -9,7 +9,7 @@ type Props = {
   kind: "category" | "tag";
   save: (prev: ActionResult, fd: FormData) => Promise<ActionResult>;
   remove?: (prev: ActionResult) => Promise<ActionResult>;
-  initial?: { name: string; slug: string; sortOrder?: number };
+  initial?: { name: string; slug: string; sortOrder?: number; aliases?: string[] };
   usage?: number;
 };
 
@@ -35,6 +35,13 @@ export function TaxonomyRow({ kind, save, remove, initial, usage }: Props) {
           <input id={`${prefix}-slug`} name="slug" defaultValue={initial?.slug} placeholder="slug" required />
           {err("slug") && <p className={styles.err}>{err("slug")}</p>}
         </div>
+        {kind === "tag" && (
+          <div className={`${styles.field} ${err("aliases") ? styles.bad : ""}`}>
+            <label htmlFor={`${prefix}-aliases`} className="sr-only">别名</label>
+            <input id={`${prefix}-aliases`} name="aliases" defaultValue={initial?.aliases?.join("，")} placeholder="别名（可选，逗号分隔）" title="模型或审核员写这些词时会映射到本标签" />
+            {err("aliases") && <p className={styles.err}>{err("aliases")}</p>}
+          </div>
+        )}
         {kind === "category" && (
           <div className={styles.field}>
             <label htmlFor={`${prefix}-sort`} className="sr-only">排序</label>

@@ -12,10 +12,11 @@ const items = [
   ["/admin/featured", "首页精选"],
   ["/admin/agent", "采集 Agent"],
   ["/admin/candidates", "候选箱"],
+  ["/admin/tag-suggestions", "待定标签"],
 ] as const;
 
-/** 后台导航；pending 为候选箱待审核数量（服务端查询后传入，0 或未传不显示徽标）。 */
-export function AdminNav({ pending = 0 }: { pending?: number }) {
+/** 后台导航；pending 为候选箱待审核数量、tagPending 为待定标签数量（服务端查询后传入，0 或未传不显示徽标）。 */
+export function AdminNav({ pending = 0, tagPending = 0 }: { pending?: number; tagPending?: number }) {
   const pathname = usePathname();
   return (
     <nav className={styles.nav} aria-label="后台导航">
@@ -25,6 +26,11 @@ export function AdminNav({ pending = 0 }: { pending?: number }) {
           {href === "/admin/candidates" && pending > 0 && (
             <span className={a.count} aria-label={`${pending} 条待审核`}>
               {pending > 99 ? "99+" : pending}
+            </span>
+          )}
+          {href === "/admin/tag-suggestions" && tagPending > 0 && (
+            <span className={a.count} aria-label={`${tagPending} 个待定标签`}>
+              {tagPending > 99 ? "99+" : tagPending}
             </span>
           )}
         </Link>

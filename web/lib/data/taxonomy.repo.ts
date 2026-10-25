@@ -53,7 +53,8 @@ export const categoryRepo = {
 
 export const tagRepo = {
   findBySlug: (slug: string) => prisma.tag.findUnique({ where: { slug } }),
-  create: (data: { name: string; slug: string }) => prisma.tag.create({ data }),
-  update: (id: string, data: { name: string; slug: string }) => prisma.tag.update({ where: { id }, data }),
+  create: (data: { name: string; slug: string; aliases?: string[] }) => prisma.tag.create({ data }),
+  update: (id: string, data: { name: string; slug: string; aliases?: string[] }) => prisma.tag.update({ where: { id }, data }),
+  allForVocab: () => prisma.tag.findMany({ select: { id: true, name: true, aliases: true } }),
   delete: (id: string) => prisma.tag.delete({ where: { id } }),
 };
