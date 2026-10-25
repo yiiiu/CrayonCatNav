@@ -7,3 +7,4 @@ export { ButtonLink, ExternalButton } from "./ButtonLink";
 export { Mono } from "./Mono";
 export { SearchBox } from "./SearchBox";
 export { SectionHead } from "./SectionHead";
+export { ScrollArea, type ScrollAreaProps, type ScrollOrientation } from "./ScrollArea";

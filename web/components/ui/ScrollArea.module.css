@@ -1,0 +1,108 @@
+/* 手绘风自定义滚动条：原生滚动保留，原生滚动条隐藏，叠加油画棒质感的拇指 */
+.root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.viewport {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overscroll-behavior: contain;
+  scrollbar-width: none; /* Firefox / 新版 Chromium */
+  -ms-overflow-style: none;
+}
+.viewport::-webkit-scrollbar { display: none; width: 0; height: 0; }
+/* 零特异性：使用方用 viewportClassName（单个类）即可覆盖 overflow，例如窄屏解除滚动锁定时设为 visible */
+:where(.root[data-orientation="vertical"] > .viewport) { overflow-x: hidden; overflow-y: auto; }
+:where(.root[data-orientation="horizontal"] > .viewport) { overflow-x: auto; overflow-y: hidden; }
+:where(.root[data-orientation="both"] > .viewport) { overflow: auto; }
+.viewport:focus-visible { outline: 3px dashed var(--blue); outline-offset: -3px; }
+
+/* 轨道：细铅笔虚线，空闲时淡出 */
+.track {
+  position: absolute;
+  z-index: 3; /* 高于表格 sticky 表头（z-index: 2） */
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  touch-action: none;
+  transition: opacity 0.25s ease, visibility 0s linear 0.25s;
+}
+.track::before {
+  content: "";
+  position: absolute;
+  border-radius: 2px;
+  background: repeating-linear-gradient(var(--rail-dir, to bottom), color-mix(in srgb, var(--ink-2) 30%, transparent) 0 7px, transparent 7px 11px);
+}
+.track[data-axis="y"] { top: 4px; bottom: 4px; right: 1px; width: 12px; --rail-dir: to bottom; }
+.track[data-axis="y"]::before { top: 0; bottom: 0; left: 5px; width: 2px; }
+.track[data-axis="x"] { left: 4px; right: 4px; bottom: 1px; height: 12px; --rail-dir: to right; }
+.track[data-axis="x"]::before { left: 0; right: 0; top: 5px; height: 2px; }
+.root[data-orientation="both"] > .track[data-axis="y"] { bottom: 15px; }
+.root[data-orientation="both"] > .track[data-axis="x"] { right: 15px; }
+
+/* 溢出时：hover / 滚动中 / 拖动中 / 键盘聚焦 显示 */
+.track[data-visible] { pointer-events: auto; }
+.root:hover > .track[data-visible],
+.root[data-active] > .track[data-visible],
+.root[data-dragging] > .track[data-visible],
+.viewport:focus-visible ~ .track[data-visible] {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.15s ease, visibility 0s;
+}
+
+/* 拇指：蜡笔填色 + 墨色描边 + 略不规则圆角 */
+.thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  background-color: var(--tint);
+  background-image: repeating-linear-gradient(118deg, rgb(255 255 255 / 0.45) 0 1.5px, transparent 1.5px 4px),
+    repeating-linear-gradient(28deg, color-mix(in srgb, var(--pink-deep) 22%, transparent) 0 1px, transparent 1px 5px);
+  border: 2px solid var(--ink);
+  border-radius: 7px 4px 8px 5px / 11px 6px 12px 7px;
+  box-shadow: 1px 2px 0 color-mix(in srgb, var(--ink) 55%, transparent);
+  cursor: grab;
+  will-change: transform;
+  transition: inset 0.15s ease, width 0.15s ease, height 0.15s ease, background-color 0.15s ease, border-width 0.15s ease;
+}
+.track[data-axis="y"] > .thumb { left: 2px; right: 2px; width: auto; }
+.track[data-axis="x"] > .thumb { top: 2px; bottom: 2px; height: auto; }
+
+/* hover 轨道时加粗；拖动时换蓝色、描边加粗 */
+.track:hover > .thumb { background-color: var(--pink); }
+.track[data-axis="y"]:hover > .thumb { left: 0; right: 0; }
+.track[data-axis="x"]:hover > .thumb { top: 0; bottom: 0; }
+.root[data-dragging] { user-select: none; -webkit-user-select: none; }
+.root[data-dragging] > .track > .thumb {
+  cursor: grabbing;
+  background-color: color-mix(in srgb, var(--blue) 70%, var(--paper));
+  border-width: var(--stroke);
+}
+.root[data-dragging] > .track[data-axis="y"] > .thumb { left: 0; right: 0; }
+.root[data-dragging] > .track[data-axis="x"] > .thumb { top: 0; bottom: 0; }
+
+/* 触屏：滚动交给原生手势，拇指只做位置指示，不拦截指针 */
+@media (pointer: coarse) {
+  .track[data-visible] { pointer-events: none; }
+  .track[data-axis="y"] > .thumb { left: 3px; right: 3px; }
+  .track[data-axis="x"] > .thumb { top: 3px; bottom: 3px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track, .thumb,
+  .root:hover > .track[data-visible],
+  .root[data-active] > .track[data-visible],
+  .root[data-dragging] > .track[data-visible],
+  .viewport:focus-visible ~ .track[data-visible] { transition: none; }
+}
+
+@media (forced-colors: active) {
+  .thumb { background: CanvasText; border-color: CanvasText; }
+}
