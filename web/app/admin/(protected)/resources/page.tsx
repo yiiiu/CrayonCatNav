@@ -38,7 +38,7 @@ export default async function AdminResourcesPage({ searchParams }: { searchParam
       <AdminTop title="资源管理" />
       {sp.error && <p className={styles.alert} role="alert">{sp.error}</p>}
       {sp.deleted && <p className={styles.ok} role="status">资源已删除</p>}
-      <Card>
+      <Card className={styles.fill}>
         <form className={styles.toolbar} action="/admin/resources">
           <label className={styles.search}>
             <span className="sr-only">搜索资源</span>
@@ -61,7 +61,7 @@ export default async function AdminResourcesPage({ searchParams }: { searchParam
           <ButtonLink href="/admin/resources/new" variant="primary" className={styles.grow}>+ 新增资源</ButtonLink>
         </form>
 
-        <div className={styles.scroll}>
+        <div className={`${styles.scroll} ${styles.body}`}>
           <table className={styles.tbl}>
             <thead>
               <tr>

@@ -43,11 +43,11 @@ export function ResourceForm({ action, initial, categories, tags, tools, notice 
   return (
     <form action={formAction} className={styles.form} noValidate>
       <input type="hidden" name="prevSlug" value={initial.slug} />
-      <Card>
+      <Card className={styles.fill}>
         {!state.ok && state.formError && <p className={styles.alert} role="alert">{state.formError}</p>}
         {state.ok && (state.message || notice) && <p className={styles.ok} role="status">{state.message ?? notice}</p>}
         <h2 className={styles.cardTitle}>基本信息</h2>
-        <div className={styles.two}>
+        <div className={`${styles.two} ${styles.body} ${styles.formBody}`}>
           <Field label="名称" name="name" error={err("name")}>
             <input id="f-name" name="name" required maxLength={80} value={name} onChange={(e) => setName(e.target.value)} aria-invalid={!!err("name")} aria-describedby={describedBy("name")} />
           </Field>
@@ -107,6 +107,7 @@ export function ResourceForm({ action, initial, categories, tags, tools, notice 
       </Card>
 
       <div className={styles.panel}>
+        <div className={styles.panelScroll}>
         <Card>
           <h2 className={styles.cardTitle}>发布状态</h2>
           {(Object.keys(statusLabels) as (keyof typeof statusLabels)[]).map((s) => (
@@ -126,6 +127,7 @@ export function ResourceForm({ action, initial, categories, tags, tools, notice 
             </label>
           ))}
         </Card>
+        </div>
         <div className={styles.btns}>
           <Button type="submit" variant="primary" disabled={pending}>
             {pending ? "保存中…" : "保存"}
