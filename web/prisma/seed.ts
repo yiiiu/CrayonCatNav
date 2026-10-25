@@ -1,6 +1,7 @@
 /**
  * 种子脚本（每次部署都会执行，只补缺、不覆盖后台改动）：
- * 1. 初始 6 大分类：只创建缺失的，已有分类的名称和排序归后台管理
+ * 1. 初始 6 大分类：只创建缺失的，已有分类的名称和排序归后台管理；
+ *    同时为这 6 个分类补默认采集配置（lib/validation/collect-config.ts），只在该分类还没有配置时写入，后台改过的不覆盖
  * 2. 工具表同步：名称与描述以代码注册表 metas.ts 为准；状态与排序归后台
  * 3. 修复旧版 URL 编码的标签 slug
  * 4. 首批 36 条资源（含标签与 ResourceTool 关联）：仅在资源表为空时初始化一次
@@ -13,6 +14,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { PrismaClient, type PricingType } from "../generated/prisma/client";
 import { toolMetas } from "../lib/tools/metas";
+import { DEFAULT_COLLECT_CONFIGS } from "../lib/validation/collect-config";
 import { tagSlugFor } from "./tag-slugs";
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
@@ -454,6 +456,13 @@ async function main() {
       create: { ...c, sortOrder: i },
     });
     categoryMap.set(c.slug, saved.id);
+  }
+
+  console.log("1b. 补齐分类采集配置（只补没有配置的分类）...");
+  for (const [slug, config] of Object.entries(DEFAULT_COLLECT_CONFIGS)) {
+    const categoryId = categoryMap.get(slug);
+    if (!categoryId) continue;
+    await prisma.categoryCollectConfig.upsert({ where: { categoryId }, update: {}, create: { categoryId, config } });
   }
 
   console.log("2. 同步工具注册表（名称与描述以代码为准，状态和排序归后台）...");

@@ -1,4 +1,5 @@
 import "server-only";
+import { applyTargetCategory, type GlobalSources } from "@/lib/agent/category-target";
 import { buildUserPrompt, chat, LlmError, SYSTEM_PROMPT, type ChatMessage, type ChatUsage, type PromptContext } from "@/lib/agent/llm";
 import { checkLink, safeFetch, SafeFetchError } from "@/lib/agent/safe-fetch";
 import { isKnown, rawKeys, buildQueue } from "@/lib/agent/select";
@@ -13,11 +14,14 @@ import { githubRepoOf, isHttpsUrl, normalizeUrl, urlKeysOf } from "@/lib/agent/u
 import * as repo from "@/lib/data/agent.repo";
 import { toolMetas } from "@/lib/tools/metas";
 import { cleanModelOutput, extractJson, type CandidatePayload, type CleanContext } from "@/lib/validation/candidate";
+import { parseStoredConfig } from "@/lib/validation/collect-config";
 import { loadRuntimeConfig, type RuntimeConfig } from "./agent-settings.service";
+import { resolveTarget, type CollectTarget } from "./category-collect.service";
 import { DomainError } from "./result";
 
 /**
- * 采集流程：抢锁 → 拉白名单来源 → 规范化去重（现有资源 + 全部候选，含已拒绝）→ 模型整理（json_object + zod，失败重试一次）
+ * 采集流程（按分类定向）：抢锁 → 确定目标分类（手动指定 / 自动选「已上架 + 待审核」最少的已配置分类）
+ * → 只拉该分类配置里开启且全局也开启的来源（GitHub 按该分类的主题 / 关键词查询） → 规范化去重（现有资源 + 全部候选，含已拒绝）→ 模型整理（json_object + zod，失败重试一次）
  * → 链接可访问检查 → 存候选。永不自动上架。
  */
 
@@ -46,6 +50,8 @@ type Ctx = {
   known: Set<string>;
   usage: ChatUsage;
   runId: string;
+  /** 目标分类；贴链接整理为空（不限分类） */
+  target: CollectTarget | null;
 };
 
 type ItemOutcome = { kind: "created" | "skipped" | "duplicate" | "failed"; note?: string };
@@ -116,6 +122,7 @@ async function processOne(raw: RawCandidate, ctx: Ctx): Promise<ItemOutcome> {
   const result = await askModel(raw, ctx);
   if (!result.ok) return { kind: "failed", note: `${raw.title}：模型输出不合格（${result.error}）` };
   if (result.skip) return { kind: "skipped", note: `${raw.title}：模型建议不收录（${result.reason.slice(0, 80)}）` };
+  const judged = applyTargetCategory(result, ctx.target);
 
   const verified = await verifyLinks(result.payload);
   if (!verified) return { kind: "failed", note: `${raw.title}：链接不可访问` };
@@ -140,16 +147,18 @@ async function processOne(raw: RawCandidate, ctx: Ctx): Promise<ItemOutcome> {
     sourceUpdatedAt: raw.sourceUpdatedAt,
     rawSummary: raw.description.slice(0, 1000),
     payload,
-    reason: result.reason,
-    confidence: result.confidence,
+    reason: judged.reason,
+    confidence: judged.confidence,
     linkStatus: verified.status,
     runId: ctx.runId,
   });
   return saved ? { kind: "created" } : { kind: "duplicate" };
 }
 
-async function buildContext(cfg: RuntimeConfig, runId: string): Promise<Ctx> {
-  const [{ categories, tags, tools }, urls] = await Promise.all([repo.loadTaxonomy(), repo.loadKnownUrls()]);
+async function buildContext(cfg: RuntimeConfig, runId: string, target: CollectTarget | null): Promise<Ctx> {
+  const [{ tags, tools }, cats, urls] = await Promise.all([repo.loadTaxonomy(), repo.listCategoriesWithCollectConfig(), repo.loadKnownUrls()]);
+  // 分类说明来自分类采集配置，帮助模型判断归类
+  const categories = cats.map((c) => ({ slug: c.slug, name: c.name, description: parseStoredConfig(c.rawConfig)?.description ?? "" }));
   if (categories.length === 0) throw new DomainError("还没有任何分类，请先在「分类标签」里新增");
   // 工具以代码注册表为准，并与 Tool 表取交集
   const toolList = toolMetas.filter((m) => tools.some((t) => t.slug === m.slug)).map((m) => ({ slug: m.slug, name: m.name, description: m.description }));
@@ -162,26 +171,36 @@ async function buildContext(cfg: RuntimeConfig, runId: string): Promise<Ctx> {
   return {
     cfg,
     runId,
+    target,
     known,
     usage: { promptTokens: 0, completionTokens: 0 },
-    prompt: { categories, tagNames: tags.map((t) => t.name), tools: toolList },
+    prompt: {
+      categories,
+      target: target ? { slug: target.slug, name: target.name, description: target.config.description } : null,
+      tagNames: tags.map((t) => t.name),
+      tools: toolList,
+    },
     clean: { categorySlugs: categories.map((c) => c.slug), tagNames: tags.map((t) => t.name), toolSlugs: toolList.map((t) => t.slug) },
   };
 }
 
 type SourceNote = { source: CandidateSource; fetched: number; error?: string };
 
-async function gatherSources(cfg: RuntimeConfig): Promise<{ pools: RawCandidate[][]; notes: SourceNote[] }> {
+/** 只跑目标分类配置里开启、且全局开关也开启的来源（target.active 已取交集）。 */
+async function gatherSources(cfg: RuntimeConfig, target: CollectTarget): Promise<{ pools: RawCandidate[][]; notes: SourceNote[] }> {
+  const c = target.config;
   const tasks: [CandidateSource, () => Promise<RawCandidate[]>][] = [];
-  if (cfg.sources.mcpRegistry) tasks.push(["mcp_registry", () => fetchMcpRegistry()]);
-  if (cfg.sources.github) tasks.push(["github", () => fetchGithub(cfg.githubToken)]);
-  if (cfg.sources.awesome) tasks.push(["awesome", () => fetchAwesome()]);
-  if (cfg.sources.huggingface) tasks.push(["huggingface", () => fetchHuggingface()]);
-  const notes: SourceNote[] = [];
-  if (cfg.sources.productHunt) {
-    if (cfg.phToken) tasks.push(["producthunt", () => fetchProductHunt(cfg.phToken!)]);
-    else notes.push({ source: "producthunt", fetched: 0, error: "未配置 Product Hunt Token，已跳过" });
+  const on = new Set(target.active);
+  if (on.has("mcpRegistry")) tasks.push(["mcp_registry", () => fetchMcpRegistry()]);
+  if (on.has("github")) {
+    const params = { topics: c.githubTopics, keywords: c.githubKeywords, minStars: c.githubMinStars, newMinStars: c.githubNewMinStars };
+    tasks.push(["github", () => fetchGithub(params, cfg.githubToken)]);
   }
+  if (on.has("awesome")) tasks.push(["awesome", () => fetchAwesome()]);
+  if (on.has("huggingface")) tasks.push(["huggingface", () => fetchHuggingface(c.hfSearch)]);
+  const notes: SourceNote[] = [];
+  if (on.has("productHunt") && cfg.phToken) tasks.push(["producthunt", () => fetchProductHunt(cfg.phToken!)]);
+  else if (c.sources.productHunt && cfg.sources.productHunt && !cfg.phToken) notes.push({ source: "producthunt", fetched: 0, error: "未配置 Product Hunt Token，已跳过" });
   const results = await Promise.allSettled(tasks.map(([, fn]) => fn()));
   const pools: RawCandidate[][] = [];
   results.forEach((r, i) => {
@@ -194,6 +213,17 @@ async function gatherSources(cfg: RuntimeConfig): Promise<{ pools: RawCandidate[
     }
   });
   return { pools, notes };
+}
+
+/** 全局来源开关（目标分类的来源要与它取交集）。Product Hunt 需要已配置 Token。 */
+export function globalSourcesOf(cfg: RuntimeConfig): GlobalSources {
+  return {
+    github: cfg.sources.github,
+    mcpRegistry: cfg.sources.mcpRegistry,
+    awesome: cfg.sources.awesome,
+    huggingface: cfg.sources.huggingface,
+    productHunt: cfg.sources.productHunt && !!cfg.phToken,
+  };
 }
 
 /** 用工作池处理队列：并发 3，新增数到上限、队列耗尽或超出时间预算即停。 */
@@ -234,15 +264,23 @@ async function processQueue(queue: RawCandidate[], ctx: Ctx, limit: number, star
   return { counts, notes, fatal };
 }
 
-async function withRun(trigger: "manual" | "cron" | "link", body: (ctx: Ctx, startedAt: number) => Promise<Omit<RunSummary, "runId" | "message"> & { notes: unknown }>): Promise<RunSummary> {
+export type TargetChoice = "auto" | { categoryId: string };
+
+async function withRun(
+  trigger: "manual" | "cron" | "link",
+  choice: TargetChoice | null,
+  body: (ctx: Ctx, startedAt: number) => Promise<Omit<RunSummary, "runId" | "message"> & { notes: unknown }>,
+): Promise<RunSummary> {
   const cfg = await loadRuntimeConfig();
   if (!(await repo.acquireLock(LOCK_TTL_MS))) throw new DomainError("已有采集正在进行，请等它结束后再试");
   const startedAt = Date.now();
   let runId = "";
   try {
     await repo.failStaleRuns(new Date(startedAt - LOCK_TTL_MS));
-    runId = (await repo.createRun(trigger)).id;
-    const ctx = await buildContext(cfg, runId);
+    // 抢到锁之后再选目标分类，计数不会被并发采集打乱
+    const target = choice ? await resolveTarget(choice, globalSourcesOf(cfg)) : null;
+    runId = (await repo.createRun(trigger, target?.id ?? null)).id;
+    const ctx = await buildContext(cfg, runId, target);
     const r = await body(ctx, startedAt);
     await repo.finishRun(runId, {
       status: r.status,
@@ -258,7 +296,7 @@ async function withRun(trigger: "manual" | "cron" | "link", body: (ctx: Ctx, sta
     const message =
       r.status === "failed"
         ? `采集失败：${r.error ?? "未知错误"}`
-        : `采集完成：发现 ${r.found} 条，新增候选 ${r.created} 条，跳过 ${r.skipped} 条，失败 ${r.failed} 条`;
+        : `${ctx.target ? `「${ctx.target.name}」` : ""}采集完成：发现 ${r.found} 条，新增候选 ${r.created} 条，跳过 ${r.skipped} 条，失败 ${r.failed} 条`;
     return { runId, ...r, message };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "未知错误";
@@ -270,16 +308,18 @@ async function withRun(trigger: "manual" | "cron" | "link", body: (ctx: Ctx, sta
   }
 }
 
-/** 按设置从所有开启的来源采集一轮。 */
-export function runCollection(trigger: "manual" | "cron") {
-  return withRun(trigger, async (ctx, startedAt) => {
-    const { pools, notes: sourceNotes } = await gatherSources(ctx.cfg);
+/** 为目标分类采集一轮：手动可指定分类或自动；定时固定自动（选资源最少的已配置分类）。 */
+export function runCollection(trigger: "manual" | "cron", choice: TargetChoice = "auto") {
+  return withRun(trigger, trigger === "cron" ? "auto" : choice, async (ctx, startedAt) => {
+    const target = ctx.target!;
+    const targetNote = { slug: target.slug, name: target.name, mode: target.mode, ...(target.snapshot ? { snapshot: target.snapshot } : {}) };
+    const { pools, notes: sourceNotes } = await gatherSources(ctx.cfg, target);
     const found = pools.reduce((n, p) => n + p.length, 0);
     if (sourceNotes.length === 0) {
-      return { status: "failed", found: 0, created: 0, skipped: 0, failed: 0, error: "没有开启任何采集来源", notes: { sources: sourceNotes } };
+      return { status: "failed", found: 0, created: 0, skipped: 0, failed: 0, error: "没有开启任何采集来源", notes: { target: targetNote, sources: sourceNotes } };
     }
     if (pools.length === 0) {
-      return { status: "failed", found: 0, created: 0, skipped: 0, failed: 0, error: "所有来源都拉取失败", notes: { sources: sourceNotes } };
+      return { status: "failed", found: 0, created: 0, skipped: 0, failed: 0, error: "所有来源都拉取失败", notes: { target: targetNote, sources: sourceNotes } };
     }
     const { queue, duplicates } = buildQueue(pools, ctx.known);
     const { counts, notes, fatal } = await processQueue(queue, ctx, ctx.cfg.maxPerRun, startedAt);
@@ -291,14 +331,14 @@ export function runCollection(trigger: "manual" | "cron") {
       skipped,
       failed: counts.failed,
       error: fatal,
-      notes: { sources: sourceNotes, items: notes.slice(0, 40), duplicates: duplicates + counts.duplicates, unprocessed: Math.max(0, queue.length - counts.created - counts.skipped - counts.failed - counts.duplicates) },
+      notes: { target: targetNote, sources: sourceNotes, items: notes.slice(0, 40), duplicates: duplicates + counts.duplicates, unprocessed: Math.max(0, queue.length - counts.created - counts.skipped - counts.failed - counts.duplicates) },
     };
   });
 }
 
 /** 管理员贴一个链接让 Agent 整理成候选（同样去重、防 SSRF、人工审核）。 */
 export function collectLink(url: string) {
-  return withRun("link", async (ctx) => {
+  return withRun("link", null, async (ctx) => {
     const repoPath = githubRepoOf(url);
     let raw: RawCandidate | null;
     try {

@@ -27,9 +27,9 @@ type Props = { action: (prev: ActionResult, fd: FormData) => Promise<ActionResul
 
 const SOURCES = [
   ["srcMcpRegistry", "MCP 官方 Registry", "近 14 天更新的 MCP 服务，无需 token"],
-  ["srcGithub", "GitHub 搜索", "mcp-server / ai-agents / agent-skills 主题，按 star 与近期活跃"],
+  ["srcGithub", "GitHub 搜索", "按目标分类配置的主题 / 关键词搜索，带 star 与活跃度门槛"],
   ["srcAwesome", "awesome 清单", "punkpeye/awesome-mcp-servers，官方实现优先"],
-  ["srcHuggingface", "Hugging Face Spaces", "按点赞数排序的热门 Space"],
+  ["srcHuggingface", "Hugging Face Spaces", "按目标分类的搜索词查询，按点赞排序"],
   ["srcProductHunt", "Product Hunt", "近 7 天 AI 话题高票产品，需要 Token，没有就跳过"],
 ] as const;
 
@@ -72,6 +72,7 @@ export function AgentSettingsForm({ action, initial }: Props) {
           <Field label="每次采集条数上限" name="maxPerRun" error={err("maxPerRun")} hint="1–20，默认 8；条数越多越可能超出函数执行时间">
             <input id="f-maxPerRun" name="maxPerRun" type="number" min={1} max={20} defaultValue={initial.maxPerRun} />
           </Field>
+          <p className={`${styles.hint} ${a.wideHint}`}>全局开关：关掉的来源任何分类都不会跑；每个分类实际用哪些来源在右侧「分类采集配置」里设。</p>
           <div className={a.sources} role="group" aria-label="采集来源">
             {SOURCES.map(([name, label, hint]) => (
               <label key={name} className={styles.opt}>

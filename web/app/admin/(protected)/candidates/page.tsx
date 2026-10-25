@@ -23,13 +23,18 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
   const sp = await searchParams;
   const status: CandidateStatusValue = candidateStatuses.includes(sp.status as CandidateStatusValue) ? (sp.status as CandidateStatusValue) : "pending";
   const page = Math.max(1, Math.min(500, Number.parseInt(sp.page ?? "1", 10) || 1));
-  const [counts, { total, items, pageSize }, { categories }] = await Promise.all([countCandidatesByStatus(), listCandidates(status, page), loadTaxonomy()]);
+  const { categories } = await loadTaxonomy();
+  // 分类筛选：按候选当前的 categorySlug；不认识的值忽略
+  const cat = categories.some((c) => c.slug === sp.cat) ? sp.cat! : null;
+  const [counts, { total, items, pageSize }] = await Promise.all([countCandidatesByStatus(cat), listCandidates(status, page, cat)]);
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const catName = new Map(categories.map((c) => [c.slug, c.name]));
-  const href = (patch: { status?: string; page?: number }) => {
+  const href = (patch: { status?: string; page?: number; cat?: string | null }) => {
     const p = new URLSearchParams();
     const st = patch.status ?? status;
+    const c = patch.cat === undefined ? cat : patch.cat;
     if (st !== "pending") p.set("status", st);
+    if (c) p.set("cat", c);
     if (patch.page && patch.page > 1) p.set("page", String(patch.page));
     const s = p.toString();
     return s ? `/admin/candidates?${s}` : "/admin/candidates";
@@ -51,6 +56,8 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
       description: p.description,
       categorySlug: p.categorySlug,
       categoryName: catName.get(p.categorySlug) ?? null,
+      targetName: c.run?.category?.name ?? null,
+      offTarget: !!c.run?.category && c.run.category.slug !== p.categorySlug,
       tags: p.tags,
       websiteUrl: p.websiteUrl,
       githubUrl: p.githubUrl,
@@ -83,6 +90,16 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
             ))}
           </div>
           <span className={styles.hint}>Agent 只整理、不上架；每条都需要人工确认。拒绝后同一链接不再推送。</span>
+        </div>
+        <div className={`${styles.seg} ${a.catFilter}`} role="group" aria-label="按分类筛选">
+          <ChipLink href={href({ cat: null, page: 1 })} active={!cat}>
+            全部分类
+          </ChipLink>
+          {categories.map((x) => (
+            <ChipLink key={x.slug} href={href({ cat: x.slug, page: 1 })} active={cat === x.slug}>
+              {x.name}
+            </ChipLink>
+          ))}
         </div>
         <ScrollArea className={`${styles.scroll} ${styles.body}`} viewportClassName={a.list}>
           {views.length === 0 && (

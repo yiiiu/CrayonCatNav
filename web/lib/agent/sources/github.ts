@@ -1,5 +1,6 @@
 import type { RawCandidate } from "../types";
 import { canonicalGithubUrl } from "../url";
+import { MAX_GITHUB_QUERIES } from "@/lib/validation/collect-config";
 import { arr, daysAgoIso, fetchJson, httpsOrNull, num, obj, str, toDate } from "./http";
 
 /**
@@ -8,13 +9,37 @@ import { arr, daysAgoIso, fetchJson, httpsOrNull, num, obj, str, toDate } from "
  */
 export const GITHUB_API = "https://api.github.com";
 
-/** 采集的主题；每个主题查「近期活跃的热门」与「近半年新起的」两组。 */
-export const GITHUB_TOPICS = ["mcp-server", "ai-agents", "agent-skills"] as const;
+/** 按分类构造 GitHub 搜索查询所需的参数（来自分类采集配置）。 */
+export type GithubQueryParams = {
+  topics: readonly string[];
+  keywords: readonly string[];
+  /** 「近期活跃的热门」star 门槛（默认 500） */
+  minStars?: number;
+  /** 「近半年新起的」star 门槛（默认 100） */
+  newMinStars?: number;
+  /** 最多生成多少条查询（每个主题/关键词两条），默认 MAX_GITHUB_QUERIES */
+  maxQueries?: number;
+};
 
-export function githubQueries(now = new Date()): string[] {
+/**
+ * 每个主题 / 关键词查两组：近 30 天活跃且 star 达标的热门、近 120 天新建且 star 达标的新秀。
+ * 主题用 topic:，关键词用 "短语" in:name,description,topics。
+ * 条目超过查询上限时按当天日期轮换起点，几天内轮流覆盖全部主题。
+ */
+export function githubQueries(params: GithubQueryParams, now = new Date()): string[] {
   const pushed = daysAgoIso(30, now).slice(0, 10);
   const created = daysAgoIso(120, now).slice(0, 10);
-  return GITHUB_TOPICS.flatMap((t) => [`topic:${t} stars:>=500 pushed:>=${pushed} archived:false fork:false`, `topic:${t} stars:>=100 created:>=${created} archived:false fork:false`]);
+  const minStars = params.minStars ?? 500;
+  const newMinStars = params.newMinStars ?? 100;
+  const terms = [...params.topics.map((t) => `topic:${t}`), ...params.keywords.map((k) => `"${k.replace(/"/g, "")}" in:name,description,topics`)];
+  if (terms.length === 0) return [];
+  const maxTerms = Math.max(1, Math.floor((params.maxQueries ?? MAX_GITHUB_QUERIES) / 2));
+  let picked = terms;
+  if (terms.length > maxTerms) {
+    const start = (Math.floor(now.getTime() / 86_400_000) * maxTerms) % terms.length;
+    picked = [...terms.slice(start), ...terms.slice(0, start)].slice(0, maxTerms);
+  }
+  return picked.flatMap((t) => [`${t} stars:>=${minStars} pushed:>=${pushed} archived:false fork:false`, `${t} stars:>=${newMinStars} created:>=${created} archived:false fork:false`]);
 }
 
 /** 解析单个仓库对象（search items 与 /repos/{owner}/{repo} 结构相同）。 */
@@ -60,10 +85,12 @@ function ghHeaders(token?: string | null): Record<string, string> {
   };
 }
 
-export async function fetchGithub(token?: string | null, now = new Date()): Promise<RawCandidate[]> {
+export async function fetchGithub(params: GithubQueryParams, token?: string | null, now = new Date()): Promise<RawCandidate[]> {
   const lists: RawCandidate[][] = [];
   const errors: string[] = [];
-  for (const q of githubQueries(now)) {
+  const queries = githubQueries(params, now);
+  if (queries.length === 0) throw new Error("该分类没有配置 GitHub 主题或关键词");
+  for (const q of queries) {
     try {
       const json = await fetchJson(`${GITHUB_API}/search/repositories?q=${encodeURIComponent(q)}&sort=stars&order=desc&per_page=30`, { headers: ghHeaders(token) });
       lists.push(parseGithubSearch(json));

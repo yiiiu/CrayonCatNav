@@ -39,6 +39,9 @@ model Category {
   slug      String     @unique
   sortOrder Int        @default(0)
   resources Resource[]
+  /// 采集配置单独成表：公共分类查询（include 全字段）不会带出内部配置
+  collectConfig CategoryCollectConfig?
+  collectRuns   CollectRun[]
 }
 
 model Tag {
@@ -216,9 +219,22 @@ model CollectRun {
   notes            Json?
   promptTokens     Int?
   completionTokens Int?
+  /// 本次的目标分类（按分类定向采集；贴链接整理为空）。分类删除后置空
+  categoryId       String?
+  category         Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   candidates       ResourceCandidate[]
 
   @@index([startedAt])
+  @@index([categoryId])
+}
+
+/// 分类的采集配置（2026-10-26，见架构 §9「按分类定向采集」）：一分类一行；没有行 = 未配置，不参与自动采集。
+/// config 结构见 lib/validation/collect-config.ts（zod 校验后写入，读取时再次校验）。
+model CategoryCollectConfig {
+  categoryId String   @id
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  config     Json
+  updatedAt  DateTime @updatedAt
 }
 
 /// 候选资源：Agent 整理后的待审条目，永不自动上架。

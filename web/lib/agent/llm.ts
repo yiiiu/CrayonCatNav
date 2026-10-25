@@ -66,8 +66,12 @@ export async function chat(
 
 /* ---------- 提示词 ---------- */
 
+export type PromptCategory = { slug: string; name: string; /** 分类采集配置里的说明，可为空 */ description?: string };
+
 export type PromptContext = {
-  categories: readonly { slug: string; name: string }[];
+  categories: readonly PromptCategory[];
+  /** 本次目标分类（按分类定向采集）；贴链接整理时为空，不限分类 */
+  target?: PromptCategory | null;
   tagNames: readonly string[];
   tools: readonly { slug: string; name: string; description: string }[];
 };
@@ -76,13 +80,25 @@ export const SYSTEM_PROMPT = `你是「蜡笔猫导航」的资源编辑，负�
 规则：
 1. 只根据给出的来源数据写作，不编造功能、价格、数据、公司背景；信息不足就写得保守一些，并降低 confidence。
 2. summary 与 description 必须是你原创的中文表述，不要直接翻译或照抄原文句子；summary 一句话（≤80 字为宜，最多 200 字）说明它是什么、解决什么问题；description 2–3 段，每段 1–3 句，段落之间空一行，写清适合谁、核心能力、使用方式，不写营销夸张语。
-3. categorySlug 只能从给定分类里选一个；toolSlugs 只能从给定工具里选（无关就给空数组）。
+3. categorySlug 只能从给定分类里选一个；toolSlugs 只能从给定工具里选（无关就给空数组）。如果给出了「本次目标分类」，按其中的要求判断归类。
 4. tags 给 2–5 个中文短标签，优先复用「现有标签」里的写法，确实没有合适的再新建（新建尽量用 2–6 个字的中文或常见英文词）。
 5. websiteUrl / githubUrl：只能原样使用来源给出的链接；若来源给的链接明显不是产品本身，设为 null。不要自己补链接。
 6. pricingType 取 free / freemium / paid / unknown，来源没说明就填 unknown（开源免费项目可填 free）。
 7. reason 用一两句中文说明为什么值得收录（或不确定之处）；confidence 为 0–1 的数字，表示这条值得上架且信息准确的把握。
 8. 如果它与 AI 无关、明显是营销垃圾/空壳/重复聚合页，或信息少到无法介绍，输出 {"skip": true, "reason": "原因"}。
 只输出一个 JSON 对象，不要输出任何其他文字。`;
+
+/** 目标分类段落：本次采集是为这个分类找资源。 */
+export function targetSection(t: PromptCategory): string[] {
+  return [
+    "【本次目标分类】",
+    `${t.slug}: ${t.name}`,
+    `分类说明：${t.description || "（无）"}`,
+    `要求：本次是专门为「${t.name}」找资源。属于这个分类就把 categorySlug 设为 ${t.slug}；`,
+    `明显不属于时，可以改选更合适的其他分类，但 confidence 不要超过 0.5，并在 reason 开头写明「不属于目标分类」及原因；`,
+    "和目标分类、其他分类都不搭，就输出 skip。",
+  ];
+}
 
 export function buildUserPrompt(raw: RawCandidate, ctx: PromptContext): string {
   const lines = [
@@ -96,8 +112,9 @@ export function buildUserPrompt(raw: RawCandidate, ctx: PromptContext): string {
     ...(raw.sourceUpdatedAt ? [`来源更新时间：${raw.sourceUpdatedAt.toISOString().slice(0, 10)}`] : []),
     ...(raw.hints ?? []),
     "",
-    "【可选分类（categorySlug: 名称）】",
-    ...ctx.categories.map((c) => `${c.slug}: ${c.name}`),
+    "【可选分类（categorySlug: 名称——说明）】",
+    ...ctx.categories.map((c) => `${c.slug}: ${c.name}${c.description ? `——${c.description}` : ""}`),
+    ...(ctx.target ? ["", ...targetSection(ctx.target)] : []),
     "",
     "【现有标签】",
     ctx.tagNames.slice(0, 200).join("、") || "（暂无）",

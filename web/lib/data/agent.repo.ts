@@ -49,8 +49,8 @@ export function failStaleRuns(before: Date) {
 
 /* ---------- 运行记录 ---------- */
 
-export function createRun(trigger: "manual" | "cron" | "link") {
-  return prisma.collectRun.create({ data: { trigger } });
+export function createRun(trigger: "manual" | "cron" | "link", categoryId: string | null = null) {
+  return prisma.collectRun.create({ data: { trigger, categoryId } });
 }
 
 export type RunFinish = {
@@ -70,7 +70,43 @@ export function finishRun(id: string, data: RunFinish) {
 }
 
 export function listRuns(limit = 10) {
-  return prisma.collectRun.findMany({ orderBy: { startedAt: "desc" }, take: limit });
+  return prisma.collectRun.findMany({ orderBy: { startedAt: "desc" }, take: limit, include: { category: { select: { slug: true, name: true } } } });
+}
+
+/* ---------- 分类采集配置与分类计数 ---------- */
+
+/** 全部分类（按 sortOrder）及其采集配置原始 Json（未配置为 null）。 */
+export async function listCategoriesWithCollectConfig() {
+  const rows = await prisma.category.findMany({
+    orderBy: [{ sortOrder: "asc" }, { slug: "asc" }],
+    select: { id: true, slug: true, name: true, sortOrder: true, collectConfig: { select: { config: true, updatedAt: true } } },
+  });
+  return rows.map(({ collectConfig, ...c }) => ({ ...c, rawConfig: collectConfig?.config ?? null, configUpdatedAt: collectConfig?.updatedAt ?? null }));
+}
+
+export function findCategoryById(id: string) {
+  return prisma.category.findUnique({ where: { id }, select: { id: true, slug: true, name: true } });
+}
+
+export function upsertCollectConfig(categoryId: string, config: Prisma.InputJsonValue) {
+  return prisma.categoryCollectConfig.upsert({ where: { categoryId }, create: { categoryId, config }, update: { config } });
+}
+
+/**
+ * 各分类「已上架资源数」与「待审核候选数」。
+ * 待审核按候选 payload.categorySlug 统计（Prisma 不支持按 Json 字段 groupBy，用原生 SQL）。
+ */
+export async function categoryCounts() {
+  const [published, pending] = await Promise.all([
+    prisma.resource.groupBy({ by: ["categoryId"], where: { status: "published" }, _count: { _all: true } }),
+    prisma.$queryRaw<{ slug: string | null; n: bigint }[]>`
+      SELECT "payload"->>'categorySlug' AS slug, COUNT(*)::bigint AS n
+      FROM "ResourceCandidate" WHERE "status" = 'pending' GROUP BY 1`,
+  ]);
+  return {
+    publishedById: new Map(published.map((r) => [r.categoryId, r._count._all])),
+    pendingBySlug: new Map(pending.filter((r) => r.slug).map((r) => [r.slug as string, Number(r.n)])),
+  };
 }
 
 /* ---------- 去重所需的已知链接 ---------- */
@@ -123,8 +159,14 @@ export async function createCandidate(data: CandidateCreate) {
 
 export const CANDIDATE_PAGE_SIZE = 20;
 
-export async function listCandidates(status: CandidateStatus, page: number) {
-  const where = { status };
+/** 按候选的 categorySlug（模型整理 / 管理员修改后的分类）筛选。 */
+const candidateWhere = (status: CandidateStatus | undefined, categorySlug?: string | null): Prisma.ResourceCandidateWhereInput => ({
+  ...(status ? { status } : {}),
+  ...(categorySlug ? { payload: { path: ["categorySlug"], equals: categorySlug } } : {}),
+});
+
+export async function listCandidates(status: CandidateStatus, page: number, categorySlug?: string | null) {
+  const where = candidateWhere(status, categorySlug);
   const [total, items] = await Promise.all([
     prisma.resourceCandidate.count({ where }),
     prisma.resourceCandidate.findMany({
@@ -132,14 +174,17 @@ export async function listCandidates(status: CandidateStatus, page: number) {
       orderBy: status === "pending" ? [{ confidence: "desc" }, { createdAt: "desc" }] : [{ reviewedAt: "desc" }, { createdAt: "desc" }],
       skip: (page - 1) * CANDIDATE_PAGE_SIZE,
       take: CANDIDATE_PAGE_SIZE,
-      include: { resource: { select: { id: true, slug: true, status: true } } },
+      include: {
+        resource: { select: { id: true, slug: true, status: true } },
+        run: { select: { category: { select: { slug: true, name: true } } } },
+      },
     }),
   ]);
   return { total, items, pageSize: CANDIDATE_PAGE_SIZE };
 }
 
-export async function countCandidatesByStatus() {
-  const rows = await prisma.resourceCandidate.groupBy({ by: ["status"], _count: { _all: true } });
+export async function countCandidatesByStatus(categorySlug?: string | null) {
+  const rows = await prisma.resourceCandidate.groupBy({ by: ["status"], where: candidateWhere(undefined, categorySlug), _count: { _all: true } });
   const out: Record<CandidateStatus, number> = { pending: 0, published: 0, drafted: 0, rejected: 0 };
   for (const r of rows) out[r.status] = r._count._all;
   return out;

@@ -17,8 +17,24 @@ function Feedback({ state }: { state: ActionResult }) {
   return null;
 }
 
-/** 采集操作：开始采集 / 测试连接 / 贴链接整理。采集可能持续数分钟，期间按钮保持禁用。 */
-export function AgentRunPanel({ run, test, link, running }: { run: Action0; test: Action0; link: Action1; running: boolean }) {
+export type RunTargetOption = { id: string; name: string; total: number; collectable: boolean };
+
+/** 采集操作：开始采集（可选目标分类）/ 测试连接 / 贴链接整理。采集可能持续数分钟，期间按钮保持禁用。 */
+export function AgentRunPanel({
+  run,
+  test,
+  link,
+  running,
+  targets,
+  autoPickName,
+}: {
+  run: Action1;
+  test: Action0;
+  link: Action1;
+  running: boolean;
+  targets: RunTargetOption[];
+  autoPickName: string | null;
+}) {
   const [runState, runAction, runPending] = useActionState(run, { ok: true } as ActionResult);
   const [testState, testAction, testPending] = useActionState(test, { ok: true } as ActionResult);
   const [linkState, linkAction, linkPending] = useActionState(link, { ok: true } as ActionResult);
@@ -28,13 +44,23 @@ export function AgentRunPanel({ run, test, link, running }: { run: Action0; test
     <>
       <Card>
         <h2 className={styles.cardTitle}>采集</h2>
-        <p className={styles.hint}>从开启的白名单来源拉取 → 去重 → 模型整理 → 检查链接 → 进候选箱。不会自动上架。</p>
+        <p className={styles.hint}>为一个目标分类采集：只跑该分类开启的来源 → 去重 → 模型整理 → 检查链接 → 进候选箱。不会自动上架。定时采集固定用自动模式。</p>
+        <form id="agent-run" action={runAction} className={a.runTarget}>
+          <label htmlFor="agent-target">目标分类</label>
+          <select id="agent-target" name="target" defaultValue="auto">
+            <option value="auto">{`自动：选资源最少的分类${autoPickName ? `（当前为「${autoPickName}」）` : "（暂无可选分类）"}`}</option>
+            {targets.map((t) => (
+              <option key={t.id} value={t.id} disabled={!t.collectable}>
+                {`${t.name}（已上架+待审核 ${t.total}）${t.collectable ? "" : " · 未配置或无可用来源"}`}
+              </option>
+            ))}
+          </select>
+        </form>
         <div className={a.runBtns} style={{ marginTop: 12 }}>
-          <form action={runAction}>
-            <Button type="submit" variant="primary" disabled={busy}>
-              {runPending ? "采集中…（约 1–3 分钟）" : running ? "有采集正在进行" : "开始采集"}
-            </Button>
-          </form>
+          {/* 提交上方的「目标分类」表单 */}
+          <Button type="submit" variant="primary" form="agent-run" disabled={busy}>
+            {runPending ? "采集中…（约 1–3 分钟）" : running ? "有采集正在进行" : "开始采集"}
+          </Button>
           <form action={testAction}>
             <Button type="submit" disabled={testPending}>
               {testPending ? "测试中…" : "测试连接"}

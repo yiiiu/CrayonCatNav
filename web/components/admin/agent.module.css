@@ -6,6 +6,7 @@
 .group { grid-column: 1 / -1; margin: 6px 0 10px; padding-top: 12px; border-top: 2px dashed color-mix(in srgb, var(--ink) 30%, transparent); font-size: var(--fs-md); font-weight: 900; }
 .group:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
 .sources { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0 14px; margin-bottom: 10px; }
+.wideHint { grid-column: 1 / -1; margin: 0 0 8px; }
 .optHint { display: block; font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); }
 .clear { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs); font-weight: 700; color: var(--ink-2); }
 .clear input { width: 16px; height: 16px; min-height: 0; margin: 0; accent-color: var(--blue); }
@@ -32,7 +33,32 @@
 .ok_failed { color: #9b1e1e; }
 .ok_running { color: var(--blue); }
 
+/* 分类采集配置 */
+.cats { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.cat { background: #fff; border: 2px solid var(--ink); border-radius: var(--wob2); font-size: var(--fs-sm); }
+.catHead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 10px 12px; cursor: pointer; list-style: none; min-height: var(--tap); }
+.catHead::-webkit-details-marker { display: none; }
+.catHead:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.catName { font-weight: 900; font-size: var(--fs-md); display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.catName::before { content: "▸"; font-size: 12px; transition: transform 0.15s; }
+details[open] > .catHead .catName::before { transform: rotate(90deg); }
+.catNums { font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ink-2); white-space: nowrap; }
+.catBar { grid-column: 1 / -1; height: 8px; border: 2px solid var(--ink); border-radius: 999px; overflow: hidden; background: var(--paper); }
+.catBar > span { display: block; height: 100%; min-width: 2px; background: var(--c-yellow); }
+.catState { grid-column: 1 / -1; font-size: var(--fs-xs); font-weight: 700; color: #1f5a30; }
+.catOff { color: #a8480f; }
+.nextTag { padding: 0 8px; font-size: var(--fs-xs); font-weight: 800; border: 2px solid var(--ink); border-radius: 999px; background: color-mix(in srgb, var(--blue) 18%, var(--paper)); }
+.catForm { display: grid; gap: 4px; padding: 4px 12px 14px; border-top: 2px dashed color-mix(in srgb, var(--ink) 30%, transparent); }
+.catSources { margin: 6px 0 10px; padding: 0; border: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0 12px; }
+.catSources legend { padding: 0; margin-bottom: 4px; font-weight: 800; font-size: var(--fs-sm); }
+.catStars { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.runTarget { display: grid; gap: 6px; margin-top: 12px; font-size: var(--fs-sm); font-weight: 700; }
+.runTarget select { font: 600 var(--fs-md) var(--font); color: var(--ink); background: #fff; border: var(--stroke) solid var(--ink); border-radius: var(--wob2); padding: 9px 12px; min-height: var(--tap); outline: none; width: 100%; }
+.runTarget select:focus-visible { box-shadow: 0 0 0 3px var(--blue); }
+.tgt { display: inline-block; padding: 1px 9px; font-size: var(--fs-xs); font-weight: 800; border: 2px solid var(--ink); border-radius: var(--wob2); background: color-mix(in srgb, var(--c-yellow) 40%, var(--paper)); }
+
 /* 候选箱 */
+.catFilter { flex: none; margin: -4px 0 14px; }
 .list { display: grid; align-content: start; gap: 16px; padding: 4px 14px 10px 4px; }
 .cand { padding: 14px 16px; background: #fff; border: var(--stroke) solid var(--ink); border-radius: 14px 18px 12px 16px; box-shadow: 3px 4px 0 var(--shade, rgba(29, 26, 31, 0.85)); }
 .candHead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
@@ -57,5 +83,5 @@
 .count { display: inline-grid; place-items: center; min-width: 22px; height: 22px; margin-left: 6px; padding: 0 6px; font-size: 12px; font-weight: 900; font-variant-numeric: tabular-nums; background: var(--c-yellow); border: 2px solid var(--ink); border-radius: 999px; }
 
 @media (max-width: 680px) {
-  .formBodyVp, .edit { grid-template-columns: 1fr; }
+  .formBodyVp, .edit, .catStars { grid-template-columns: 1fr; }
 }

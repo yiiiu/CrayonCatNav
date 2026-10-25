@@ -18,6 +18,10 @@ export type CandidateView = {
   description: string;
   categorySlug: string;
   categoryName: string | null;
+  /** 采集时的目标分类（贴链接整理为空） */
+  targetName: string | null;
+  /** 归入的分类与目标分类不同 */
+  offTarget: boolean;
   tags: string[];
   websiteUrl: string | null;
   githubUrl: string | null;
@@ -71,6 +75,12 @@ export function CandidateCard({ c, categories, review, reject }: Props) {
       </div>
       <div className={a.meta}>
         <span>分类：{c.categoryName ?? `${c.categorySlug}（不存在）`}</span>
+        {c.targetName && (
+          <span>
+            目标分类：<span className={a.tgt}>{c.targetName}</span>
+            {c.offTarget ? "（模型改归其他分类）" : ""}
+          </span>
+        )}
         <span>定价：{c.pricingLabel}</span>
         {c.stars !== null && <span>★ {c.stars.toLocaleString("zh-CN")}</span>}
         {c.sourceUpdatedAt && <span>来源更新：{c.sourceUpdatedAt}</span>}

@@ -7,6 +7,7 @@ import { requireAdmin } from "@/lib/auth/require-admin";
 import { cacheTags } from "@/lib/cache/tags";
 import { saveSettings, testConnection } from "@/lib/domain/agent-settings.service";
 import { convertCandidate, rejectCandidate } from "@/lib/domain/candidate.service";
+import { saveCollectConfig } from "@/lib/domain/category-collect.service";
 import { collectLink, runCollection } from "@/lib/domain/collector.service";
 import { setFeatured } from "@/lib/domain/featured.service";
 import { changeStatus, removeResource, saveResource, validateResource } from "@/lib/domain/resource.service";
@@ -14,6 +15,7 @@ import { type ActionResult, fromDomainError, fromZodError } from "@/lib/domain/r
 import { removeCategory, removeTag, saveCategory, saveTag } from "@/lib/domain/taxonomy.service";
 import { agentSettingsFromForm, collectLinkSchema } from "@/lib/validation/agent";
 import { candidateReviewFromForm } from "@/lib/validation/candidate";
+import { collectConfigFromForm } from "@/lib/validation/collect-config";
 import { resourceFormToObject, resourceStatuses } from "@/lib/validation/resource";
 
 function touchResources(...slugs: string[]) {
@@ -149,10 +151,12 @@ export async function testAgentConnectionAction(_prev: ActionResult): Promise<Ac
   }
 }
 
-export async function runCollectAction(_prev: ActionResult): Promise<ActionResult> {
+export async function runCollectAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   await requireAdmin();
+  // 目标分类：auto（默认，选资源最少的已配置分类）或分类 id
+  const target = (fd.get("target") ?? "auto").toString().slice(0, 64);
   try {
-    const r = await runCollection("manual");
+    const r = await runCollection("manual", !target || target === "auto" ? "auto" : { categoryId: target });
     refresh(); // 刷新运行记录与导航里的待审核数量
     return r.status === "failed" ? { ok: false, formError: r.message } : { ok: true, message: r.message };
   } catch (e) {
@@ -170,6 +174,18 @@ export async function collectLinkAction(_prev: ActionResult, fd: FormData): Prom
     if (r.status === "failed" || r.failed > 0) return { ok: false, formError: r.error ?? r.message };
     if (r.created === 0) return { ok: true, message: "没有新增：该链接已在资源库或候选箱中，或模型判断不适合收录（详见运行记录）" };
     return { ok: true, message: "已整理进候选箱，去「候选箱」审核" };
+  } catch (e) {
+    return fromDomainError(e);
+  }
+}
+
+export async function saveCollectConfigAction(categoryId: string, _prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  await requireAdmin();
+  try {
+    const r = await saveCollectConfig(categoryId, collectConfigFromForm(fd));
+    if (!r.ok) return fromZodError(r.error);
+    refresh(); // 刷新分类行的状态（已配置 / 参与采集的来源 / 自动会选中的分类）
+    return { ok: true, message: `「${r.name}」的采集配置已保存` };
   } catch (e) {
     return fromDomainError(e);
   }
