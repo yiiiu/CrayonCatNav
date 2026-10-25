@@ -3,9 +3,10 @@
 .viewport {
   height: 100vh;
   height: 100dvh;
-  max-width: var(--container);
+  /* 后台自适应铺满：不再沿用前台 1240px 上限，两侧呼吸边距随视口缩放（24px–56px），超宽屏封顶 1920px 防止行过长 */
+  max-width: 1920px;
   margin: 0 auto;
-  padding: 18px 24px 22px;
+  padding: 18px clamp(24px, 3vw, 56px) 22px;
   overflow: hidden;
 }
 
