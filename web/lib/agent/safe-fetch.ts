@@ -3,6 +3,7 @@ import { lookup as dnsLookup } from "node:dns";
 import http from "node:http";
 import https from "node:https";
 import type { LookupAddress } from "node:dns";
+import { extractOgImage } from "./og-image";
 import { checkFetchableUrl, isBlockedAddress } from "./ssrf";
 
 /**
@@ -118,4 +119,20 @@ export async function checkLink(url: string): Promise<{ ok: boolean; status: num
   } catch {
     return { ok: false, status: null, finalUrl: null };
   }
+}
+
+/** 抓官网（或 GitHub 仓库页）的 og:image 作为详情页预览图；任何失败都返回 null，不影响采集。 */
+export async function fetchPreviewImage(...urls: (string | null | undefined)[]): Promise<string | null> {
+  for (const url of urls) {
+    if (!url) continue;
+    try {
+      const r = await safeFetch(url, { maxBytes: 200_000, timeoutMs: 8_000, accept: "text/html" });
+      if (r.status >= 400 || !/html/i.test(r.contentType)) continue;
+      const img = extractOgImage(r.body, r.finalUrl);
+      if (img) return img;
+    } catch {
+      /* 抓不到就试下一个 */
+    }
+  }
+  return null;
 }

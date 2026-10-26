@@ -85,7 +85,8 @@ export const SYSTEM_PROMPT = `你是「蜡笔猫导航」的资源编辑，负�
 5. websiteUrl / githubUrl：只能原样使用来源给出的链接；若来源给的链接明显不是产品本身，设为 null。不要自己补链接。
 6. pricingType 取 free / freemium / paid / unknown，来源没说明就填 unknown（开源免费项目可填 free）。
 7. reason 用一两句中文说明为什么值得收录（或不确定之处）；confidence 为 0–1 的数字，表示这条值得上架且信息准确的把握。
-8. 如果它与 AI 无关、明显是营销垃圾/空壳/重复聚合页，或信息少到无法介绍，输出 {"skip": true, "reason": "原因"}。
+8. 结构化详情（帮用户不跳转就能判断）：highlights 3–5 条核心功能、useCases 2–3 条「适合谁 / 典型场景」，每条一句中文（≤40 字）；quickstart 只在来源明确给出安装命令或配置时填写（原样保留命令，不要编造），否则空字符串；platforms 只从 web / macos / windows / linux / ios / android / cli / api / vscode / browser-ext 中选来源能确认的；pricingNote 只写来源明确的价格信息，否则空字符串。
+9. 如果它与 AI 无关、明显是营销垃圾/空壳/重复聚合页，或信息少到无法介绍，输出 {"skip": true, "reason": "原因"}。
 只输出一个 JSON 对象，不要输出任何其他文字。`;
 
 /** 目标分类段落：本次采集是为这个分类找资源。 */
@@ -123,7 +124,7 @@ export function buildUserPrompt(raw: RawCandidate, ctx: PromptContext): string {
     ...ctx.tools.map((t) => `${t.slug}: ${t.name}——${t.description}`),
     "",
     "【输出 JSON 字段】",
-    `{"name": "产品名（保留原名，可加中文说明不超过 80 字）", "slug": "小写英文-连字符", "summary": "中文一句话", "description": "中文多段", "categorySlug": "...", "tags": ["现有标签"], "suggestedTags": [], "websiteUrl": "... 或 null", "githubUrl": "... 或 null", "pricingType": "unknown", "toolSlugs": [], "reason": "中文推荐理由", "confidence": 0.0}`,
+    `{"name": "产品名（保留原名，可加中文说明不超过 80 字）", "slug": "小写英文-连字符", "summary": "中文一句话", "description": "中文多段", "categorySlug": "...", "tags": ["现有标签"], "suggestedTags": [], "websiteUrl": "... 或 null", "githubUrl": "... 或 null", "pricingType": "unknown", "toolSlugs": [], "highlights": ["核心功能"], "useCases": ["适合谁/场景"], "quickstart": "", "platforms": [], "pricingNote": "", "reason": "中文推荐理由", "confidence": 0.0}`,
   ];
   return lines.join("\n");
 }

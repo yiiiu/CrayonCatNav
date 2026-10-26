@@ -2,6 +2,7 @@ import "server-only";
 import * as repo from "@/lib/data/resource.repo";
 import type { ResourceStatus } from "@/generated/prisma/client";
 import { resourceInputSchema, type ResourceInput } from "@/lib/validation/resource";
+import { readDetails } from "@/lib/validation/resource-details";
 import { DomainError } from "./result";
 
 /** 校验 + 业务规则：slug 唯一；返回写库所需数据。 */
@@ -20,6 +21,7 @@ function toWrite(input: ResourceInput): repo.ResourceWrite {
     websiteUrl: input.websiteUrl ?? null,
     githubUrl: input.githubUrl ?? null,
     iconUrl: input.iconUrl ?? null,
+    previewImageUrl: input.previewImageUrl ?? null,
   };
 }
 
@@ -45,6 +47,8 @@ export async function changeStatus(id: string, to: ResourceStatus) {
       websiteUrl: current.websiteUrl ?? "",
       githubUrl: current.githubUrl ?? "",
       iconUrl: current.iconUrl ?? "",
+      previewImageUrl: current.previewImageUrl ?? "",
+      details: readDetails(current.details),
       status: "published",
       tagIds: current.tags.map((t) => t.tagId),
       toolIds: current.tools.map((t) => t.toolId),

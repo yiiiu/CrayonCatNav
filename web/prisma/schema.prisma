@@ -67,6 +67,10 @@ model Resource {
   websiteUrl    String?
   githubUrl     String?
   iconUrl       String?
+  /// 官网预览图（og:image），https
+  previewImageUrl String?
+  /// 结构化详情：核心功能、适用场景、快速上手、平台、定价说明（见 lib/validation/resource-details.ts）
+  details       Json           @default("{}")
   pricingType   PricingType    @default(unknown)
   status        ResourceStatus @default(draft)
   featuredOrder Int?

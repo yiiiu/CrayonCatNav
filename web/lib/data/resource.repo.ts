@@ -2,6 +2,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import type { Prisma, ResourceStatus } from "@/generated/prisma/client";
 import { cacheTags } from "@/lib/cache/tags";
+import type { ResourceDetails } from "@/lib/validation/resource-details";
 import { prisma } from "./prisma";
 
 /** 所有公共查询必须经过此条件，从仓储层杜绝草稿泄漏。 */
@@ -176,6 +177,8 @@ export type ResourceWrite = {
   websiteUrl: string | null;
   githubUrl: string | null;
   iconUrl: string | null;
+  previewImageUrl: string | null;
+  details: ResourceDetails;
   pricingType: Prisma.ResourceCreateInput["pricingType"];
   status: ResourceStatus;
   tagIds: string[];

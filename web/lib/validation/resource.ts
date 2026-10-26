@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { optionalHttpsUrl, slugSchema } from "./common";
+import { LIMITS, linesToList, resourceDetailsSchema } from "./resource-details";
 
 export const pricingTypes = ["unknown", "free", "freemium", "paid"] as const;
 export const resourceStatuses = ["draft", "published", "archived"] as const;
@@ -27,6 +28,8 @@ export const resourceInputSchema = z
     websiteUrl: optionalHttpsUrl,
     githubUrl: optionalHttpsUrl,
     iconUrl: optionalHttpsUrl,
+    previewImageUrl: optionalHttpsUrl,
+    details: resourceDetailsSchema.default({ highlights: [], useCases: [], quickstart: "", platforms: [], pricingNote: "" }),
     pricingType: z.enum(pricingTypes).default("unknown"),
     status: z.enum(resourceStatuses).default("draft"),
     tagIds: z.array(z.string().min(1)).max(12, "标签最多 12 个").default([]),
@@ -60,6 +63,15 @@ export function resourceFormToObject(fd: FormData) {
     websiteUrl: str("websiteUrl"),
     githubUrl: str("githubUrl"),
     iconUrl: str("iconUrl"),
+    previewImageUrl: str("previewImageUrl"),
+    details: {
+      // 多给一条，让超出上限时由 schema 报错提示，而不是悄悄截断
+      highlights: linesToList(str("highlights"), LIMITS.highlights + 1),
+      useCases: linesToList(str("useCases"), LIMITS.useCases + 1),
+      quickstart: str("quickstart"),
+      platforms: fd.getAll("platforms").map(String),
+      pricingNote: str("pricingNote"),
+    },
     pricingType: str("pricingType") || "unknown",
     status: str("status") || "draft",
     tagIds: fd.getAll("tagIds").map(String),

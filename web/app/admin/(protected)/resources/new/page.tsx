@@ -19,7 +19,8 @@ export default async function NewResourcePage() {
         tags={tags}
         tools={tools}
         initial={{
-          slug: "", name: "", summary: "", description: "", categoryId: "", websiteUrl: "", githubUrl: "", iconUrl: "",
+          slug: "", name: "", summary: "", description: "", categoryId: "", websiteUrl: "", githubUrl: "", iconUrl: "", previewImageUrl: "",
+          details: { highlights: [], useCases: [], quickstart: "", platforms: [], pricingNote: "" },
           pricingType: "unknown", status: "draft", tagIds: [], toolIds: [],
         }}
       />

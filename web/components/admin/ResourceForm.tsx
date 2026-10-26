@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { Button, Card, ScrollArea, Select } from "@/components/ui";
 import type { ActionResult } from "@/lib/domain/result";
 import { pricingLabels, pricingTypes, statusLabels } from "@/lib/validation/resource";
+import { LIMITS, platformLabels, platforms, type ResourceDetails } from "@/lib/validation/resource-details";
 import { suggestSlug } from "@/lib/validation/search";
 import styles from "./admin.module.css";
 import { Field } from "./Field";
@@ -17,6 +18,8 @@ export type ResourceFormValues = {
   websiteUrl: string;
   githubUrl: string;
   iconUrl: string;
+  previewImageUrl: string;
+  details: ResourceDetails;
   pricingType: (typeof pricingTypes)[number];
   status: keyof typeof statusLabels;
   tagIds: string[];
@@ -98,6 +101,32 @@ export function ResourceForm({ action, initial, categories, tags, tools, notice 
             <Field label="GitHub 链接" name="githubUrl" error={err("githubUrl")} hint="https://github.com/所有者/仓库">
               <input id="f-githubUrl" name="githubUrl" type="url" inputMode="url" placeholder="https://github.com/" defaultValue={initial.githubUrl} aria-invalid={!!err("githubUrl")} aria-describedby={describedBy("githubUrl")} />
             </Field>
+            <Field label="核心功能" name="highlights" error={err("details")} wide hint={`每行一条，一句话一个能力，最多 ${LIMITS.highlights} 条`}>
+              <textarea id="f-highlights" name="highlights" rows={4} defaultValue={initial.details.highlights.join("\n")} />
+            </Field>
+            <Field label="适合谁 / 典型场景" name="useCases" wide hint={`每行一条，最多 ${LIMITS.useCases} 条`}>
+              <textarea id="f-useCases" name="useCases" rows={3} defaultValue={initial.details.useCases.join("\n")} />
+            </Field>
+            <Field label="快速上手" name="quickstart" wide hint="安装命令或配置片段，前台按代码块原样展示并可一键复制">
+              <textarea id="f-quickstart" name="quickstart" rows={4} spellCheck={false} className={styles.mono} defaultValue={initial.details.quickstart} />
+            </Field>
+            <Field label="定价说明" name="pricingNote" hint="如：免费 50 次/月，Pro $20/月">
+              <input id="f-pricingNote" name="pricingNote" maxLength={LIMITS.pricingNote} defaultValue={initial.details.pricingNote} />
+            </Field>
+            <Field label="官网预览图" name="previewImageUrl" error={err("previewImageUrl")} hint="官网 og:image 的 https 地址，采集时自动抓取">
+              <input id="f-previewImageUrl" name="previewImageUrl" type="url" inputMode="url" placeholder="https://" defaultValue={initial.previewImageUrl} aria-invalid={!!err("previewImageUrl")} />
+            </Field>
+            <fieldset className={`${styles.field} ${styles.wide}`} style={{ border: 0, padding: 0 }}>
+              <legend>支持平台</legend>
+              <div className={styles.checksInline}>
+                {platforms.map((p) => (
+                  <label key={p} className={styles.check}>
+                    <input type="checkbox" name="platforms" value={p} defaultChecked={initial.details.platforms.includes(p)} />
+                    {platformLabels[p]}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
             <fieldset className={`${styles.field} ${styles.wide} ${err("tagIds") ? styles.bad : ""}`} style={{ border: 0, padding: 0 }}>
               <legend>标签</legend>
               <ScrollArea className={styles.checks} viewportClassName={styles.checksVp}>

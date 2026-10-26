@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { QuickStart } from "@/components/resource/QuickStart";
 import { RelatedToolCTA } from "@/components/resource/RelatedToolCTA";
 import { ResourceViewTracker } from "@/components/resource/ResourceViewTracker";
 import styles from "@/components/resource/resource.module.css";
@@ -8,6 +9,7 @@ import { Breadcrumb, Card, Chip, ExternalButton, Mono, SectionHead } from "@/com
 import { findPublishedBySlug, listPublishedSlugs, listRelatedPublished } from "@/lib/data/resource.repo";
 import { slugSchema } from "@/lib/validation/common";
 import { pricingLabels } from "@/lib/validation/resource";
+import { hasDetails, platformLabels, readDetails } from "@/lib/validation/resource-details";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -48,6 +50,10 @@ export default async function ResourceDetailPage({ params }: Props) {
   const related = await listRelatedPublished(r.categoryId, r.id);
   const paragraphs = r.description.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
   const updated = r.updatedAt.toISOString().slice(0, 10);
+  const d = readDetails(r.details);
+  const host = (u: string | null) => (u ? new URL(u).hostname.replace(/^www\./, "") : null);
+  const repo = r.githubUrl ? r.githubUrl.replace(/^https:\/\/github\.com\//, "") : null;
+  const pricing = [r.pricingType !== "unknown" ? pricingLabels[r.pricingType] : null, d.pricingNote || null].filter(Boolean).join(" · ");
 
   return (
     <article>
@@ -60,7 +66,7 @@ export default async function ResourceDetailPage({ params }: Props) {
         ]}
       />
 
-      <Card className={styles.titlecard}>
+      <Card className={`${styles.titlecard} ${r.previewImageUrl ? styles.withPreview : ""}`}>
         <Mono name={r.name} accentKey={r.category.slug + r.slug} size="lg" />
         <div className={styles.tbody}>
           <h1>{r.name}</h1>
@@ -80,18 +86,96 @@ export default async function ResourceDetailPage({ params }: Props) {
             </time>
           </div>
         </div>
+        {r.previewImageUrl && (
+          <a className={styles.preview} href={r.websiteUrl ?? r.githubUrl ?? undefined} target="_blank" rel="noopener noreferrer" aria-label={`访问 ${r.name} 官网`}>
+            {/* 外站 og:image，尺寸不定，用原生 img 懒加载 */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={r.previewImageUrl} alt={`${r.name} 官网预览`} loading="lazy" decoding="async" referrerPolicy="no-referrer" />
+          </a>
+        )}
       </Card>
 
-      {paragraphs.length > 0 && (
-        <section aria-labelledby="h-intro">
-          <SectionHead id="h-intro" title="介绍" />
-          <div className={styles.prose}>
-            {paragraphs.map((p, i) => (
-              <p key={i}>{p}</p>
-            ))}
-          </div>
-        </section>
-      )}
+      <div className={hasDetails(d) ? styles.detailGrid : undefined}>
+        <div className={styles.detailMain}>
+          {d.highlights.length > 0 && (
+            <section aria-labelledby="h-hl">
+              <SectionHead id="h-hl" title="它能做什么" />
+              <ul className={styles.points}>
+                {d.highlights.map((x, i) => (
+                  <li key={i}>{x}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {d.useCases.length > 0 && (
+            <section aria-labelledby="h-uc">
+              <SectionHead id="h-uc" title="适合谁" />
+              <ul className={styles.points}>
+                {d.useCases.map((x, i) => (
+                  <li key={i}>{x}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {d.quickstart && (
+            <section aria-labelledby="h-qs">
+              <SectionHead id="h-qs" title="快速上手" />
+              <QuickStart code={d.quickstart} />
+            </section>
+          )}
+          {paragraphs.length > 0 && (
+            <section aria-labelledby="h-intro">
+              <SectionHead id="h-intro" title={hasDetails(d) ? "详细介绍" : "介绍"} />
+              <div className={styles.prose}>
+                {paragraphs.map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+
+        {hasDetails(d) && (
+          <aside className={styles.facts} aria-label="基本信息">
+            <Card>
+              <dl>
+                {r.websiteUrl && (
+                  <>
+                    <dt>官网</dt>
+                    <dd><a href={r.websiteUrl} target="_blank" rel="noopener noreferrer">{host(r.websiteUrl)} ↗</a></dd>
+                  </>
+                )}
+                {repo && (
+                  <>
+                    <dt>GitHub</dt>
+                    <dd><a href={r.githubUrl!} target="_blank" rel="noopener noreferrer">{repo} ↗</a></dd>
+                  </>
+                )}
+                {pricing && (
+                  <>
+                    <dt>定价</dt>
+                    <dd>{pricing}</dd>
+                  </>
+                )}
+                {d.platforms.length > 0 && (
+                  <>
+                    <dt>平台</dt>
+                    <dd className={styles.plats}>
+                      {d.platforms.map((p) => (
+                        <Chip flat key={p}>{platformLabels[p]}</Chip>
+                      ))}
+                    </dd>
+                  </>
+                )}
+                <dt>分类</dt>
+                <dd><Link href={`/resources?cat=${r.category.slug}`}>{r.category.name}</Link></dd>
+                <dt>更新</dt>
+                <dd>{updated}</dd>
+              </dl>
+            </Card>
+          </aside>
+        )}
+      </div>
 
       {r.tools.map(({ tool }) => (
         <RelatedToolCTA

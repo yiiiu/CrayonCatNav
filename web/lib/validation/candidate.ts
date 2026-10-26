@@ -3,6 +3,7 @@ import { canonicalGithubUrl, isHttpsUrl, normalizeUrl } from "@/lib/agent/url";
 import type { RawCandidate } from "@/lib/agent/types";
 import { pricingTypes } from "./resource";
 import { suggestSlug } from "./search";
+import { cleanModelDetails, resourceDetailsSchema } from "./resource-details";
 import { cleanTagOutput, parseTagInput, type SuggestedTag, type TagEntry, type TagVocab } from "./tag-vocab";
 
 /** 模型的结构化输出（宽松接收，随后清洗）。skip=true 表示模型判断不值得收录。 */
@@ -26,6 +27,12 @@ export const modelOutputSchema = z.object({
     githubUrl: z.string().nullish(),
     pricingType: z.string().nullish(),
     toolSlugs: z.array(z.string()).default([]),
+    // 结构化详情：宽松接收，cleanModelDetails 逐项清洗
+    highlights: z.unknown().optional(),
+    useCases: z.unknown().optional(),
+    quickstart: z.unknown().optional(),
+    platforms: z.unknown().optional(),
+    pricingNote: z.unknown().optional(),
     reason: z.string().trim().min(1, "reason 不能为空").max(500),
     confidence: z.coerce.number().min(0, "confidence 需在 0–1").max(1, "confidence 需在 0–1"),
   });
@@ -44,6 +51,9 @@ export const candidatePayloadSchema = z.object({
   githubUrl: z.string().nullable(),
   pricingType: z.enum(pricingTypes),
   toolSlugs: z.array(z.string()),
+  /** 结构化详情与官网预览图；旧候选没有这两项 */
+  details: resourceDetailsSchema.default({ highlights: [], useCases: [], quickstart: "", platforms: [], pricingNote: "" }),
+  previewImageUrl: z.string().nullable().default(null),
 });
 export type CandidatePayload = z.infer<typeof candidatePayloadSchema>;
 
@@ -124,6 +134,8 @@ export function cleanModelOutput(json: unknown, raw: Pick<RawCandidate, "website
       githubUrl,
       pricingType: pricing,
       toolSlugs: [...new Set(v.toolSlugs.filter((t) => ctx.toolSlugs.includes(t)))],
+      details: cleanModelDetails(v),
+      previewImageUrl: null,
     },
   };
 }

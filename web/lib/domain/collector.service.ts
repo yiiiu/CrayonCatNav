@@ -1,7 +1,7 @@
 import "server-only";
 import { applyTargetCategory, type GlobalSources } from "@/lib/agent/category-target";
 import { buildUserPrompt, chat, LlmError, SYSTEM_PROMPT, type ChatMessage, type ChatUsage, type PromptContext } from "@/lib/agent/llm";
-import { checkLink, safeFetch, SafeFetchError } from "@/lib/agent/safe-fetch";
+import { checkLink, fetchPreviewImage, safeFetch, SafeFetchError } from "@/lib/agent/safe-fetch";
 import { isKnown, rawKeys, buildQueue } from "@/lib/agent/select";
 import { fetchAwesome } from "@/lib/agent/sources/awesome";
 import { fetchGithub, fetchGithubRepo } from "@/lib/agent/sources/github";
@@ -137,6 +137,8 @@ async function processOne(raw: RawCandidate, ctx: Ctx): Promise<ItemOutcome> {
     return { kind: "duplicate" };
   }
   for (const k of keys) ctx.known.add(k);
+  // 详情页预览图：官网 og:image 优先，没有再用 GitHub 仓库的社交卡片
+  payload.previewImageUrl = await fetchPreviewImage(payload.websiteUrl, payload.githubUrl);
 
   const saved = await repo.createCandidate({
     normalizedUrl: primary,

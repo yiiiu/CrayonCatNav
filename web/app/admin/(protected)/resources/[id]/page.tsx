@@ -1,3 +1,4 @@
+import { readDetails } from "@/lib/validation/resource-details";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminTop } from "@/components/admin/AdminTop";
@@ -42,6 +43,8 @@ export default async function EditResourcePage({ params, searchParams }: Props) 
           websiteUrl: r.websiteUrl ?? "",
           githubUrl: r.githubUrl ?? "",
           iconUrl: r.iconUrl ?? "",
+          previewImageUrl: r.previewImageUrl ?? "",
+          details: readDetails(r.details),
           pricingType: r.pricingType,
           status: r.status,
           tagIds: r.tags.map((t) => t.tagId),

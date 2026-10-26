@@ -249,6 +249,8 @@ export function convertCandidateTx(args: {
     websiteUrl: string | null;
     githubUrl: string | null;
     pricingType: Prisma.ResourceCreateInput["pricingType"];
+    previewImageUrl: string | null;
+    details: Prisma.InputJsonValue;
     status: "published" | "draft";
   };
 }) {
