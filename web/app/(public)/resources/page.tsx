@@ -48,6 +48,7 @@ async function Results({ searchParams }: { searchParams: SP }) {
               defaultValue={current.q}
               placeholder={cat ? `在 ${cat.name} 里搜索…` : "搜索 MCP、Agent、模型…"}
               hidden={{ cat: current.cat, tag: current.tag }}
+              live="filter"
             />
             <span className={styles.count} role="status">
               {heading}

@@ -54,6 +54,24 @@ export async function searchPublished(params: PublicSearch) {
   return { total, items, pageSize: PAGE_SIZE };
 }
 
+/** 搜索框实时联想：只取前几条的轻量字段，排序与列表页一致。 */
+export async function suggestPublished(q: string, limit = 6) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(cacheTags.resources);
+  const where = publicWhere({ q });
+  const [total, items] = await Promise.all([
+    prisma.resource.count({ where }),
+    prisma.resource.findMany({
+      where,
+      select: { slug: true, name: true, summary: true, category: { select: { name: true } } },
+      orderBy: [{ featuredOrder: { sort: "asc", nulls: "last" } }, { updatedAt: "desc" }],
+      take: limit,
+    }),
+  ]);
+  return { total, items: items.map((r) => ({ slug: r.slug, name: r.name, summary: r.summary, category: r.category.name })) };
+}
+
 export async function findPublishedBySlug(slug: string) {
   "use cache";
   cacheLife("hours");

@@ -15,7 +15,7 @@ export default async function HomePage() {
     <>
       <Card className={styles.hero}>
         <h1>找 AI 资源，顺手把活干完</h1>
-        <SearchBox className={styles.heroSearch} />
+        <SearchBox className={styles.heroSearch} live="suggest" />
         <p>
           收录 {total} 个精选 AI 资源 · {tools.length} 个浏览器本地工具
         </p>
