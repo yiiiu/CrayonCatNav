@@ -79,3 +79,9 @@ ALTER TABLE "Resource" ADD COLUMN "aiReview" BOOLEAN NOT NULL DEFAULT false;
 ## 8. 实现状态（2026-10-26）
 - 任务 1–7 已完成，未偏离计划：`lib/agent/enrich.ts`（+测试）、`safe-fetch.fetchEnrichMaterial`、`resource.repo` 补全相关查询、`lib/domain/enrich.service.ts`、`enrichBatchAction / enrichOneAction`、`components/admin/EnrichButton.tsx`、采集 Agent 页「资源 AI 补全」卡片、编辑页按钮与提示、资源列表「AI 待核对」标记与筛选。
 - 待预览环境按第 5 节验收。
+
+## 9. 迭代：定价抓取（2026-10-26）
+- 问题：Cursor 等产品首页不写价格，只在 `/pricing`，原先只抓首页，模型拿不到定价。
+- 改动：`findPricingUrls` 从首页链接里找同站定价页（排除联系销售/登录，短路径优先，找不到退回 `/pricing`），最多试 3 个；`pricingExcerpt` 只保留含价格的行及套餐名（≤3000 字）作为「定价页摘录」给模型。首页抓取上限放宽到 1MB。
+- 模型同时给出 `pricingType`，仅在资源当前为「未知」时填入。
+- 单条补全：主要字段（核心功能 / 适合谁 / 平台 / 定价说明 / 定价类型）任一为空就调模型，只填空字段；已补全过的资源可在编辑页单条重跑补定价。

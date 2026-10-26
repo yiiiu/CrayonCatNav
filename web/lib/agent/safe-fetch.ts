@@ -3,7 +3,7 @@ import { lookup as dnsLookup } from "node:dns";
 import http from "node:http";
 import https from "node:https";
 import type { LookupAddress } from "node:dns";
-import { htmlToText, readmeUrls, type EnrichMaterial } from "./enrich";
+import { findPricingUrls, htmlToText, pricingExcerpt, readmeUrls, type EnrichMaterial } from "./enrich";
 import { extractOgImage } from "./og-image";
 import { checkFetchableUrl, isBlockedAddress } from "./ssrf";
 
@@ -141,13 +141,29 @@ export async function fetchPreviewImage(...urls: (string | null | undefined)[]):
 /** AI 补全的资料：官网首页文本 + og:image、GitHub README；任何一项失败都不抛错。 */
 export async function fetchEnrichMaterial(websiteUrl: string | null, githubUrl: string | null): Promise<EnrichMaterial & { previewImageUrl: string | null }> {
   let site: string | null = null;
+  let pricing: string | null = null;
   let previewImageUrl: string | null = null;
   if (websiteUrl) {
     try {
-      const r = await safeFetch(websiteUrl, { maxBytes: 400_000, timeoutMs: 10_000, accept: "text/html" });
+      // 现代官网首页常有 500KB+（内联脚本），上限放宽到 1MB
+      const r = await safeFetch(websiteUrl, { maxBytes: 1_000_000, timeoutMs: 10_000, accept: "text/html" });
       if (r.status < 400 && /html/i.test(r.contentType)) {
         site = htmlToText(r.body) || null;
         previewImageUrl = extractOgImage(r.body, r.finalUrl);
+        // 很多产品（如 Cursor）首页不写价格，只在 /pricing：顺着首页链接找定价页，摘出含价格的行
+        for (const url of findPricingUrls(r.body, r.finalUrl)) {
+          try {
+            const p = await safeFetch(url, { maxBytes: 1_000_000, timeoutMs: 8_000, accept: "text/html" });
+            if (p.status >= 400 || !/html/i.test(p.contentType)) continue;
+            const excerpt = pricingExcerpt(htmlToText(p.body, 20_000));
+            if (/[$¥€£]\s?\d|\d\s?(?:元|美元)|免费|free/i.test(excerpt)) {
+              pricing = `（来源：${p.finalUrl}）\n${excerpt}`;
+              break;
+            }
+          } catch {
+            /* 试下一个候选 */
+          }
+        }
       }
     } catch {
       /* 官网抓不到就只用 README */
@@ -166,5 +182,5 @@ export async function fetchEnrichMaterial(websiteUrl: string | null, githubUrl: 
     }
   }
   if (!previewImageUrl && githubUrl) previewImageUrl = await fetchPreviewImage(githubUrl);
-  return { site, readme, previewImageUrl };
+  return { site, readme, pricing, previewImageUrl };
 }

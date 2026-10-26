@@ -48,3 +48,22 @@ describe("readmeUrls", () => {
     expect(readmeUrls("https://example.com")).toEqual([]);
   });
 });
+
+import { findPricingUrls, pricingExcerpt } from "./enrich";
+
+describe("findPricingUrls", () => {
+  it("找同站定价链接，排除第三方与联系销售，短路径优先", () => {
+    const html = `<a href="/en-US/pricing">Pricing</a><a href="/pricing">x</a><a href="https://other.com/pricing">p</a><a href="/contact-sales?source=pricing">c</a><a href="/blog">定价说明</a>`;
+    expect(findPricingUrls(html, "https://cursor.com/")).toEqual(["https://cursor.com/blog", "https://cursor.com/pricing", "https://cursor.com/en-US/pricing"]);
+  });
+  it("没有链接时退回 /pricing", () => {
+    expect(findPricingUrls("<a href='/docs'>Docs</a>", "https://a.com/x")).toEqual(["https://a.com/pricing"]);
+  });
+});
+
+describe("pricingExcerpt", () => {
+  it("保留价格行与套餐名", () => {
+    const t = "导航\n关于我们\nHobby\nFree\nPro\n$20 / mo\n一些无关的营销文案";
+    expect(pricingExcerpt(t)).toBe("Hobby\nFree\nPro\n$20 / mo");
+  });
+});

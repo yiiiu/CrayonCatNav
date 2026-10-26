@@ -266,6 +266,7 @@ const enrichSelect = {
   websiteUrl: true,
   githubUrl: true,
   previewImageUrl: true,
+  pricingType: true,
   details: true,
 } satisfies Prisma.ResourceSelect;
 
@@ -279,12 +280,15 @@ export function findForEnrich(id: string) {
 }
 
 /** 写入补全结果并记录尝试时间；filled=false 时只记录尝试。 */
-export function saveEnrichment(id: string, data: { details?: ResourceDetails; previewImageUrl?: string | null; filled: boolean }) {
+export function saveEnrichment(
+  id: string,
+  data: { details?: ResourceDetails; previewImageUrl?: string | null; pricingType?: Prisma.ResourceCreateInput["pricingType"]; filled: boolean },
+) {
   return prisma.resource.update({
     where: { id },
     data: {
       aiEnrichedAt: new Date(),
-      ...(data.filled ? { aiReview: true, details: data.details, previewImageUrl: data.previewImageUrl } : {}),
+      ...(data.filled ? { aiReview: true, details: data.details, previewImageUrl: data.previewImageUrl, ...(data.pricingType ? { pricingType: data.pricingType } : {}) } : {}),
     },
     select: { slug: true },
   });

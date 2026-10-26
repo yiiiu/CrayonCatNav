@@ -3,6 +3,7 @@ import { buildEnrichPrompt, ENRICH_SYSTEM_PROMPT, mergeDetails, type DetailField
 import { chat, LlmError, type ChatConfig, type ChatMessage } from "@/lib/agent/llm";
 import { fetchEnrichMaterial } from "@/lib/agent/safe-fetch";
 import { extractJson } from "@/lib/validation/candidate";
+import { pricingTypes } from "@/lib/validation/resource";
 import { cleanModelDetails, hasDetails, readDetails, type ResourceDetails } from "@/lib/validation/resource-details";
 import * as repo from "@/lib/data/resource.repo";
 import { loadRuntimeConfig } from "./agent-settings.service";
@@ -18,7 +19,9 @@ type Row = NonNullable<Awaited<ReturnType<typeof repo.findForEnrich>>>;
 
 const needsEnrich = (r: Pick<Row, "details" | "previewImageUrl">) => !hasDetails(readDetails(r.details)) || !r.previewImageUrl;
 
-async function askModel(cfg: ChatConfig, prompt: string): Promise<ResourceDetails> {
+type Pricing = (typeof pricingTypes)[number];
+
+async function askModel(cfg: ChatConfig, prompt: string): Promise<{ details: ResourceDetails; pricingType: Pricing }> {
   const messages: ChatMessage[] = [
     { role: "system", content: ENRICH_SYSTEM_PROMPT },
     { role: "user", content: prompt },
@@ -27,7 +30,11 @@ async function askModel(cfg: ChatConfig, prompt: string): Promise<ResourceDetail
     const r = await chat(cfg, messages, { json: true, maxTokens: 1200, timeoutMs: LLM_TIMEOUT_MS });
     try {
       const json = extractJson(r.content);
-      if (json && typeof json === "object") return cleanModelDetails(json as Record<string, unknown>);
+      if (json && typeof json === "object") {
+        const o = json as Record<string, unknown>;
+        const pt = (pricingTypes as readonly unknown[]).includes(o.pricingType) ? (o.pricingType as Pricing) : "unknown";
+        return { details: cleanModelDetails(o), pricingType: pt };
+      }
     } catch {
       /* 重试一次 */
     }
@@ -42,16 +49,26 @@ async function enrichRow(cfg: ChatConfig, r: Row): Promise<EnrichOutcome> {
   const current = readDetails(r.details);
   const material = await fetchEnrichMaterial(r.websiteUrl, r.githubUrl);
   let generated = cleanModelDetails({});
-  // 详情已齐全时只需补预览图，不调模型
-  if (!hasDetails(current)) {
+  let pricingType: Pricing = "unknown";
+  // 主要字段都有了只需补预览图，不调模型；快速上手常常本来就没有，不作为调模型的理由
+  const missing = !current.highlights.length || !current.useCases.length || !current.platforms.length || !current.pricingNote || r.pricingType === "unknown";
+  if (missing) {
     if (!material.site && !material.readme && !r.description) {
       await repo.saveEnrichment(r.id, { filled: false });
       return { slug: r.slug, name: r.name, filled: [], note: "官网与 README 都抓不到" };
     }
-    generated = await askModel(cfg, buildEnrichPrompt(r, material));
+    ({ details: generated, pricingType } = await askModel(cfg, buildEnrichPrompt(r, material)));
   }
   const merged = mergeDetails(current, generated, r.previewImageUrl, material.previewImageUrl);
-  await repo.saveEnrichment(r.id, { details: merged.details, previewImageUrl: merged.previewImageUrl, filled: merged.filled.length > 0 });
+  // 定价类型同样只在「未知」时填
+  const fillPricing = r.pricingType === "unknown" && pricingType !== "unknown";
+  if (fillPricing) merged.filled.push("pricingType");
+  await repo.saveEnrichment(r.id, {
+    details: merged.details,
+    previewImageUrl: merged.previewImageUrl,
+    ...(fillPricing ? { pricingType } : {}),
+    filled: merged.filled.length > 0,
+  });
   return { slug: r.slug, name: r.name, filled: merged.filled, note: merged.filled.length ? undefined : "资料不足，没有可补的内容" };
 }
 

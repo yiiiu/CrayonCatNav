@@ -276,6 +276,7 @@ const fieldNames: Record<string, string> = {
   platforms: "平台",
   pricingNote: "定价说明",
   previewImageUrl: "预览图",
+  pricingType: "定价类型",
 };
 
 /** 批量补全：在「采集 Agent」页触发，受该页 maxDuration=300 约束。 */
