@@ -30,20 +30,20 @@ export const MAX_GITHUB_QUERIES = 8;
 
 const uniq = (list: string[]) => [...new Set(list)];
 
-const topic = z
+export const topicSchema = z
   .string()
   .trim()
   .toLowerCase()
   .regex(/^[a-z0-9][a-z0-9-]{0,49}$/, "GitHub 主题只能是小写字母、数字和连字符（≤50 字）");
 
-const keyword = z
+export const keywordSchema = z
   .string()
   .trim()
   .min(2, "关键词至少 2 个字符")
   .max(40, "关键词最多 40 个字符")
   .regex(/^[\p{L}\p{N} .+#-]+$/u, "关键词只能包含文字、数字、空格和 . + # -");
 
-const hfTerm = z
+export const hfTermSchema = z
   .string()
   .trim()
   .regex(/^[A-Za-z0-9._-]{2,40}$/, "HF 搜索词只能是 2–40 位字母、数字和 . _ -（匹配 Space 名称）");
@@ -63,14 +63,14 @@ export const collectConfigSchema = z
         productHunt: z.boolean().default(false),
       })
       .default({ github: false, mcpRegistry: false, awesome: false, huggingface: false, productHunt: false }),
-    githubTopics: z.array(topic).max(8, "GitHub 主题最多 8 个").default([]).transform(uniq),
-    githubKeywords: z.array(keyword).max(4, "GitHub 关键词最多 4 个").default([]).transform(uniq),
+    githubTopics: z.array(topicSchema).max(8, "GitHub 主题最多 8 个").default([]).transform(uniq),
+    githubKeywords: z.array(keywordSchema).max(4, "GitHub 关键词最多 4 个").default([]).transform(uniq),
     /** 「近期活跃的热门」查询的 star 门槛 */
     githubMinStars: stars(500),
     /** 「近半年新起的」查询的 star 门槛 */
     githubNewMinStars: stars(100),
     /** HF Spaces 搜索词（API 的 search 参数，匹配 Space 名称）；为空时取全站点赞最高 */
-    hfSearch: z.array(hfTerm).max(6, "HF 搜索词最多 6 个").default([]).transform(uniq),
+    hfSearch: z.array(hfTermSchema).max(6, "HF 搜索词最多 6 个").default([]).transform(uniq),
     /** 给模型的分类说明：帮助判断条目是否属于该分类 */
     description: z.string().trim().max(500, "分类说明最多 500 字").default(""),
   })

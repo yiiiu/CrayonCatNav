@@ -13,7 +13,7 @@ import { getSettingsView } from "@/lib/domain/agent-settings.service";
 import { getCollectOverview } from "@/lib/domain/category-collect.service";
 import { BATCH_SIZE, countEnrichPending } from "@/lib/domain/enrich.service";
 import { EnrichButton } from "@/components/admin/EnrichButton";
-import { collectLinkAction, enrichBatchAction, runCollectAction, saveAgentSettingsAction, saveCollectConfigAction, testAgentConnectionAction } from "../actions";
+import { collectLinkAction, enrichBatchAction, runCollectAction, saveAgentSettingsAction, saveCollectConfigAction, suggestDescriptionAction, suggestTermsAction, testAgentConnectionAction } from "../actions";
 
 export const metadata = { title: "采集 Agent" };
 
@@ -38,6 +38,7 @@ export default async function AgentPage() {
   const [overview, runs, enrich] = await Promise.all([getCollectOverview(), listRuns(12), countEnrichPending()]);
   const nameBySlug = new Map(overview.rows.map((r) => [r.slug, r.name]));
   const configActions = Object.fromEntries(overview.rows.map((r) => [r.id, saveCollectConfigAction.bind(null, r.id)]));
+  const wandActions = Object.fromEntries(overview.rows.map((r) => [r.id, { terms: suggestTermsAction.bind(null, r.id), description: suggestDescriptionAction.bind(null, r.id) }]));
   return (
     <>
       <AdminTop title="采集 Agent">
@@ -78,6 +79,7 @@ export default async function AgentPage() {
             }))}
             autoPickId={overview.autoPick?.id ?? null}
             actions={configActions}
+            wands={wandActions}
           />
           <Card>
             <h2 className={styles.cardTitle}>最近运行</h2>

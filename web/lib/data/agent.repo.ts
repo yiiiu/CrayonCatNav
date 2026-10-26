@@ -88,6 +88,17 @@ export function findCategoryById(id: string) {
   return prisma.category.findUnique({ where: { id }, select: { id: true, slug: true, name: true } });
 }
 
+/** 扩词用：分类的已上架资源样例（精选优先，其次最近更新），含标签名。 */
+export async function listCategorySamples(categoryId: string, take = 15) {
+  const rows = await prisma.resource.findMany({
+    where: { categoryId, status: "published" },
+    orderBy: [{ featuredOrder: { sort: "asc", nulls: "last" } }, { updatedAt: "desc" }],
+    take,
+    select: { name: true, summary: true, tags: { select: { tag: { select: { name: true } } } } },
+  });
+  return rows.map((r) => ({ name: r.name, summary: r.summary, tags: r.tags.map((t) => t.tag.name) }));
+}
+
 export function upsertCollectConfig(categoryId: string, config: Prisma.InputJsonValue) {
   return prisma.categoryCollectConfig.upsert({ where: { categoryId }, create: { categoryId, config }, update: { config } });
 }

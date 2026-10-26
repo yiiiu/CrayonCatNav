@@ -95,3 +95,34 @@ details[open] > .catHead .catName::before { transform: rotate(90deg); }
 .sugActs form { display: flex; gap: 6px; align-items: center; }
 .sugPick { width: 160px; }
 @media (max-width: 720px) { .sugRow { grid-template-columns: 1fr; } .sugActs { justify-content: flex-start; } }
+
+/* AI 扩词魔法棒（TermWand） */
+.labelRow { display: flex; align-items: center; gap: 6px; }
+.wand { position: relative; display: inline-flex; }
+.wandBtn { width: 28px; height: 28px; min-height: 0; padding: 0; display: inline-grid; place-items: center; font-size: 15px; line-height: 1; cursor: pointer; background: color-mix(in srgb, var(--c-yellow) 35%, var(--paper)); border: 2px solid var(--ink); border-radius: var(--wob2); }
+.wandBtn:hover:not(:disabled) { transform: translateY(-1px); }
+.wandBtn:disabled { cursor: progress; opacity: 0.7; }
+.wandBtn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--blue); }
+.wandPop { position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; width: min(380px, 80vw); padding: 10px 12px; background: #fff; border: 2px solid var(--ink); border-radius: var(--wob2); box-shadow: 4px 4px 0 color-mix(in srgb, var(--ink) 25%, transparent); font-size: var(--fs-sm); font-weight: 600; }
+.wandMsg { margin: 6px 0 0; font-size: var(--fs-xs); color: var(--ink-2); font-weight: 700; }
+.wandMsg:first-child { margin-top: 0; }
+.wandErr { margin: 0; color: #9b1e1e; font-weight: 800; }
+.wandChips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.wandItem { position: relative; }
+.chip { min-height: 0; padding: 3px 10px; font: 700 var(--fs-xs) var(--font); color: var(--ink); border: 2px solid var(--ink); border-radius: 999px; cursor: pointer; }
+.chip:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--blue); }
+.chip_ok { background: color-mix(in srgb, #3c9a5f 22%, #fff); }
+.chip_broad { background: color-mix(in srgb, var(--c-yellow) 55%, #fff); }
+.chip_blocked { background: #eee; color: #888; border-color: #aaa; text-decoration: line-through; cursor: not-allowed; }
+.chipDone { opacity: 0.55; cursor: default; }
+.tip { position: absolute; z-index: 31; left: 0; bottom: calc(100% + 6px); width: 260px; display: none; gap: 3px; padding: 8px 10px; font-size: var(--fs-xs); font-weight: 600; line-height: 1.5; color: var(--paper); background: var(--ink); border-radius: 8px; pointer-events: none; }
+.tip b { font-weight: 900; }
+.tipNote { color: #ffd27a; font-weight: 800; }
+.wandItem:hover .tip, .wandItem:focus-within .tip { display: grid; }
+.wandFoot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
+.wandAll, .wandGhost { min-height: 0; padding: 4px 12px; font: 800 var(--fs-xs) var(--font); color: var(--ink); background: color-mix(in srgb, var(--blue) 18%, #fff); border: 2px solid var(--ink); border-radius: var(--wob2); cursor: pointer; }
+.wandGhost { background: #fff; }
+.wandAll:disabled { opacity: 0.5; cursor: not-allowed; }
+.wandLegend { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-xs); color: var(--ink-2); }
+.wandLegend i { display: inline-block; width: 10px; height: 10px; margin-left: 4px; border: 1.5px solid var(--ink); border-radius: 50%; text-decoration: none; }
+.wandDraft { margin: 0; max-height: 220px; overflow: auto; white-space: pre-wrap; line-height: 1.6; }

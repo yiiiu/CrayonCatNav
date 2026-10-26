@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Button, Card } from "@/components/ui";
 import type { ActionResult } from "@/lib/domain/result";
 import { collectSourceHints, collectSourceKeys, collectSourceLabels, type CollectConfig, type CollectSourceKey } from "@/lib/validation/collect-config";
+import { DescriptionWand, TermWand, type SuggestDescriptionFn, type SuggestTermsFn } from "./TermWand";
 import styles from "./admin.module.css";
 import a from "./agent.module.css";
 
@@ -20,6 +21,7 @@ export type CategoryCollectRowView = {
 };
 
 type SaveAction = (prev: ActionResult, fd: FormData) => Promise<ActionResult>;
+export type WandActions = { terms: SuggestTermsFn; description: SuggestDescriptionFn };
 
 /** 未配置分类的表单初值：启用、来源全关（保存时会提示至少开一个来源）。 */
 const EMPTY: CollectConfig = {
@@ -41,7 +43,7 @@ function statusText(r: CategoryCollectRowView) {
   return `来源：${r.active.map((k) => collectSourceLabels[k]).join("、")}`;
 }
 
-function Row({ r, max, isNext, action }: { r: CategoryCollectRowView; max: number; isNext: boolean; action: SaveAction }) {
+function Row({ r, max, isNext, action, wand }: { r: CategoryCollectRowView; max: number; isNext: boolean; action: SaveAction; wand?: WandActions }) {
   const [state, formAction, pending] = useActionState(action, { ok: true } as ActionResult);
   const c = r.config ?? EMPTY;
   const errs = !state.ok ? (state.fieldErrors ?? {}) : {};
@@ -87,12 +89,18 @@ function Row({ r, max, isNext, action }: { r: CategoryCollectRowView; max: numbe
             {err("sources") && <p className={styles.err} role="alert">{err("sources")}</p>}
           </fieldset>
           <div className={`${styles.field} ${err("githubTopics") ? styles.bad : ""}`}>
-            <label htmlFor={id("topics")}>GitHub 主题（topic，逗号或空格分隔，最多 8 个）</label>
+            <div className={a.labelRow}>
+              <label htmlFor={id("topics")}>GitHub 主题（topic，逗号或空格分隔，最多 8 个）</label>
+              {wand && <TermWand field="githubTopics" inputId={id("topics")} suggest={wand.terms} />}
+            </div>
             <input id={id("topics")} name="githubTopics" defaultValue={c.githubTopics.join(", ")} placeholder="mcp-server, model-context-protocol" autoComplete="off" />
             {err("githubTopics") ? <p className={styles.err} role="alert">{err("githubTopics")}</p> : <span className={styles.hint}>每次最多查 4 个主题/关键词（各 2 条查询），超出时按天轮换</span>}
           </div>
           <div className={`${styles.field} ${err("githubKeywords") ? styles.bad : ""}`}>
-            <label htmlFor={id("kw")}>GitHub 关键词（逗号分隔，可含空格，最多 4 个）</label>
+            <div className={a.labelRow}>
+              <label htmlFor={id("kw")}>GitHub 关键词（逗号分隔，可含空格，最多 4 个）</label>
+              {wand && <TermWand field="githubKeywords" inputId={id("kw")} suggest={wand.terms} />}
+            </div>
             <input id={id("kw")} name="githubKeywords" defaultValue={c.githubKeywords.join(", ")} placeholder="mcp server" autoComplete="off" />
             {err("githubKeywords") ? <p className={styles.err} role="alert">{err("githubKeywords")}</p> : <span className={styles.hint}>在仓库名、简介、topics 里匹配整个短语</span>}
           </div>
@@ -109,12 +117,18 @@ function Row({ r, max, isNext, action }: { r: CategoryCollectRowView; max: numbe
             </div>
           </div>
           <div className={`${styles.field} ${err("hfSearch") ? styles.bad : ""}`}>
-            <label htmlFor={id("hf")}>HF Spaces 搜索词（逗号或空格分隔，最多 6 个）</label>
+            <div className={a.labelRow}>
+              <label htmlFor={id("hf")}>HF Spaces 搜索词（逗号或空格分隔，最多 6 个）</label>
+              {wand && <TermWand field="hfSearch" inputId={id("hf")} suggest={wand.terms} />}
+            </div>
             <input id={id("hf")} name="hfSearch" defaultValue={c.hfSearch.join(", ")} placeholder="image, video" autoComplete="off" />
             {err("hfSearch") ? <p className={styles.err} role="alert">{err("hfSearch")}</p> : <span className={styles.hint}>匹配 Space 名称（owner/name），每个词取点赞最高的 30 个；留空取全站热门</span>}
           </div>
           <div className={`${styles.field} ${err("description") ? styles.bad : ""}`}>
-            <label htmlFor={id("desc")}>给模型的分类说明（≤500 字）</label>
+            <div className={a.labelRow}>
+              <label htmlFor={id("desc")}>给模型的分类说明（≤500 字）</label>
+              {wand && <DescriptionWand inputId={id("desc")} suggest={wand.description} />}
+            </div>
             <textarea id={id("desc")} name="description" defaultValue={c.description} rows={3} maxLength={500} placeholder="什么样的资源属于这个分类、和相近分类怎么区分" />
             {err("description") && <p className={styles.err} role="alert">{err("description")}</p>}
           </div>
@@ -128,16 +142,27 @@ function Row({ r, max, isNext, action }: { r: CategoryCollectRowView; max: numbe
 }
 
 /** 分类采集配置：每个分类一行（已上架 / 待审核计数 + 状态），展开后编辑。 */
-export function CategoryCollectConfigs({ rows, autoPickId, actions }: { rows: CategoryCollectRowView[]; autoPickId: string | null; actions: Record<string, SaveAction> }) {
+export function CategoryCollectConfigs({
+  rows,
+  autoPickId,
+  actions,
+  wands,
+}: {
+  rows: CategoryCollectRowView[];
+  autoPickId: string | null;
+  actions: Record<string, SaveAction>;
+  /** 各分类的 AI 扩词 Action（已绑定分类 id） */
+  wands?: Record<string, WandActions>;
+}) {
   const max = Math.max(0, ...rows.map((r) => r.published + r.pending));
   return (
     <Card>
       <h2 className={styles.cardTitle}>分类采集配置</h2>
-      <p className={styles.hint}>采集按分类定向进行：只跑该分类开启的来源，GitHub 按它的主题 / 关键词搜索。条形图为「已上架 + 待审核」，越短越缺资源。</p>
+      <p className={styles.hint}>采集按分类定向进行：只跑该分类开启的来源，GitHub 按它的主题 / 关键词搜索。条形图为「已上架 + 待审核」，越短越缺资源。点字段旁的 ✨ 让 AI 推荐关键词，悬浮可看语义、理由和命中数，点选只加入输入框，保存后才生效。</p>
       {rows.length === 0 && <p className={styles.hint}>还没有分类</p>}
       <ul className={a.cats}>
         {rows.map((r) => (
-          <Row key={r.id} r={r} max={max} isNext={r.id === autoPickId} action={actions[r.id]} />
+          <Row key={r.id} r={r} max={max} isNext={r.id === autoPickId} action={actions[r.id]} wand={wands?.[r.id]} />
         ))}
       </ul>
     </Card>

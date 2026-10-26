@@ -11,6 +11,8 @@ import { candidateReturnUrl, type CandidateFilter } from "@/lib/agent/candidate-
 import { saveCollectConfig } from "@/lib/domain/category-collect.service";
 import { collectLink, runCollection } from "@/lib/domain/collector.service";
 import { enrichBatch, enrichOne } from "@/lib/domain/enrich.service";
+import { suggestDescription, suggestTerms, type TermDraft, type TermSuggestion } from "@/lib/domain/term-suggest.service";
+import type { TermField } from "@/lib/agent/term-rules";
 import { setFeatured } from "@/lib/domain/featured.service";
 import { changeStatus, removeResource, saveResource, validateResource } from "@/lib/domain/resource.service";
 import { type ActionResult, fromDomainError, fromZodError } from "@/lib/domain/result";
@@ -189,6 +191,26 @@ export async function saveCollectConfigAction(categoryId: string, _prev: ActionR
     if (!r.ok) return fromZodError(r.error);
     refresh(); // 刷新分类行的状态（已配置 / 参与采集的来源 / 自动会选中的分类）
     return { ok: true, message: `「${r.name}」的采集配置已保存` };
+  } catch (e) {
+    return fromDomainError(e);
+  }
+}
+
+/* ---------- AI 扩词（只返回建议，不写库、不刷新） ---------- */
+
+export async function suggestTermsAction(categoryId: string, field: TermField, draft: TermDraft): Promise<ActionResult<TermSuggestion>> {
+  await requireAdmin();
+  try {
+    return { ok: true, data: await suggestTerms(categoryId, field, draft) };
+  } catch (e) {
+    return fromDomainError(e);
+  }
+}
+
+export async function suggestDescriptionAction(categoryId: string, draft: TermDraft): Promise<ActionResult<string>> {
+  await requireAdmin();
+  try {
+    return { ok: true, data: await suggestDescription(categoryId, draft) };
   } catch (e) {
     return fromDomainError(e);
   }
