@@ -7,6 +7,7 @@ import { requireAdmin } from "@/lib/auth/require-admin";
 import { cacheTags } from "@/lib/cache/tags";
 import { saveSettings, testConnection } from "@/lib/domain/agent-settings.service";
 import { convertCandidate, rejectCandidate } from "@/lib/domain/candidate.service";
+import { candidateReturnUrl, type CandidateFilter } from "@/lib/agent/candidate-return";
 import { saveCollectConfig } from "@/lib/domain/category-collect.service";
 import { collectLink, runCollection } from "@/lib/domain/collector.service";
 import { setFeatured } from "@/lib/domain/featured.service";
@@ -194,7 +195,7 @@ export async function saveCollectConfigAction(categoryId: string, _prev: ActionR
 
 /* ---------- 候选箱 ---------- */
 
-export async function reviewCandidateAction(id: string, _prev: ActionResult, fd: FormData): Promise<ActionResult> {
+export async function reviewCandidateAction(id: string, filter: CandidateFilter | null, _prev: ActionResult, fd: FormData): Promise<ActionResult> {
   await requireAdmin();
   const intent = fd.get("intent") === "draft" ? "draft" : "publish";
   const raw = candidateReviewFromForm(fd);
@@ -207,19 +208,19 @@ export async function reviewCandidateAction(id: string, _prev: ActionResult, fd:
   updateTag(cacheTags.taxonomy);
   if (intent === "publish") {
     touchResources(r.slug);
-    redirect(`/admin/candidates?done=${encodeURIComponent(`已上架「${raw.name}」`)}`);
+    redirect(candidateReturnUrl(filter, `已上架「${raw.name}」`));
   }
   redirect(`/admin/resources/${r.resourceId}?created=candidate${r.note ? `&note=${encodeURIComponent(r.note)}` : ""}`);
 }
 
-export async function rejectCandidateAction(id: string, _prev: ActionResult, _fd?: FormData): Promise<ActionResult> {
+export async function rejectCandidateAction(id: string, filter: CandidateFilter | null, _prev: ActionResult, _fd?: FormData): Promise<ActionResult> {
   await requireAdmin();
   try {
     await rejectCandidate(id);
   } catch (e) {
     return fromDomainError(e);
   }
-  redirect(`/admin/candidates?done=${encodeURIComponent("已拒绝，之后不会再推送同一链接")}`);
+  redirect(candidateReturnUrl(filter, "已拒绝，之后不会再推送同一链接"));
 }
 
 /* ---------- 标签待定池 ---------- */

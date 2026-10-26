@@ -42,6 +42,9 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
     return s ? `/admin/candidates?${s}` : "/admin/candidates";
   };
 
+  // 审核后回到当前筛选（状态 / 分类 / 页码），不重置为全部分类
+  const filter = { status, cat, page };
+
   const views: CandidateView[] = items.map((c) => {
     const parsed = candidatePayloadSchema.safeParse(c.payload);
     const p = parsed.success
@@ -113,8 +116,8 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
               key={c.id}
               c={c}
               categories={categories}
-              review={reviewCandidateAction.bind(null, c.id)}
-              reject={rejectCandidateAction.bind(null, c.id)}
+              review={reviewCandidateAction.bind(null, c.id, filter)}
+              reject={rejectCandidateAction.bind(null, c.id, filter)}
             />
           ))}
         </ScrollArea>
