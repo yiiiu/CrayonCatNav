@@ -70,6 +70,9 @@
 .toolbar .grow { margin-left: auto; }
 .search { flex: 1 1 220px; display: flex; align-items: center; gap: 8px; padding: 0 14px; min-height: 46px; background: #fff; border: var(--stroke) solid var(--ink); border-radius: var(--wob-pill); }
 .search input { flex: 1; min-width: 0; border: 0; background: transparent; font: 600 var(--fs-md) var(--font); color: var(--ink); outline: none; }
+/* 工具栏里的下拉框：与同排筛选按钮等高 */
+.selBox { width: 220px; max-width: 100%; }
+.selBox > button { min-height: 46px; font: 700 var(--fs-sm) var(--font); }
 .sel { font: 700 var(--fs-sm) var(--font); color: var(--ink); background: #fff; border: var(--stroke) solid var(--ink); border-radius: var(--wob2); min-height: 46px; padding: 0 12px; }
 .seg { display: flex; gap: 8px; flex-wrap: wrap; }
 .scroll { margin: 0 -14px 0 -8px; }
@@ -112,10 +115,10 @@
 .formBody { margin: 0 -14px 0 -8px; }
 .formBodyVp { align-content: start; padding: 4px 14px 6px 8px; }
 .field { display: grid; gap: 6px; margin-bottom: 14px; font-size: var(--fs-sm); font-weight: 700; }
-.field input, .field select, .field textarea { font: 600 var(--fs-md) var(--font); color: var(--ink); background: #fff; border: var(--stroke) solid var(--ink); border-radius: var(--wob2); padding: 9px 12px; min-height: var(--tap); outline: none; width: 100%; }
+.field input, .field textarea { font: 600 var(--fs-md) var(--font); color: var(--ink); background: #fff; border: var(--stroke) solid var(--ink); border-radius: var(--wob2); padding: 9px 12px; min-height: var(--tap); outline: none; width: 100%; }
 .field textarea { min-height: 140px; resize: vertical; line-height: 1.6; border-radius: 12px 18px 14px 16px; }
-.field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible { box-shadow: 0 0 0 3px var(--blue); }
-.bad input, .bad select, .bad textarea { border-color: var(--err); }
+.field input:focus-visible, .field textarea:focus-visible { box-shadow: 0 0 0 3px var(--blue); }
+.bad input, .bad textarea { border-color: var(--err); }
 .err { margin: 0; color: var(--err); font-size: 13px; font-weight: 800; }
 .hint { font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); }
 .alert { margin: 0 0 14px; padding: 10px 14px; font-size: var(--fs-sm); font-weight: 800; border: 2px solid var(--err); color: var(--err); background: color-mix(in srgb, var(--err) 10%, var(--paper)); border-radius: var(--wob2); }

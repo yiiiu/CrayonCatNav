@@ -19,7 +19,7 @@ import {
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent, type TouchEvent } from "react";
-import { Button, ScrollArea } from "@/components/ui";
+import { Button, ScrollArea, Select } from "@/components/ui";
 import { useToast } from "@/components/tool/shared";
 import type { ActionResult } from "@/lib/domain/result";
 import { moveById, previewOrder, toFeaturedFormData } from "@/lib/ui/reorder";
@@ -169,10 +169,17 @@ export function FeaturedEditor({ action, initial, candidates, max }: Props) {
       </DndContext>
       <div className={styles.toolbar} style={{ marginTop: 16, marginBottom: 0 }}>
         <label className="sr-only" htmlFor="pick">选择要加入精选的资源</label>
-        <select id="pick" className={styles.sel} value={pick} onChange={(e) => setPick(e.target.value)} disabled={items.length >= max}>
-          <option value="">{pool.length ? "选择已发布资源…" : "没有可加入的已发布资源"}</option>
-          {pool.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+        <Select
+          id="pick"
+          className={styles.selBox}
+          value={pick}
+          onValueChange={setPick}
+          disabled={items.length >= max || pool.length === 0}
+          placeholder={pool.length ? "选择已发布资源…" : "没有可加入的已发布资源"}
+          searchable
+          searchPlaceholder="搜索资源…"
+          options={pool.map((c) => ({ value: c.id, label: c.name }))}
+        />
         <Button
           disabled={!pick || items.length >= max}
           onClick={() => {

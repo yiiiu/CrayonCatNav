@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import { AdminTop } from "@/components/admin/AdminTop";
 import styles from "@/components/admin/admin.module.css";
 import a from "@/components/admin/agent.module.css";
-import { Button, Card, ConfirmButton, ScrollArea } from "@/components/ui";
+import { Button, Card, ConfirmButton, ScrollArea, Select } from "@/components/ui";
 import { allTagsForVocab, listOpenSuggestions } from "@/lib/data/tag-suggestion.repo";
 import { acceptSuggestionAction, ignoreSuggestionAction, mergeSuggestionAction } from "../actions";
 
@@ -52,14 +52,16 @@ export default async function TagSuggestionsPage({ searchParams }: { searchParam
                 </form>
                 <form action={mergeSuggestionAction.bind(null, s.id)}>
                   <label htmlFor={`merge-${s.id}`} className="sr-only">归到哪个标签</label>
-                  <select id={`merge-${s.id}`} name="tagId" defaultValue="" required>
-                    <option value="" disabled>归到…</option>
-                    {tags.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
+                  <Select
+                    id={`merge-${s.id}`}
+                    className={a.sugPick}
+                    name="tagId"
+                    required
+                    searchable
+                    searchPlaceholder="搜索标签…"
+                    placeholder="归到…"
+                    options={tags.map((t) => ({ value: t.id, label: t.name }))}
+                  />
                   <Button type="submit">归到</Button>
                 </form>
                 <form action={ignoreSuggestionAction.bind(null, s.id)}>

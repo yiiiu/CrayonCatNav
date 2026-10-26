@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, Select } from "@/components/ui";
 import type { ActionResult } from "@/lib/domain/result";
 import styles from "./admin.module.css";
 import a from "./agent.module.css";
@@ -47,14 +47,20 @@ export function AgentRunPanel({
         <p className={styles.hint}>为一个目标分类采集：只跑该分类开启的来源 → 去重 → 模型整理 → 检查链接 → 进候选箱。不会自动上架。定时采集固定用自动模式。</p>
         <form id="agent-run" action={runAction} className={a.runTarget}>
           <label htmlFor="agent-target">目标分类</label>
-          <select id="agent-target" name="target" defaultValue="auto">
-            <option value="auto">{`自动：选资源最少的分类${autoPickName ? `（当前为「${autoPickName}」）` : "（暂无可选分类）"}`}</option>
-            {targets.map((t) => (
-              <option key={t.id} value={t.id} disabled={!t.collectable}>
-                {`${t.name}（已上架+待审核 ${t.total}）${t.collectable ? "" : " · 未配置或无可用来源"}`}
-              </option>
-            ))}
-          </select>
+          <Select
+            id="agent-target"
+            name="target"
+            defaultValue="auto"
+            options={[
+              { value: "auto", label: `自动：选资源最少的分类${autoPickName ? `（当前为「${autoPickName}」）` : "（暂无可选分类）"}` },
+              ...targets.map((t) => ({
+                value: t.id,
+                label: t.name,
+                hint: t.collectable ? `已上架+待审核 ${t.total}` : "未配置或无可用来源",
+                disabled: !t.collectable,
+              })),
+            ]}
+          />
         </form>
         <div className={a.runBtns} style={{ marginTop: 12 }}>
           {/* 提交上方的「目标分类」表单 */}

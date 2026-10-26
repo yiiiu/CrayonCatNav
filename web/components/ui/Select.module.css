@@ -1,0 +1,126 @@
+/* 手绘风下拉框：触发器沿用后台输入框的线条与圆角，弹层是带抖动描边的纸片 */
+.root {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  min-height: var(--tap);
+  padding: 9px 12px;
+  font: 600 var(--fs-md) var(--font);
+  color: var(--ink);
+  text-align: left;
+  background: #fff;
+  border: var(--stroke) solid var(--ink);
+  border-radius: var(--wob2);
+  cursor: pointer;
+  outline: none;
+  transition: box-shadow 0.15s;
+}
+.trigger:hover:not(:disabled) { box-shadow: var(--shadow-sm); }
+.trigger:focus-visible { box-shadow: 0 0 0 3px var(--blue); }
+.trigger[data-open] { box-shadow: var(--shadow-sm); }
+.trigger[aria-invalid="true"] { border-color: var(--err); box-shadow: 0 0 0 2px color-mix(in srgb, var(--err) 30%, transparent); }
+.trigger:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.placeholder { color: var(--muted); }
+
+.chev { flex: none; color: var(--ink-2); transition: transform 0.18s; }
+.trigger[data-open] .chev { transform: rotate(180deg); }
+
+/* 弹层：覆盖 [popover] 的 UA 默认样式（inset:0 / margin:auto / Canvas 底色） */
+.pop {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 6px;
+  max-width: min(440px, calc(100vw - 16px));
+  color: var(--ink);
+  background: var(--paper);
+  border: 0;
+  border-radius: 14px 22px 16px 20px / 20px 14px 22px 16px;
+  box-shadow: var(--shadow-md);
+  overflow: visible;
+  flex-direction: column;
+  gap: 6px;
+}
+.pop:popover-open { display: flex; }
+.pop::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: inherit;
+  filter: url(#wobble);
+  pointer-events: none;
+}
+.pop[data-side="bottom"] { animation: drop 0.14s ease-out; }
+.pop[data-side="top"] { animation: rise 0.14s ease-out; }
+@keyframes drop { from { opacity: 0; transform: translateY(-4px); } }
+@keyframes rise { from { opacity: 0; transform: translateY(4px); } }
+
+.search {
+  flex: none;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  font: 600 var(--fs-sm) var(--font);
+  color: var(--ink);
+  background: #fff;
+  border: 2px dashed color-mix(in srgb, var(--ink-2) 55%, transparent);
+  border-radius: var(--wob2);
+  outline: none;
+}
+.search:focus-visible { border-color: var(--blue); border-style: solid; }
+.search::placeholder { color: var(--muted); }
+
+.listRoot { flex: 1 1 auto; min-height: 0; }
+.list { display: grid; gap: 2px; padding: 2px; }
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 38px;
+  padding: 7px 10px 7px 8px;
+  font: 600 var(--fs-md) var(--font);
+  border-radius: var(--wob2);
+  cursor: pointer;
+  user-select: none;
+}
+.option[data-active] { background: var(--tint); box-shadow: inset 0 0 0 2px var(--ink); }
+.option[aria-selected="true"] { font-weight: 800; }
+.option[aria-disabled] { color: var(--muted); cursor: not-allowed; }
+.option[aria-disabled][data-active] { background: transparent; box-shadow: none; }
+
+.check { flex: none; color: var(--blue); visibility: hidden; }
+.option[aria-selected="true"] .check { visibility: visible; }
+
+.mark { padding: 0 1px; color: inherit; font-weight: 800; background: color-mix(in srgb, var(--c-yellow) 55%, transparent); border-radius: 3px; }
+.label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.hint { flex: none; margin-left: var(--sp-3); font-size: var(--fs-xs); font-weight: 700; color: var(--ink-2); }
+.option[aria-disabled] .hint { color: var(--muted); }
+
+.empty { padding: 10px; font-size: var(--fs-sm); font-weight: 700; color: var(--muted); text-align: center; }
+
+/* 表单代理：不可见、不占位，但仍可被聚焦以参与原生校验。用双类选择器压过 .field select 这类外部样式 */
+.root > select.native {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}

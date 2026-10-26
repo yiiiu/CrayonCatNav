@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useId, useState } from "react";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, Select } from "@/components/ui";
 import { trackEvent } from "@/lib/analytics/track";
 import {
   CURRENCIES,
@@ -107,18 +107,12 @@ function TokenCostInner() {
         <h2>填写参数</h2>
         <div className={styles.field}>
           <label htmlFor={`${uid}-cur`}>币种</label>
-          <select
+          <Select
             id={`${uid}-cur`}
-            className={styles.input}
             value={currency}
-            onChange={(e) => isCurrency(e.target.value) && setCurrency(e.target.value)}
-          >
-            {(Object.keys(CURRENCIES) as Currency[]).map((c) => (
-              <option key={c} value={c}>
-                {c}（{CURRENCIES[c]}）
-              </option>
-            ))}
-          </select>
+            onValueChange={(v) => isCurrency(v) && setCurrency(v)}
+            options={(Object.keys(CURRENCIES) as Currency[]).map((c) => ({ value: c, label: `${c}（${CURRENCIES[c]}）` }))}
+          />
         </div>
         <div className={styles.g2}>{FIELDS.map(field)}</div>
         {field({ key: "requests", label: "请求次数", unit: "次", placeholder: "例如 1000" })}

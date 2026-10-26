@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { Button, ConfirmButton } from "@/components/ui";
+import { Button, ConfirmButton, Select } from "@/components/ui";
 import type { ActionResult } from "@/lib/domain/result";
 import { formatTagInput } from "@/lib/validation/tag-vocab";
 import styles from "./admin.module.css";
@@ -136,14 +136,13 @@ export function CandidateCard({ c, categories, review, reject }: Props) {
               <input id={`f-summary-${c.id}`} name="summary" defaultValue={v("summary", c.summary)} maxLength={200} />
             </Field>
             <Field label="分类" name={`categorySlug-${c.id}`} error={err("categorySlug")}>
-              <select id={`f-categorySlug-${c.id}`} name="categorySlug" defaultValue={v("categorySlug", c.categoryName ? c.categorySlug : "")}>
-                <option value="">请选择</option>
-                {categories.map((cat) => (
-                  <option key={cat.slug} value={cat.slug}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
+              <Select
+                id={`f-categorySlug-${c.id}`}
+                name="categorySlug"
+                defaultValue={v("categorySlug", c.categoryName ? c.categorySlug : "")}
+                invalid={!!err("categorySlug")}
+                options={categories.map((cat) => ({ value: cat.slug, label: cat.name }))}
+              />
             </Field>
             <Field label="标签" name={`tags-${c.id}`} error={err("tags")} hint="逗号分隔；新标签写成「名字:slug」，如 视频剪辑:video-editing">
               <input id={`f-tags-${c.id}`} name="tags" defaultValue={v("tags", formatTagInput(c.tags, c.suggestedTags))} />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Button, Card, ScrollArea } from "@/components/ui";
+import { Button, Card, ScrollArea, Select } from "@/components/ui";
 import type { ActionResult } from "@/lib/domain/result";
 import { pricingLabels, pricingTypes, statusLabels } from "@/lib/validation/resource";
 import { suggestSlug } from "@/lib/validation/search";
@@ -75,15 +75,22 @@ export function ResourceForm({ action, initial, categories, tags, tools, notice 
               <textarea id="f-description" name="description" defaultValue={initial.description} />
             </Field>
             <Field label="分类" name="categoryId" error={err("categoryId")}>
-              <select id="f-categoryId" name="categoryId" defaultValue={initial.categoryId} aria-invalid={!!err("categoryId")}>
-                <option value="">请选择</option>
-                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <Select
+                id="f-categoryId"
+                name="categoryId"
+                defaultValue={initial.categoryId}
+                invalid={!!err("categoryId")}
+                aria-describedby={describedBy("categoryId")}
+                options={categories.map((c) => ({ value: c.id, label: c.name }))}
+              />
             </Field>
             <Field label="定价类型" name="pricingType">
-              <select id="f-pricingType" name="pricingType" defaultValue={initial.pricingType}>
-                {pricingTypes.map((p) => <option key={p} value={p}>{pricingLabels[p]}</option>)}
-              </select>
+              <Select
+                id="f-pricingType"
+                name="pricingType"
+                defaultValue={initial.pricingType}
+                options={pricingTypes.map((p) => ({ value: p, label: pricingLabels[p] }))}
+              />
             </Field>
             <Field label="官网链接" name="websiteUrl" error={err("websiteUrl")} hint="仅支持 https://">
               <input id="f-websiteUrl" name="websiteUrl" type="url" inputMode="url" placeholder="https://" defaultValue={initial.websiteUrl} aria-invalid={!!err("websiteUrl")} aria-describedby={describedBy("websiteUrl")} />

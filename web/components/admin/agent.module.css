@@ -53,8 +53,6 @@ details[open] > .catHead .catName::before { transform: rotate(90deg); }
 .catSources legend { padding: 0; margin-bottom: 4px; font-weight: 800; font-size: var(--fs-sm); }
 .catStars { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
 .runTarget { display: grid; gap: 6px; margin-top: 12px; font-size: var(--fs-sm); font-weight: 700; }
-.runTarget select { font: 600 var(--fs-md) var(--font); color: var(--ink); background: #fff; border: var(--stroke) solid var(--ink); border-radius: var(--wob2); padding: 9px 12px; min-height: var(--tap); outline: none; width: 100%; }
-.runTarget select:focus-visible { box-shadow: 0 0 0 3px var(--blue); }
 .tgt { display: inline-block; padding: 1px 9px; font-size: var(--fs-xs); font-weight: 800; border: 2px solid var(--ink); border-radius: var(--wob2); background: color-mix(in srgb, var(--c-yellow) 40%, var(--paper)); }
 
 /* 候选箱 */
@@ -95,5 +93,5 @@ details[open] > .catHead .catName::before { transform: rotate(90deg); }
 .sugHot { color: var(--ink); background: var(--c-yellow); padding: 0 6px; border-radius: 999px; border: 1.5px solid var(--ink); }
 .sugActs { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
 .sugActs form { display: flex; gap: 6px; align-items: center; }
-.sugActs select { max-width: 160px; }
+.sugPick { width: 160px; }
 @media (max-width: 720px) { .sugRow { grid-template-columns: 1fr; } .sugActs { justify-content: flex-start; } }

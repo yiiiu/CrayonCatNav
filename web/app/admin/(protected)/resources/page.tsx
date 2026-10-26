@@ -3,7 +3,7 @@ import { AdminTop } from "@/components/admin/AdminTop";
 import { ConfirmButton } from "@/components/ui";
 import styles from "@/components/admin/admin.module.css";
 import { StatusBadge } from "@/components/admin/StatusBadge";
-import { ButtonLink, Card, ChipLink, ScrollArea } from "@/components/ui";
+import { ButtonLink, Card, ChipLink, ScrollArea, Select } from "@/components/ui";
 import type { ResourceStatus } from "@/generated/prisma/client";
 import { adminSearch } from "@/lib/data/resource.repo";
 import { adminListCategories } from "@/lib/data/taxonomy.repo";
@@ -44,12 +44,13 @@ export default async function AdminResourcesPage({ searchParams }: { searchParam
             <span className="sr-only">搜索资源</span>
             <input type="search" name="q" defaultValue={q} placeholder="搜索名称、slug、标签…" />
           </label>
-          <select className={styles.sel} name="cat" defaultValue={cat ?? ""} aria-label="分类">
-            <option value="">全部分类</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.slug}>{c.name}</option>
-            ))}
-          </select>
+          <Select
+            className={styles.selBox}
+            name="cat"
+            defaultValue={cat ?? ""}
+            aria-label="分类"
+            options={[{ value: "", label: "全部分类" }, ...categories.map((c) => ({ value: c.slug, label: c.name }))]}
+          />
           {status && <input type="hidden" name="status" value={status} />}
           <button type="submit" className={styles.sel}>筛选</button>
           <div className={styles.seg} role="group" aria-label="状态">
