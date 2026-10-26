@@ -23,7 +23,7 @@ describe("来源过滤", () => {
     expect(activeSources(mcp, allOn)).not.toContain("huggingface");
   });
   it("非 MCP 分类默认不跑 MCP Registry / awesome", () => {
-    for (const slug of ["ai-coding", "agent-skills", "models-api", "github-oss", "ai-creation"]) {
+    for (const slug of Object.keys(DEFAULT_COLLECT_CONFIGS).filter((k) => k !== "mcp")) {
       const s = activeSources(DEFAULT_COLLECT_CONFIGS[slug], allOn);
       expect(s).not.toContain("mcpRegistry");
       expect(s).not.toContain("awesome");

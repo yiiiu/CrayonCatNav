@@ -112,7 +112,7 @@ export function collectConfigFromForm(fd: FormData) {
 const src = (...on: CollectSourceKey[]) => Object.fromEntries(collectSourceKeys.map((k) => [k, on.includes(k)])) as CollectConfig["sources"];
 
 /**
- * 6 个初始分类的默认采集配置（GitHub 主题均已核实存在且有 ≥100 star 的仓库）。
+ * 初始分类的默认采集配置（GitHub 主题均已核实存在且有 ≥100 star 的仓库，新 5 类核实于 2026-10-26）。
  * 只由 prisma/seed.ts 在该分类还没有配置时写入，后台改过的不覆盖。
  */
 export const DEFAULT_COLLECT_CONFIGS: Record<string, CollectConfig> = {
@@ -144,7 +144,7 @@ export const DEFAULT_COLLECT_CONFIGS: Record<string, CollectConfig> = {
     githubMinStars: 500,
     githubNewMinStars: 100,
     hfSearch: [],
-    description: "给 AI Agent 增加能力的技能包、提示词/工作流集合（如 Claude Skills、SKILL.md 规范），以及 Agent 框架、多 Agent 编排与 Agent 开发工具。",
+    description: "给 AI Agent 增加能力的技能包、提示词/工作流集合（如 Claude Skills、SKILL.md 规范）与现成可用的 Agent 应用。用来构建 Agent 的框架与 SDK 归「Agent 框架」。",
   },
   "models-api": {
     enabled: true,
@@ -154,17 +154,17 @@ export const DEFAULT_COLLECT_CONFIGS: Record<string, CollectConfig> = {
     githubMinStars: 500,
     githubNewMinStars: 100,
     hfSearch: ["chat", "llm", "qwen"],
-    description: "大语言模型与多模态模型本身、模型 API 平台与聚合网关、推理与部署服务、开源模型的在线体验。基于模型做出的具体应用归对应的应用分类。",
+    description: "大语言模型与多模态模型本身、模型 API 平台与聚合网关、云端推理服务、开源模型的在线体验。本地运行工具与推理引擎归「本地模型与推理」，基于模型做出的具体应用归对应的应用分类。",
   },
   "github-oss": {
     enabled: true,
     sources: src("github"),
-    githubTopics: ["llm", "rag", "generative-ai", "ai-tools", "self-hosted"],
+    githubTopics: ["llm", "generative-ai", "ai-tools", "self-hosted"],
     githubKeywords: [],
     githubMinStars: 1000,
     githubNewMinStars: 200,
     hfSearch: [],
-    description: "以 GitHub 仓库为主、可自部署的热门 AI 开源项目：LLM 应用、RAG/知识库、本地部署、AI 基础设施等。与 AI 无关的通用自托管项目不收；明显属于编程、MCP、创作等具体分类的优先归那边。",
+    description: "以 GitHub 仓库为主、可自部署的热门 AI 开源项目，作为其他分类之外的兜底：LLM 应用、AI 基础设施等。与 AI 无关的通用自托管项目不收；明显属于编程、MCP、创作、UI 组件、Agent 框架、本地推理、RAG、评测等具体分类的优先归那边。",
   },
   "ai-creation": {
     enabled: true,
@@ -175,5 +175,55 @@ export const DEFAULT_COLLECT_CONFIGS: Record<string, CollectConfig> = {
     githubNewMinStars: 100,
     hfSearch: ["image", "video", "music", "tts", "flux"],
     description: "生成或编辑图片、视频、音乐、语音、3D 等内容的 AI 工具与开源项目，以及写作、设计类创作工具。",
+  },
+  "ui-components": {
+    enabled: true,
+    sources: src("github", "productHunt"),
+    githubTopics: ["shadcn-ui", "react-components", "component-library", "design-system", "ui-library", "generative-ui"],
+    githubKeywords: ["ai chat ui", "agent ui"],
+    githubMinStars: 500,
+    githubNewMinStars: 100,
+    hfSearch: [],
+    description: "前端 UI 组件库与设计系统（React/Vue/Web Components、Tailwind 组件），AI 对话界面、Agent 交互界面组件与生成式 UI 工具。只是用了某个组件库的普通应用不算；一句话生成整站的工具归「AI 编程」。",
+  },
+  "agent-frameworks": {
+    enabled: true,
+    sources: src("github"),
+    githubTopics: ["agent-framework", "multi-agent", "llm-agent", "autonomous-agents", "agentic-ai"],
+    githubKeywords: ["agent sdk"],
+    githubMinStars: 500,
+    githubNewMinStars: 100,
+    hfSearch: [],
+    description: "用来构建 AI Agent 的开发框架与 SDK：单/多 Agent 编排、工具调用、记忆与状态管理、Agent 工作流引擎。现成的技能包与 Agent 应用归「Agent Skills」，MCP 服务归「MCP 服务」。",
+  },
+  "local-llm": {
+    enabled: true,
+    sources: src("github"),
+    githubTopics: ["local-llm", "ollama", "llamacpp", "quantization", "gguf", "edge-ai"],
+    githubKeywords: ["local llm"],
+    githubMinStars: 500,
+    githubNewMinStars: 100,
+    hfSearch: [],
+    description: "在本地或自有硬件上运行大模型的工具：本地运行器与桌面客户端、推理引擎、模型量化与格式转换、端侧/边缘部署。云端 API 平台归「AI 模型/API」。",
+  },
+  "rag-knowledge": {
+    enabled: true,
+    sources: src("github"),
+    githubTopics: ["rag", "retrieval-augmented-generation", "vector-database", "knowledge-base"],
+    githubKeywords: ["document parsing"],
+    githubMinStars: 500,
+    githubNewMinStars: 100,
+    hfSearch: [],
+    description: "检索增强生成（RAG）框架、向量数据库、Embedding 与重排工具、文档解析与切分、AI 知识库与企业搜索。通用数据库或与 AI 无关的笔记软件不算。",
+  },
+  llmops: {
+    enabled: true,
+    sources: src("github"),
+    githubTopics: ["llmops", "llm-evaluation", "llm-observability", "prompt-engineering", "evals"],
+    githubKeywords: ["llm tracing"],
+    githubMinStars: 500,
+    githubNewMinStars: 100,
+    hfSearch: [],
+    description: "LLM 应用的工程化工具：评测与基准、调用追踪与可观测、Prompt 管理与版本、成本监控、红队与安全测试。单纯的提示词合集归「Agent Skills」。",
   },
 };

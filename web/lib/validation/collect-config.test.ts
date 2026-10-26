@@ -8,8 +8,8 @@ const fd = (entries: Record<string, string>) => {
 };
 
 describe("分类采集配置校验", () => {
-  it("6 个默认配置都能通过校验，且每个都有分类说明", () => {
-    expect(Object.keys(DEFAULT_COLLECT_CONFIGS).sort()).toEqual(["agent-skills", "ai-coding", "ai-creation", "github-oss", "mcp", "models-api"]);
+  it("默认配置都能通过校验，且每个都有分类说明", () => {
+    expect(Object.keys(DEFAULT_COLLECT_CONFIGS).sort()).toEqual(["agent-frameworks", "agent-skills", "ai-coding", "ai-creation", "github-oss", "llmops", "local-llm", "mcp", "models-api", "rag-knowledge", "ui-components"]);
     for (const [slug, c] of Object.entries(DEFAULT_COLLECT_CONFIGS)) {
       const r = collectConfigSchema.safeParse(c);
       expect(r.success, slug).toBe(true);

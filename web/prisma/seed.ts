@@ -1,7 +1,7 @@
 /**
  * 种子脚本（每次部署都会执行，只补缺、不覆盖后台改动）：
- * 1. 初始 6 大分类：只创建缺失的，已有分类的名称和排序归后台管理；
- *    同时为这 6 个分类补默认采集配置（lib/validation/collect-config.ts），只在该分类还没有配置时写入，后台改过的不覆盖
+ * 1. 初始 11 个分类：只创建缺失的，已有分类的名称和排序归后台管理；
+ *    同时为这些分类补默认采集配置（lib/validation/collect-config.ts），只在该分类还没有配置时写入，后台改过的不覆盖
  * 2. 工具表同步：名称与描述以代码注册表 metas.ts 为准；状态与排序归后台
  * 3. 修复旧版 URL 编码的标签 slug
  * 4. 首批 36 条资源（含标签与 ResourceTool 关联）：仅在资源表为空时初始化一次
@@ -26,6 +26,11 @@ const categories = [
   { slug: "models-api", name: "AI 模型/API" },
   { slug: "github-oss", name: "GitHub 开源项目" },
   { slug: "ai-creation", name: "AI 创作" },
+  { slug: "ui-components", name: "UI 组件库" },
+  { slug: "agent-frameworks", name: "Agent 框架" },
+  { slug: "local-llm", name: "本地模型与推理" },
+  { slug: "rag-knowledge", name: "RAG 与知识库" },
+  { slug: "llmops", name: "评测与可观测" },
 ];
 
 type SeedItem = {
