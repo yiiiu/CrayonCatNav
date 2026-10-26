@@ -158,7 +158,7 @@ export function CategoryCollectConfigs({
   return (
     <Card>
       <h2 className={styles.cardTitle}>分类采集配置</h2>
-      <p className={styles.hint}>采集按分类定向进行：只跑该分类开启的来源，GitHub 按它的主题 / 关键词搜索。条形图为「已上架 + 待审核」，越短越缺资源。点字段旁的 ✨ 让 AI 推荐关键词，悬浮可看语义、理由和命中数，点选只加入输入框，保存后才生效。</p>
+      <p className={styles.hint}>采集按分类定向进行：只跑该分类开启的来源，GitHub 按它的主题 / 关键词搜索。条形图为「已上架 + 待审核」，越短越缺资源。点字段旁的魔法棒让 AI 推荐关键词，悬浮可看语义、理由和命中数，点选只加入输入框，保存后才生效。</p>
       {rows.length === 0 && <p className={styles.hint}>还没有分类</p>}
       <ul className={a.cats}>
         {rows.map((r) => (

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, useTransition } from "react";
+import { Loader2, WandSparkles } from "lucide-react";
 import type { ActionResult } from "@/lib/domain/result";
 import { FIELD_LIMITS, splitFieldValue, type ClassifiedTerm, type TermField } from "@/lib/agent/term-rules";
 import a from "./agent.module.css";
@@ -30,6 +31,36 @@ function hitsText(t: ClassifiedTerm, field: TermField, minStars: number): string
 }
 
 const STATUS_LABEL = { ok: "推荐", broad: "过泛", blocked: "不可用" } as const;
+
+/** 弹层打开后测量位置：超出所在表单（没有表单则视口）右边界时向左平移，避免被裁切。直接写 DOM，不经 state。 */
+function useKeepInside(open: boolean, popRef: React.RefObject<HTMLElement | null>, deps: unknown[]) {
+  useLayoutEffect(() => {
+    const pop = popRef.current;
+    if (!open || !pop) return;
+    const measure = () => {
+      pop.style.transform = "";
+      const anchor = pop.offsetParent as HTMLElement | null;
+      const bound = pop.closest("form") ?? document.documentElement;
+      const box = bound.getBoundingClientRect();
+      const right = Math.min(box.right, document.documentElement.clientWidth) - 8;
+      const left = Math.max(box.left, 0) + 8;
+      const anchorLeft = anchor?.getBoundingClientRect().left ?? 0;
+      const width = pop.offsetWidth;
+      let shift = 0;
+      if (anchorLeft + width > right) shift = right - width - anchorLeft;
+      if (anchorLeft + shift < left) shift = left - anchorLeft;
+      pop.style.transform = shift ? `translateX(${shift}px)` : "";
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, popRef, ...deps]);
+}
+
+function WandIcon({ pending }: { pending: boolean }) {
+  return pending ? <Loader2 size={16} strokeWidth={2.5} className={a.wandSpin} aria-hidden /> : <WandSparkles size={16} strokeWidth={2.5} aria-hidden />;
+}
 
 /** 关闭弹层：点外面或按 Esc。 */
 function useDismiss(open: boolean, ref: React.RefObject<HTMLElement | null>, close: () => void) {
@@ -61,6 +92,8 @@ export function TermWand({ field, inputId, suggest }: { field: TermField; inputI
   const [items, setItems] = useState<ClassifiedTerm[]>([]);
   const [minStars, setMinStars] = useState(100);
   const [added, setAdded] = useState<Set<string>>(new Set());
+  const popRef = useRef<HTMLDivElement>(null);
+  useKeepInside(open, popRef, [pending, items.length, error, notice]);
   useDismiss(open, ref, () => setOpen(false));
 
   const input = () => document.getElementById(inputId) as HTMLInputElement | null;
@@ -104,10 +137,10 @@ export function TermWand({ field, inputId, suggest }: { field: TermField; inputI
   return (
     <span className={a.wand} ref={ref}>
       <button type="button" className={a.wandBtn} onClick={run} disabled={pending} aria-expanded={open} aria-label="AI 推荐关键词" title="AI 推荐关键词">
-        {pending ? "…" : "✨"}
+        <WandIcon pending={pending} />
       </button>
       {open && (
-        <div className={a.wandPop} role="dialog" aria-label="AI 推荐关键词">
+        <div ref={popRef} className={a.wandPop} role="dialog" aria-label="AI 推荐关键词">
           {pending && <p className={a.wandMsg}>正在生成并校验命中数，约 10–40 秒…</p>}
           {!pending && error && <p className={a.wandErr} role="alert">{error}</p>}
           {!pending && !error && items.length === 0 && <p className={a.wandMsg}>没有可推荐的新词</p>}
@@ -167,6 +200,8 @@ export function DescriptionWand({ inputId, suggest }: { inputId: string; suggest
   const [error, setError] = useState("");
   const [text, setText] = useState("");
   const [hasOld, setHasOld] = useState(false);
+  const popRef = useRef<HTMLDivElement>(null);
+  useKeepInside(open, popRef, [pending, text, error]);
   useDismiss(open, ref, () => setOpen(false));
 
   const el = () => document.getElementById(inputId) as HTMLTextAreaElement | null;
@@ -197,10 +232,10 @@ export function DescriptionWand({ inputId, suggest }: { inputId: string; suggest
   return (
     <span className={a.wand} ref={ref}>
       <button type="button" className={a.wandBtn} onClick={run} disabled={pending} aria-expanded={open} aria-label="AI 生成分类说明" title="AI 生成分类说明">
-        {pending ? "…" : "✨"}
+        <WandIcon pending={pending} />
       </button>
       {open && (
-        <div className={a.wandPop} role="dialog" aria-label="AI 生成分类说明">
+        <div ref={popRef} className={a.wandPop} role="dialog" aria-label="AI 生成分类说明">
           {pending && <p className={a.wandMsg}>正在生成分类说明…</p>}
           {!pending && error && <p className={a.wandErr} role="alert">{error}</p>}
           {!pending && text && (

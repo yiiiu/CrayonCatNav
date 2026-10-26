@@ -48,7 +48,7 @@ export function AgentSettingsForm({ action, initial }: Props) {
 
   return (
     <Card className={styles.fill}>
-      <form action={formAction} className={a.split} style={{ display: "flex", flexDirection: "column" }} noValidate>
+      <form action={formAction} className={a.split} style={{ display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0 }} noValidate>
         <h2 className={styles.cardTitle}>模型与来源设置</h2>
         {!state.ok && state.formError && <p className={styles.alert} role="alert">{state.formError}</p>}
         {state.ok && state.message && <p className={styles.ok} role="status">{state.message}</p>}
