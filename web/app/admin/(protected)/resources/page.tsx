@@ -20,13 +20,14 @@ export default async function AdminResourcesPage({ searchParams }: { searchParam
   const page = Math.max(1, Number.parseInt(sp.page ?? "1", 10) || 1);
   const q = sp.q?.trim().slice(0, 50) || undefined;
   const cat = sp.cat || undefined;
+  const ai = sp.ai === "review" ? "review" : undefined;
   const [categories, { total, items, pageSize }] = await Promise.all([
     adminListCategories(),
-    adminSearch({ q, cat, status, page }),
+    adminSearch({ q, cat, status, page, aiReview: !!ai }),
   ]);
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const href = (patch: Record<string, string | number | undefined>) => {
-    const next = { q, cat, status, page: 1, ...patch } as Record<string, string | number | undefined>;
+    const next = { q, cat, status, ai, page: 1, ...patch } as Record<string, string | number | undefined>;
     const p = new URLSearchParams();
     for (const [k, v] of Object.entries(next)) if (v && !(k === "page" && v === 1)) p.set(k, String(v));
     const s = p.toString();
@@ -52,12 +53,14 @@ export default async function AdminResourcesPage({ searchParams }: { searchParam
             options={[{ value: "", label: "全部分类" }, ...categories.map((c) => ({ value: c.slug, label: c.name }))]}
           />
           {status && <input type="hidden" name="status" value={status} />}
+          {ai && <input type="hidden" name="ai" value={ai} />}
           <button type="submit" className={styles.sel}>筛选</button>
           <div className={styles.seg} role="group" aria-label="状态">
             <ChipLink href={href({ status: undefined })} active={!status}>全部</ChipLink>
             <ChipLink href={href({ status: "published" })} active={status === "published"}>已发布</ChipLink>
             <ChipLink href={href({ status: "draft" })} active={status === "draft"}>草稿</ChipLink>
             <ChipLink href={href({ status: "archived" })} active={status === "archived"}>已下架</ChipLink>
+            <ChipLink href={href({ ai: ai ? undefined : "review" })} active={!!ai}>AI 待核对</ChipLink>
           </div>
           <ButtonLink href="/admin/resources/new" variant="primary" className={styles.grow}>+ 新增资源</ButtonLink>
         </form>
@@ -85,7 +88,7 @@ export default async function AdminResourcesPage({ searchParams }: { searchParam
                 const toggleTo = r.status === "published" ? "archived" : "published";
                 return (
                   <tr key={r.id}>
-                    <th scope="row">{r.name}</th>
+                    <th scope="row">{r.name}{r.aiReview && <span className={styles.aiBadge}>AI 待核对</span>}</th>
                     <td>{r.category.name}</td>
                     <td>{r.tags.slice(0, 3).map(({ tag }) => <span key={tag.id} className={styles.tag}>{tag.name}</span>)}</td>
                     <td><StatusBadge status={r.status} /></td>

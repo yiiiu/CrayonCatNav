@@ -10,6 +10,7 @@ import { convertCandidate, rejectCandidate } from "@/lib/domain/candidate.servic
 import { candidateReturnUrl, type CandidateFilter } from "@/lib/agent/candidate-return";
 import { saveCollectConfig } from "@/lib/domain/category-collect.service";
 import { collectLink, runCollection } from "@/lib/domain/collector.service";
+import { enrichBatch, enrichOne } from "@/lib/domain/enrich.service";
 import { setFeatured } from "@/lib/domain/featured.service";
 import { changeStatus, removeResource, saveResource, validateResource } from "@/lib/domain/resource.service";
 import { type ActionResult, fromDomainError, fromZodError } from "@/lib/domain/result";
@@ -264,4 +265,45 @@ export async function ignoreSuggestionAction(id: string) {
 
 export async function logoutAction() {
   await signOut({ redirectTo: "/admin/login" });
+}
+
+/* ---------- AI 补全资源详情（docs/plan/AI批量补全-实现计划.md） ---------- */
+
+const fieldNames: Record<string, string> = {
+  highlights: "核心功能",
+  useCases: "适合谁",
+  quickstart: "快速上手",
+  platforms: "平台",
+  pricingNote: "定价说明",
+  previewImageUrl: "预览图",
+};
+
+/** 批量补全：在「采集 Agent」页触发，受该页 maxDuration=300 约束。 */
+export async function enrichBatchAction(_prev: ActionResult): Promise<ActionResult> {
+  await requireAdmin();
+  try {
+    const r = await enrichBatch();
+    if (r.slugs.length) touchResources(...r.slugs);
+    refresh();
+    const parts = [`补全 ${r.filled} 条`, r.empty ? `无可补内容 ${r.empty} 条` : "", r.failed ? `失败 ${r.failed} 条（下次重试）` : "", `剩余 ${r.remaining} 条`].filter(Boolean);
+    const detail = r.notes.length ? `。${r.notes.slice(0, 3).join("；")}` : "";
+    return r.filled + r.empty + r.failed === 0 ? { ok: true, message: "没有需要补全的资源" } : { ok: true, message: `${parts.join("，")}${detail}` };
+  } catch (e) {
+    return fromDomainError(e);
+  }
+}
+
+/** 单条补全：编辑页按钮，只填空字段。 */
+export async function enrichOneAction(id: string, _prev: ActionResult): Promise<ActionResult> {
+  await requireAdmin();
+  try {
+    const r = await enrichOne(id);
+    if (r.filled.length) touchResources(r.slug);
+    refresh();
+    return r.filled.length
+      ? { ok: true, message: `已补全：${r.filled.map((f) => fieldNames[f] ?? f).join("、")}，请核对后保存` }
+      : { ok: false, formError: `没有补到内容：${r.note ?? "资料不足"}（已有内容不会被覆盖）` };
+  } catch (e) {
+    return fromDomainError(e);
+  }
 }

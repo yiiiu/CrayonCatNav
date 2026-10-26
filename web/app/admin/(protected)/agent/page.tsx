@@ -11,7 +11,9 @@ import { sourceLabels, type CandidateSource } from "@/lib/agent/types";
 import { listRuns } from "@/lib/data/agent.repo";
 import { getSettingsView } from "@/lib/domain/agent-settings.service";
 import { getCollectOverview } from "@/lib/domain/category-collect.service";
-import { collectLinkAction, runCollectAction, saveAgentSettingsAction, saveCollectConfigAction, testAgentConnectionAction } from "../actions";
+import { BATCH_SIZE, countEnrichPending } from "@/lib/domain/enrich.service";
+import { EnrichButton } from "@/components/admin/EnrichButton";
+import { collectLinkAction, enrichBatchAction, runCollectAction, saveAgentSettingsAction, saveCollectConfigAction, testAgentConnectionAction } from "../actions";
 
 export const metadata = { title: "采集 Agent" };
 
@@ -33,7 +35,7 @@ export default async function AgentPage() {
   await connection(); // 读设置时会 upsert 单例（写操作），必须在请求时执行
   // 先读设置（会 upsert 单例），再并行读分类概览与运行记录
   const view = await getSettingsView();
-  const [overview, runs] = await Promise.all([getCollectOverview(), listRuns(12)]);
+  const [overview, runs, enrich] = await Promise.all([getCollectOverview(), listRuns(12), countEnrichPending()]);
   const nameBySlug = new Map(overview.rows.map((r) => [r.slug, r.name]));
   const configActions = Object.fromEntries(overview.rows.map((r) => [r.id, saveCollectConfigAction.bind(null, r.id)]));
   return (
@@ -52,6 +54,16 @@ export default async function AgentPage() {
             targets={overview.rows.map((r) => ({ id: r.id, name: r.name, total: r.published + r.pending, collectable: r.collectable }))}
             autoPickName={overview.autoPick?.name ?? null}
           />
+          <Card>
+            <h2 className={styles.cardTitle}>资源 AI 补全</h2>
+            <p className={styles.hint}>
+              为详情为空或缺预览图的资源，读取官网首页与 GitHub README，补「核心功能 / 适合谁 / 快速上手 / 平台 / 定价说明」和预览图。只填空字段，不覆盖已有内容；补过的资源标为「AI 待核对」。
+            </p>
+            <p className={styles.hint}>
+              待补全 <b>{enrich.pending}</b> 条 · 待核对 <b>{enrich.review}</b> 条{enrich.review > 0 && <> · <Link href="/admin/resources?ai=review">去核对 ›</Link></>}
+            </p>
+            {enrich.pending > 0 && <EnrichButton action={enrichBatchAction} label={`补全下一批（最多 ${BATCH_SIZE} 条）`} pendingLabel="补全中…（约 1–2 分钟）" />}
+          </Card>
           <CategoryCollectConfigs
             rows={overview.rows.map((r) => ({
               id: r.id,

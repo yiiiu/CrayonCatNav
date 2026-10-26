@@ -83,7 +83,7 @@ const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 /**
  * 标签名 → slug：映射表优先；纯英文名按规则转换；含中文等非 ASCII 字符且不在映射表时直接抛错
  * （不再删掉中文拼剩下的部分，避免「AI绘画」退化成 `ai` 并入别的标签）。
- * 映射表只给种子与历史标签用；采集 / 审核产生的新标签由模型或审核员给出英文 slug（见 docs/plan/标签治理方案.md）。
+ * 映射表只给种子与历史标签用；采集 / 审核产生的新标签由模型或审核员给出英文 slug（见 docs/spec/标签治理方案.md）。
  */
 export function tagSlugFor(name: string): string {
   const mapped = TAG_SLUGS[name];

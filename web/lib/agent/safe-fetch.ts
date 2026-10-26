@@ -3,6 +3,7 @@ import { lookup as dnsLookup } from "node:dns";
 import http from "node:http";
 import https from "node:https";
 import type { LookupAddress } from "node:dns";
+import { htmlToText, readmeUrls, type EnrichMaterial } from "./enrich";
 import { extractOgImage } from "./og-image";
 import { checkFetchableUrl, isBlockedAddress } from "./ssrf";
 
@@ -135,4 +136,35 @@ export async function fetchPreviewImage(...urls: (string | null | undefined)[]):
     }
   }
   return null;
+}
+
+/** AI 补全的资料：官网首页文本 + og:image、GitHub README；任何一项失败都不抛错。 */
+export async function fetchEnrichMaterial(websiteUrl: string | null, githubUrl: string | null): Promise<EnrichMaterial & { previewImageUrl: string | null }> {
+  let site: string | null = null;
+  let previewImageUrl: string | null = null;
+  if (websiteUrl) {
+    try {
+      const r = await safeFetch(websiteUrl, { maxBytes: 400_000, timeoutMs: 10_000, accept: "text/html" });
+      if (r.status < 400 && /html/i.test(r.contentType)) {
+        site = htmlToText(r.body) || null;
+        previewImageUrl = extractOgImage(r.body, r.finalUrl);
+      }
+    } catch {
+      /* 官网抓不到就只用 README */
+    }
+  }
+  let readme: string | null = null;
+  for (const url of readmeUrls(githubUrl)) {
+    try {
+      const r = await safeFetch(url, { maxBytes: 120_000, timeoutMs: 8_000, accept: "text/plain" });
+      if (r.status === 200 && r.body.trim()) {
+        readme = r.body.slice(0, 8000);
+        break;
+      }
+    } catch {
+      /* 试下一个文件名 */
+    }
+  }
+  if (!previewImageUrl && githubUrl) previewImageUrl = await fetchPreviewImage(githubUrl);
+  return { site, readme, previewImageUrl };
 }

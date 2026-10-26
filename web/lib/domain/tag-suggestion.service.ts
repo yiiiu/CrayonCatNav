@@ -4,7 +4,7 @@ import { tagInputSchema } from "@/lib/validation/taxonomy";
 import { DomainError } from "./result";
 
 /**
- * 标签待定池：启用 / 归到已有标签（记为别名） / 忽略。见 docs/plan/标签治理方案.md 1.5。
+ * 标签待定池：启用 / 归到已有标签（记为别名） / 忽略。见 docs/spec/标签治理方案.md 1.5。
  */
 
 const lower = (s: string) => s.trim().toLowerCase();

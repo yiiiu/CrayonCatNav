@@ -10,6 +10,8 @@
 ## 已交付
 - docs/蜡笔猫导航-Agent方案.md：后台资源采集 Agent（已实现，待合 main）与前台推荐 Agent（资源过百后做）的方案与已定事项。
 - docs/蜡笔猫导航-v1-架构.md：Next.js App Router + TS、CSS Modules + 蜡笔 token、PostgreSQL + Prisma（pg_trgm）、Auth.js 管理员登录 + requireAdmin、工具纯前端、ISR + revalidateTag、DailyMetric 聚合埋点；分层目录、数据模型补充、安全、5 周开发步骤、测试计划。
+- docs/spec/：功能规格（做什么、为什么），如标签治理方案、资源详情页优化方案。
+- docs/plan/：实现计划（任务拆分、文件清单、验收标准），如 AI 批量补全实现计划。
 - prototypes/前台.html、工具.html、后台.html：高保真蜡笔风原型，window.showState(id) 切换状态。
   - 前台：home list list-filtered list-empty detail detail-plain notfound tools
   - 工具：mcp mcp-claude mcp-error convert convert-error convert-warn token token-error

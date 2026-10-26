@@ -14,7 +14,7 @@ const HOT_HITS = 3;
 
 type SP = Promise<Record<string, string | undefined>>;
 
-/** 标签待定池：模型建议的新标签，启用 / 归到已有标签（记为别名） / 忽略。见 docs/plan/标签治理方案.md。 */
+/** 标签待定池：模型建议的新标签，启用 / 归到已有标签（记为别名） / 忽略。见 docs/spec/标签治理方案.md。 */
 export default async function TagSuggestionsPage({ searchParams }: { searchParams: SP }) {
   await connection();
   const sp = await searchParams;

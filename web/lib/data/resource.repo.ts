@@ -128,10 +128,11 @@ export async function listPublishedSlugs(limit?: number) {
 
 /* ---------- 后台读写（不缓存） ---------- */
 
-export type AdminSearch = { q?: string; cat?: string; status?: ResourceStatus; page: number };
+export type AdminSearch = { q?: string; cat?: string; status?: ResourceStatus; page: number; aiReview?: boolean };
 
-export async function adminSearch({ q, cat, status, page }: AdminSearch) {
+export async function adminSearch({ q, cat, status, page, aiReview }: AdminSearch) {
   const where: Prisma.ResourceWhereInput = {
+    ...(aiReview ? { aiReview: true } : {}),
     ...(status ? { status } : {}),
     ...(cat ? { category: { slug: cat } } : {}),
     ...(q
@@ -179,6 +180,8 @@ export type ResourceWrite = {
   iconUrl: string | null;
   previewImageUrl: string | null;
   details: ResourceDetails;
+  /** 后台保存即视为已核对 AI 补全内容 */
+  aiReview?: boolean;
   pricingType: Prisma.ResourceCreateInput["pricingType"];
   status: ResourceStatus;
   tagIds: string[];
@@ -251,3 +254,40 @@ export function replaceFeatured(orderedIds: string[]) {
     ),
   ]);
 }
+
+/* ---------- AI 补全 ---------- */
+
+const enrichSelect = {
+  id: true,
+  slug: true,
+  name: true,
+  summary: true,
+  description: true,
+  websiteUrl: true,
+  githubUrl: true,
+  previewImageUrl: true,
+  details: true,
+} satisfies Prisma.ResourceSelect;
+
+/** 从未尝试过 AI 补全的资源（是否需要补全由 service 判断）。 */
+export function listEnrichCandidates() {
+  return prisma.resource.findMany({ where: { aiEnrichedAt: null }, select: enrichSelect, orderBy: { createdAt: "asc" } });
+}
+
+export function findForEnrich(id: string) {
+  return prisma.resource.findUnique({ where: { id }, select: enrichSelect });
+}
+
+/** 写入补全结果并记录尝试时间；filled=false 时只记录尝试。 */
+export function saveEnrichment(id: string, data: { details?: ResourceDetails; previewImageUrl?: string | null; filled: boolean }) {
+  return prisma.resource.update({
+    where: { id },
+    data: {
+      aiEnrichedAt: new Date(),
+      ...(data.filled ? { aiReview: true, details: data.details, previewImageUrl: data.previewImageUrl } : {}),
+    },
+    select: { slug: true },
+  });
+}
+
+export const countAiReview = () => prisma.resource.count({ where: { aiReview: true } });

@@ -11,7 +11,7 @@ import { DomainError } from "./result";
 
 /**
  * 候选箱审核：直接上架 / 存为草稿 / 拒绝。
- * 上架与草稿都复用资源校验（resourceInputSchema）；新标签写成「名字:slug」，规则见 docs/plan/标签治理方案.md。
+ * 上架与草稿都复用资源校验（resourceInputSchema）；新标签写成「名字:slug」，规则见 docs/spec/标签治理方案.md。
  */
 
 export type TagPlan = { existingIds: string[]; newTags: { name: string; slug: string }[]; dropped: string[] };

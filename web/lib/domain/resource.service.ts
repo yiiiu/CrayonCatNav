@@ -22,6 +22,7 @@ function toWrite(input: ResourceInput): repo.ResourceWrite {
     githubUrl: input.githubUrl ?? null,
     iconUrl: input.iconUrl ?? null,
     previewImageUrl: input.previewImageUrl ?? null,
+    aiReview: false,
   };
 }
 

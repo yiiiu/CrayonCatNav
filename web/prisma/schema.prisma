@@ -48,7 +48,7 @@ model Tag {
   id          String          @id @default(cuid())
   name        String
   slug        String          @unique
-  /// 别名：模型或审核员写这些词时直接映射到本标签（见 docs/plan/标签治理方案.md）
+  /// 别名：模型或审核员写这些词时直接映射到本标签（见 docs/spec/标签治理方案.md）
   aliases     String[]        @default([])
   resources   ResourceTag[]
   suggestions TagSuggestion[]
@@ -71,6 +71,10 @@ model Resource {
   previewImageUrl String?
   /// 结构化详情：核心功能、适用场景、快速上手、平台、定价说明（见 lib/validation/resource-details.ts）
   details       Json           @default("{}")
+  /// AI 补全最近一次尝试时间（含无产出）；批量只处理从未尝试过的
+  aiEnrichedAt  DateTime?
+  /// AI 补全填入了内容、待人工核对；后台表单保存即视为已核对
+  aiReview      Boolean        @default(false)
   pricingType   PricingType    @default(unknown)
   status        ResourceStatus @default(draft)
   featuredOrder Int?

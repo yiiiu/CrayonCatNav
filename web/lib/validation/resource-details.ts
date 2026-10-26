@@ -3,7 +3,7 @@ import { z } from "zod";
 /**
  * 资源详情的结构化补充（Resource.details JSON 列）。
  * 全部可空：字段为空时详情页不展示对应区块，老数据无需迁移内容。
- * 方案见 docs/plan/资源详情页优化方案.md。
+ * 方案见 docs/spec/资源详情页优化方案.md。
  */
 
 export const platforms = ["web", "macos", "windows", "linux", "ios", "android", "cli", "api", "vscode", "browser-ext"] as const;

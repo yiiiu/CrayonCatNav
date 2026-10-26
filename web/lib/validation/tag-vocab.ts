@@ -1,6 +1,6 @@
 /**
  * 标签受控词表（纯函数，可单测）：名称 / 别名解析、模型建议词清洗、审核输入「名字:slug」解析。
- * 见 docs/plan/标签治理方案.md 第一阶段。
+ * 见 docs/spec/标签治理方案.md 第一阶段。
  */
 import { isTagSlug } from "@/prisma/tag-slugs";
 

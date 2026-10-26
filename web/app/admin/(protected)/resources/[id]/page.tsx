@@ -6,9 +6,13 @@ import { ConfirmButton } from "@/components/ui";
 import { ResourceForm } from "@/components/admin/ResourceForm";
 import { findById } from "@/lib/data/resource.repo";
 import { adminListCategories, adminListTags, adminListTools } from "@/lib/data/taxonomy.repo";
-import { deleteResourceAction, saveResourceAction } from "../../actions";
+import { EnrichButton } from "@/components/admin/EnrichButton";
+import { deleteResourceAction, enrichOneAction, saveResourceAction } from "../../actions";
 
 export const metadata = { title: "编辑资源" };
+
+/** 「AI 补全」按钮要抓官网 + 调模型，放宽到 60 秒。 */
+export const maxDuration = 60;
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string; note?: string }> };
 
@@ -20,6 +24,7 @@ export default async function EditResourcePage({ params, searchParams }: Props) 
     <>
       <AdminTop title={`编辑：${r.name}`}>
         <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+          <EnrichButton action={enrichOneAction.bind(null, r.id)} label="✨ AI 补全空字段" pendingLabel="补全中…（约 20 秒）" />
           <Link href="/admin/resources">‹ 返回列表</Link>
           <form action={deleteResourceAction.bind(null, r.id)}>
             <ConfirmButton title="永久删除资源" message={`确定永久删除「${r.name}」？此操作不可恢复。`} confirmText="永久删除" style={{ font: "800 14px var(--font)", color: "#9b1e1e", background: "none", border: 0, textDecoration: "underline", cursor: "pointer", minHeight: 44 }}>
@@ -29,11 +34,13 @@ export default async function EditResourcePage({ params, searchParams }: Props) 
         </div>
       </AdminTop>
       <ResourceForm
+        // AI 补全写库后重新挂载表单，让新内容回填
+        key={r.aiEnrichedAt?.toISOString() ?? "none"}
         action={saveResourceAction.bind(null, r.id)}
         categories={categories}
         tags={tags}
         tools={tools}
-        notice={sp.created === "candidate" ? `已从候选箱存为草稿，完善后可发布${sp.note ? `。${sp.note.slice(0, 200)}` : ""}` : sp.created ? "已创建" : undefined}
+        notice={sp.created === "candidate" ? `已从候选箱存为草稿，完善后可发布${sp.note ? `。${sp.note.slice(0, 200)}` : ""}` : sp.created ? "已创建" : r.aiReview ? "这条资源的详情由 AI 补全，请核对后保存（保存即视为已核对）" : undefined}
         initial={{
           slug: r.slug,
           name: r.name,
