@@ -1,4 +1,5 @@
 import "server-only";
+import { collectScheduleLabel, nextCollectRun } from "@/lib/agent/cron-schedule";
 import { decryptSecret, encryptSecret, keySource, last4 } from "@/lib/agent/crypto";
 import { chat, LlmError, type ChatConfig } from "@/lib/agent/llm";
 import * as repo from "@/lib/data/agent.repo";
@@ -18,6 +19,13 @@ export async function getSettingsView() {
     srcAwesome: s.srcAwesome,
     srcHuggingface: s.srcHuggingface,
     srcProductHunt: s.srcProductHunt,
+    cron: {
+      enabled: s.cronEnabled,
+      /** 没配 CRON_SECRET 时接口直接拒绝，开关打开也不会跑 */
+      secretConfigured: !!process.env.CRON_SECRET,
+      schedule: collectScheduleLabel(),
+      nextRunAt: nextCollectRun().toISOString(),
+    },
     apiKeyLast4: s.apiKeyEnc ? s.apiKeyLast4 : null,
     githubTokenLast4: s.githubTokenEnc ? s.githubTokenLast4 : null,
     phTokenLast4: s.phTokenEnc ? s.phTokenLast4 : null,
@@ -50,6 +58,7 @@ export async function saveSettings(raw: unknown) {
     baseUrl: v.baseUrl,
     model: v.model,
     maxPerRun: v.maxPerRun,
+    cronEnabled: v.cronEnabled,
     srcMcpRegistry: v.srcMcpRegistry,
     srcGithub: v.srcGithub,
     srcAwesome: v.srcAwesome,

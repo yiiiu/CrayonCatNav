@@ -200,6 +200,8 @@ model AgentSetting {
   apiKeyEnc        String?
   apiKeyLast4      String?   @db.VarChar(4)
   maxPerRun        Int       @default(8)
+  /// 定时采集开关（时间写死在 vercel.json）
+  cronEnabled      Boolean   @default(true)
   srcMcpRegistry   Boolean   @default(true)
   srcGithub        Boolean   @default(true)
   srcAwesome       Boolean   @default(true)

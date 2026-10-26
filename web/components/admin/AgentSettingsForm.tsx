@@ -16,6 +16,7 @@ export type AgentSettingsValues = {
   srcAwesome: boolean;
   srcHuggingface: boolean;
   srcProductHunt: boolean;
+  cron: { enabled: boolean; secretConfigured: boolean; schedule: string; nextRunAt: string };
   apiKeyLast4: string | null;
   githubTokenLast4: string | null;
   phTokenLast4: string | null;
@@ -32,6 +33,8 @@ const SOURCES = [
   ["srcHuggingface", "Hugging Face Spaces", "按目标分类的搜索词查询，按点赞排序"],
   ["srcProductHunt", "Product Hunt", "近 7 天 AI 话题高票产品，需要 Token，没有就跳过"],
 ] as const;
+
+const fmtNext = new Intl.DateTimeFormat("zh-CN", { timeZone: "Asia/Shanghai", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
 
 function secretHint(last4: string | null, unreadable: boolean, extra?: string) {
   if (unreadable) return "已保存的值无法解密（加密密钥已更换），请重新填写";
@@ -84,6 +87,22 @@ export function AgentSettingsForm({ action, initial }: Props) {
               </label>
             ))}
           </div>
+
+          <h3 className={a.group}>定时采集</h3>
+          <label className={styles.opt}>
+            <input type="checkbox" name="cronEnabled" defaultChecked={initial.cron.enabled} />
+            <span>
+              开启定时采集
+              <span className={a.optHint}>
+                {initial.cron.schedule}自动跑一次，目标分类按「自动」规则选择，条数与来源同上
+                {initial.cron.enabled && initial.cron.secretConfigured ? `；下次 ${fmtNext.format(new Date(initial.cron.nextRunAt))}` : ""}
+              </span>
+            </span>
+          </label>
+          {!initial.cron.secretConfigured && (
+            <p className={a.warnBox}>服务器未配置 CRON_SECRET，定时采集接口会拒绝执行。请在 Vercel 环境变量中添加 CRON_SECRET（如 openssl rand -hex 32）后重新部署。</p>
+          )}
+          <p className={`${styles.hint} ${a.wideHint}`}>运行时间由 vercel.json 固定，后台只能开关；改时间需要改代码重新部署。</p>
 
           <h3 className={a.group}>可选 Token</h3>
           <Field label="GitHub Token" name="githubToken" error={err("githubToken")} hint={secretHint(initial.githubTokenLast4, initial.unreadable.githubToken, "只需公开仓库只读权限，用于提高 API 限额")}>
