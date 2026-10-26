@@ -10,3 +10,4 @@ export { SearchBox } from "./SearchBox";
 export { SectionHead } from "./SectionHead";
 export { ScrollArea, type ScrollAreaProps, type ScrollOrientation } from "./ScrollArea";
 export { Select, type SelectOption, type SelectProps } from "./Select";
+export { Breadcrumb } from "./Breadcrumb";

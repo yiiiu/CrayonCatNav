@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { RelatedToolCTA } from "@/components/resource/RelatedToolCTA";
 import { ResourceViewTracker } from "@/components/resource/ResourceViewTracker";
 import styles from "@/components/resource/resource.module.css";
-import { Card, Chip, ExternalButton, Mono, SectionHead } from "@/components/ui";
+import { Breadcrumb, Card, Chip, ExternalButton, Mono, SectionHead } from "@/components/ui";
 import { findPublishedBySlug, listPublishedSlugs, listRelatedPublished } from "@/lib/data/resource.repo";
 import { slugSchema } from "@/lib/validation/common";
 import { pricingLabels } from "@/lib/validation/resource";
@@ -52,11 +52,13 @@ export default async function ResourceDetailPage({ params }: Props) {
   return (
     <article>
       <ResourceViewTracker slug={r.slug} />
-      <nav aria-label="面包屑">
-        <p className={styles.crumb}>
-          <Link href="/resources">发现</Link> › <Link href={`/resources?cat=${r.category.slug}`}>{r.category.name}</Link> › {r.name}
-        </p>
-      </nav>
+      <Breadcrumb
+        items={[
+          { label: "发现", href: "/resources" },
+          { label: r.category.name, href: `/resources?cat=${r.category.slug}` },
+          { label: r.name },
+        ]}
+      />
 
       <Card className={styles.titlecard}>
         <Mono name={r.name} accentKey={r.category.slug + r.slug} size="lg" />

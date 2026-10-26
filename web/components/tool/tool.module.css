@@ -1,10 +1,5 @@
 /* 工具页通用样式：取自 prototypes/工具.html，三个工具共用 */
 
-.crumb { margin: var(--sp-2) 0 0; font-size: var(--fs-sm); font-weight: 700; color: var(--ink-2); }
-.crumb a { text-decoration: underline; text-underline-offset: 3px; }
-.crumb strong { color: var(--ink); }
-.crumb .sep { margin: 0 6px; }
-.path { font-family: var(--font-mono); font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); margin-left: var(--sp-2); }
 
 .thead { margin: 14px 0 var(--sp-6); }
 .thead h1 {
@@ -301,6 +296,5 @@
 @media (max-width: 520px) {
   .card { padding: 18px 14px; }
   .g2, .big { grid-template-columns: 1fr; }
-  .path { display: block; margin: 4px 0 0; }
   .mini { width: var(--tap); height: var(--tap); }
 }

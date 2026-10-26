@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Breadcrumb } from "@/components/ui";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import styles from "@/components/tool/tool.module.css";
@@ -27,14 +27,7 @@ export default async function ToolPage({ params }: Props) {
   const { default: ToolUI } = await tool.load();
   return (
     <>
-      <nav aria-label="面包屑">
-        <p className={styles.crumb}>
-          <Link href="/tools">工具箱</Link>
-          <span className={styles.sep}>›</span>
-          <strong>{tool.name}</strong>
-          <span className={styles.path}>/tools/{tool.slug}</span>
-        </p>
-      </nav>
+      <Breadcrumb items={[{ label: "工具箱", href: "/tools" }, { label: tool.name }]} extra={`/tools/${tool.slug}`} />
       <header className={styles.thead}>
         <h1>{tool.name}</h1>
         <p>{tool.description}</p>
