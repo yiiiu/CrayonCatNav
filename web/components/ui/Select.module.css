@@ -52,6 +52,8 @@
   gap: 6px;
 }
 .pop:popover-open { display: flex; }
+/* 未定位（刚打开、place() 尚未写入坐标）时不可见，避免在视口左上角闪一帧 */
+.pop:not([data-side]) { visibility: hidden; }
 .pop::before {
   content: "";
   position: absolute;

@@ -199,10 +199,17 @@ export function Select({
 
   useEffect(() => () => clearTimeout(typed.current.timer), []);
 
+  // 弹层刚进 top layer 时还没有坐标，会先画在视口左上角（侧栏位置）闪一下：
+  // 打开前清掉 data-side，CSS 在未定位时隐藏弹层，place() 写入 data-side 后才显示
+  const onBeforeToggle = (e: ToggleEvent<HTMLDivElement>) => {
+    if (e.newState === "open") delete e.currentTarget.dataset.side;
+  };
+
   const onToggle = (e: ToggleEvent<HTMLDivElement>) => {
     const isOpen = e.newState === "open";
     setOpen(isOpen);
     if (isOpen) {
+      place();
       const q = pendingQuery.current;
       pendingQuery.current = "";
       setQuery(q);
@@ -358,6 +365,7 @@ export function Select({
         id={popId}
         popover="auto"
         className={styles.pop}
+        onBeforeToggle={onBeforeToggle}
         onToggle={onToggle}
         // 点选项不让触发器 / 搜索框失焦
         onMouseDown={(e) => {
