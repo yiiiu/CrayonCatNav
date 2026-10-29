@@ -92,17 +92,20 @@ export function AgentSettingsForm({ action, initial }: Props) {
           <label className={styles.opt}>
             <input type="checkbox" name="cronEnabled" defaultChecked={initial.cron.enabled} />
             <span>
-              开启定时采集
-              <span className={a.optHint}>
-                {initial.cron.schedule}自动跑一次，目标分类按「自动」规则选择，条数与来源同上
-                {initial.cron.enabled && initial.cron.secretConfigured ? `；下次 ${fmtNext.format(new Date(initial.cron.nextRunAt))}` : ""}
+              <span className={a.optLabel}>
+                开启定时采集
+                <HelpTip label="定时采集说明">
+                  {initial.cron.schedule}自动跑一次，目标分类按「自动」规则选择，条数与来源同上。运行时间由 vercel.json 固定，后台只能开关；改时间需要改代码重新部署。
+                </HelpTip>
               </span>
+              {initial.cron.enabled && initial.cron.secretConfigured && (
+                <span className={a.optHint}>下次 {fmtNext.format(new Date(initial.cron.nextRunAt))}</span>
+              )}
             </span>
           </label>
           {!initial.cron.secretConfigured && (
             <p className={a.warnBox}>服务器未配置 CRON_SECRET，定时采集接口会拒绝执行。请在 Vercel 环境变量中添加 CRON_SECRET（如 openssl rand -hex 32）后重新部署。</p>
           )}
-          <p className={`${styles.hint} ${a.wideHint}`}>运行时间由 vercel.json 固定，后台只能开关；改时间需要改代码重新部署。</p>
 
           <h3 className={a.group}>可选 Token</h3>
           <Field label="GitHub Token" name="githubToken" error={err("githubToken")} hint={secretHint(initial.githubTokenLast4, initial.unreadable.githubToken, "只需公开仓库只读权限，用于提高 API 限额")}>
