@@ -102,7 +102,7 @@
 - `lib/domain/recommend.service.ts`：限流 → 预算 → 缓存 → 粗筛 → 模型 → 校验 → 记用量 → 降级
 - `lib/data/model-usage.repo.ts`、`lib/data/recommend-cache.repo.ts`
 - `app/api/recommend/route.ts`
-- `components/recommend/RecommendBox.tsx`（客户端）+ CSS Module，挂到首页 Hero
+- `components/recommend/RecommendChat.tsx`（客户端）+ CSS Module：全站右下角浮动气泡，点开为对话面板（参考 assistant-ui AssistantModal / CopilotKit CopilotPopup）
 - 迁移：`ModelUsageDaily`、`RecommendCache`、`AgentSetting` 新增单价 / 上限 / 推荐开关字段
 - 采集、补全、扩词调用处补记用量（每处一行）
 
@@ -134,5 +134,5 @@
 - 纯逻辑：`lib/agent/budget.ts`（折算、检查）、`lib/recommend/prefilter.ts`（分词打分补齐）、`lib/recommend/prompt.ts`（提示词、输出校验、输入校验），均有单测。
 - 服务：`lib/domain/model-budget.service.ts`（`trackedChat` 记用量、`assertBudget`）、`lib/domain/recommend.service.ts`；采集 / 补全 / 扩词改走 `trackedChat` 并在开始前检查上限。
 - 接口：`app/api/recommend/route.ts`（POST、同源校验、no-store）。
-- 前台：`components/recommend/RecommendBox.tsx`；首页按 `getRecommendEnabled()`（缓存标签 `recommend-settings`）显示。
+- 前台：`components/recommend/RecommendChat.tsx`（2026-10-30 由首页 Hero 卡片改为全站右下角气泡对话框）；`RecommendLauncher` 挂在公开页布局，按 `getRecommendEnabled()`（缓存标签 `recommend-settings`）显示。气泡：猫头按钮→面板（欢迎语、3 个示例、消息流、输入框）；Esc/点外部关闭；手机全屏；记录只在页面内存、最多 10 轮，每问独立。
 - 后台：「采集 Agent」设置表单新增「花费上限」（含本月用量表）与「前台推荐」两组。

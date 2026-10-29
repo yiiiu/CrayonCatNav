@@ -3,6 +3,7 @@ import { PageViewTracker } from "@/components/analytics/PageViewTracker";
 import { Container } from "@/components/layout/Container";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
+import { RecommendLauncher } from "@/components/recommend/RecommendLauncher";
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -12,6 +13,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <SiteFooter />
       <Suspense fallback={null}>
         <PageViewTracker />
+      </Suspense>
+      <Suspense fallback={null}>
+        <RecommendLauncher />
       </Suspense>
     </Container>
   );

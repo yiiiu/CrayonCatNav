@@ -1,16 +1,14 @@
 import Link from "next/link";
-import { RecommendBox } from "@/components/recommend/RecommendBox";
 import { ResourceCard } from "@/components/resource/ResourceCard";
 import styles from "@/components/resource/resource.module.css";
 import { ButtonLink, Card, Mono, SearchBox, SectionHead } from "@/components/ui";
 import { countPublished, listFeatured } from "@/lib/data/resource.repo";
-import { getRecommendEnabled } from "@/lib/data/recommend.repo";
 import { listCategoriesWithCounts } from "@/lib/data/taxonomy.repo";
 import { isPubliclyListed } from "@/lib/tools/metas";
 import { toolRegistry } from "@/lib/tools/registry";
 
 export default async function HomePage() {
-  const [categories, featured, total, recommendOn] = await Promise.all([listCategoriesWithCounts(), listFeatured(6), countPublished(), getRecommendEnabled()]);
+  const [categories, featured, total] = await Promise.all([listCategoriesWithCounts(), listFeatured(6), countPublished()]);
   const tools = toolRegistry.filter(isPubliclyListed);
 
   return (
@@ -22,8 +20,6 @@ export default async function HomePage() {
           收录 {total} 个精选 AI 资源 · {tools.length} 个浏览器本地工具
         </p>
       </Card>
-
-      {recommendOn && <RecommendBox />}
 
       <section aria-labelledby="h-cat">
         <SectionHead id="h-cat" title="分类" note="按用途挑，一眼看完" />
