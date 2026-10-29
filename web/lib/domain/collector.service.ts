@@ -1,6 +1,6 @@
 import "server-only";
 import { applyTargetCategory, type GlobalSources } from "@/lib/agent/category-target";
-import { buildUserPrompt, chat, LlmError, SYSTEM_PROMPT, type ChatMessage, type ChatUsage, type PromptContext } from "@/lib/agent/llm";
+import { buildUserPrompt, LlmError, SYSTEM_PROMPT, type ChatMessage, type ChatUsage, type PromptContext } from "@/lib/agent/llm";
 import { checkLink, fetchPreviewImage, safeFetch, SafeFetchError } from "@/lib/agent/safe-fetch";
 import { isKnown, rawKeys, buildQueue } from "@/lib/agent/select";
 import { fetchAwesome } from "@/lib/agent/sources/awesome";
@@ -17,6 +17,7 @@ import { cleanModelOutput, extractJson, type CandidatePayload, type CleanContext
 import { parseStoredConfig } from "@/lib/validation/collect-config";
 import { buildVocab } from "@/lib/validation/tag-vocab";
 import { loadRuntimeConfig, type RuntimeConfig } from "./agent-settings.service";
+import { assertBudget, trackedChat } from "./model-budget.service";
 import { resolveTarget, type CollectTarget } from "./category-collect.service";
 import { DomainError } from "./result";
 
@@ -71,7 +72,7 @@ async function askModel(raw: RawCandidate, ctx: Ctx) {
   ];
   let lastError = "";
   for (let attempt = 0; attempt < 2; attempt++) {
-    const r = await chat(ctx.cfg.chat, messages, { json: true, timeoutMs: LLM_TIMEOUT_MS, maxTokens: 1500 });
+    const r = await trackedChat("collect", ctx.cfg.chat, messages, { json: true, timeoutMs: LLM_TIMEOUT_MS, maxTokens: 1500 });
     addUsage(ctx, r.usage);
     let json: unknown;
     try {
@@ -283,6 +284,7 @@ async function withRun(
   body: (ctx: Ctx, startedAt: number) => Promise<Omit<RunSummary, "runId" | "message"> & { notes: unknown }>,
 ): Promise<RunSummary> {
   const cfg = await loadRuntimeConfig();
+  await assertBudget("collect");
   if (!(await repo.acquireLock(LOCK_TTL_MS))) throw new DomainError("已有采集正在进行，请等它结束后再试");
   const startedAt = Date.now();
   let runId = "";

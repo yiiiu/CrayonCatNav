@@ -1,12 +1,13 @@
 import "server-only";
 import { buildEnrichPrompt, ENRICH_SYSTEM_PROMPT, mergeDetails, type DetailField } from "@/lib/agent/enrich";
-import { chat, LlmError, type ChatConfig, type ChatMessage } from "@/lib/agent/llm";
+import { LlmError, type ChatConfig, type ChatMessage } from "@/lib/agent/llm";
 import { fetchEnrichMaterial } from "@/lib/agent/safe-fetch";
 import { extractJson } from "@/lib/validation/candidate";
 import { pricingTypes } from "@/lib/validation/resource";
 import { cleanModelDetails, hasDetails, readDetails, type ResourceDetails } from "@/lib/validation/resource-details";
 import * as repo from "@/lib/data/resource.repo";
 import { loadRuntimeConfig } from "./agent-settings.service";
+import { assertBudget, trackedChat } from "./model-budget.service";
 import { DomainError } from "./result";
 
 /** AI 补全资源详情：只填空字段，填了内容即标记「AI 待核对」。计划见 docs/plan/AI批量补全-实现计划.md。 */
@@ -27,7 +28,7 @@ async function askModel(cfg: ChatConfig, prompt: string): Promise<{ details: Res
     { role: "user", content: prompt },
   ];
   for (let attempt = 0; attempt < 2; attempt++) {
-    const r = await chat(cfg, messages, { json: true, maxTokens: 1200, timeoutMs: LLM_TIMEOUT_MS });
+    const r = await trackedChat("enrich", cfg, messages, { json: true, maxTokens: 1200, timeoutMs: LLM_TIMEOUT_MS });
     try {
       const json = extractJson(r.content);
       if (json && typeof json === "object") {
@@ -74,6 +75,7 @@ async function enrichRow(cfg: ChatConfig, r: Row): Promise<EnrichOutcome> {
 
 export async function enrichOne(id: string): Promise<EnrichOutcome> {
   const cfg = await loadRuntimeConfig();
+  await assertBudget("enrich");
   const r = await repo.findForEnrich(id);
   if (!r) throw new DomainError("资源不存在或已删除");
   try {
@@ -93,6 +95,7 @@ export type BatchResult = { filled: number; empty: number; failed: number; remai
 
 export async function enrichBatch(limit = BATCH_SIZE): Promise<BatchResult> {
   const cfg = await loadRuntimeConfig();
+  await assertBudget("enrich");
   const pending = (await repo.listEnrichCandidates()).filter(needsEnrich);
   const queue = pending.slice(0, limit);
   const res: BatchResult = { filled: 0, empty: 0, failed: 0, remaining: pending.length - queue.length, slugs: [], notes: [] };

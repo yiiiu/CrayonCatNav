@@ -1,5 +1,5 @@
 import "server-only";
-import { chat, LlmError, type ChatConfig, type ChatMessage } from "@/lib/agent/llm";
+import { LlmError, type ChatConfig, type ChatMessage } from "@/lib/agent/llm";
 import { termHitsBatch } from "@/lib/agent/term-hits";
 import { buildDescriptionPrompt, buildTermPrompt, DESCRIPTION_SYSTEM_PROMPT, parseDescriptionOutput, TERM_SYSTEM_PROMPT, type TermContext } from "@/lib/agent/term-prompt";
 import {
@@ -19,6 +19,7 @@ import * as repo from "@/lib/data/agent.repo";
 import { extractJson } from "@/lib/validation/candidate";
 import { parseStoredConfig } from "@/lib/validation/collect-config";
 import { loadRuntimeConfig } from "./agent-settings.service";
+import { assertBudget, trackedChat } from "./model-budget.service";
 import { DomainError } from "./result";
 
 /**
@@ -60,7 +61,7 @@ async function askJson(cfg: ChatConfig, system: string, prompt: string, maxToken
     { role: "user", content: prompt },
   ];
   for (let attempt = 0; attempt < 2; attempt++) {
-    const r = await chat(cfg, messages, { json: true, maxTokens, timeoutMs: LLM_TIMEOUT_MS });
+    const r = await trackedChat("term", cfg, messages, { json: true, maxTokens, timeoutMs: LLM_TIMEOUT_MS });
     try {
       return extractJson(r.content);
     } catch {
@@ -86,6 +87,7 @@ export async function suggestTerms(categoryId: string, field: TermField, draft: 
   if (cached && Date.now() - cached.at < RESULT_CACHE_MS) return cached.value;
 
   const runtime = await loadRuntimeConfig();
+  await assertBudget("term");
   const ctx = await loadContext(categoryId, draft);
   const cap = candidateCap(field, ctx.current[field].length);
   const raw = await wrapLlm(async () => parseTermOutput(await askJson(runtime.chat, TERM_SYSTEM_PROMPT, buildTermPrompt(ctx, field, Math.min(15, cap + 3)), 1500)));
@@ -112,6 +114,7 @@ export async function suggestTerms(categoryId: string, field: TermField, draft: 
 
 export async function suggestDescription(categoryId: string, draft: TermDraft): Promise<string> {
   const runtime = await loadRuntimeConfig();
+  await assertBudget("term");
   const ctx = await loadContext(categoryId, draft);
   const text = await wrapLlm(async () => parseDescriptionOutput(await askJson(runtime.chat, DESCRIPTION_SYSTEM_PROMPT, buildDescriptionPrompt(ctx), 900)));
   if (!text) throw new DomainError("模型没有给出分类说明，请稍后再试");

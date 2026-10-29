@@ -211,6 +211,16 @@ model AgentSetting {
   githubTokenLast4 String?   @db.VarChar(4)
   phTokenEnc       String?
   phTokenLast4     String?   @db.VarChar(4)
+  /// 模型单价（元 / 百万 token）：用于折算花费；都为 0 时不限制花费，只统计 token
+  priceInputPerM   Float     @default(0)
+  priceOutputPerM  Float     @default(0)
+  /// 每月模型花费上限（元），0 表示不限
+  monthlyBudget    Float     @default(30)
+  /// 前台推荐最多占每月上限的百分比
+  recommendShare   Int       @default(50)
+  /// 前台推荐开关（默认关，验收后再开）与全站每日调用上限
+  recommendEnabled Boolean   @default(false)
+  recommendDailyCap Int      @default(1000)
   /// 运行锁：非空且晚于当前时间表示有采集在跑；过期视为上次运行被中断
   lockedUntil      DateTime?
   updatedAt        DateTime  @updatedAt
@@ -309,6 +319,33 @@ model RateLimit {
   key       String   @id
   count     Int
   /// timestamptz：计数 SQL 用数据库 now() 比较与写入，避免会话时区影响
+  expiresAt DateTime @db.Timestamptz(3)
+
+  @@index([expiresAt])
+}
+
+enum ModelPurpose {
+  recommend
+  collect
+  enrich
+  term
+}
+
+/// 模型用量按日（北京时间）× 用途聚合，用于每月花费上限；不存任何输入内容。
+model ModelUsageDaily {
+  day              DateTime     @db.Date
+  purpose          ModelPurpose
+  calls            Int          @default(0)
+  promptTokens     Int          @default(0)
+  completionTokens Int          @default(0)
+
+  @@id([day, purpose])
+}
+
+/// 前台推荐结果缓存：key = HMAC(规范化输入)，库里没有输入原文；result 只存资源 slug 与理由。
+model RecommendCache {
+  key       String   @id
+  result    Json
   expiresAt DateTime @db.Timestamptz(3)
 
   @@index([expiresAt])

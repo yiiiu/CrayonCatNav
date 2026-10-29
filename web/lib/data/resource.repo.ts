@@ -107,6 +107,31 @@ export async function listFeatured(limit = 6) {
   });
 }
 
+/** 前台推荐的候选目录：全部已上架资源的卡片字段 + 标签别名 + 关联工具（规格 docs/spec/前台推荐Agent方案.md §3.1）。 */
+export async function listRecommendCatalog() {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(cacheTags.resources);
+  const rows = await prisma.resource.findMany({
+    where: publishedOnly,
+    select: {
+      slug: true,
+      name: true,
+      summary: true,
+      websiteUrl: true,
+      githubUrl: true,
+      featuredOrder: true,
+      category: { select: { slug: true, name: true } },
+      tags: { select: { tag: { select: { id: true, name: true, aliases: true } } }, orderBy: { tag: { name: "asc" } } },
+      tools: { select: { tool: { select: { slug: true } } } },
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+  return rows.map((r) => ({ ...r, tools: r.tools.map((t) => t.tool.slug) }));
+}
+
+export type RecommendCatalogRow = Awaited<ReturnType<typeof listRecommendCatalog>>[number];
+
 export async function countPublished() {
   "use cache";
   cacheLife("hours");

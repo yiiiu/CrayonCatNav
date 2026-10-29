@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { Button, Card, HelpTip, ScrollArea } from "@/components/ui";
+import { purposeLabels, yuan, type ModelPurpose } from "@/lib/agent/budget";
 import type { ActionResult } from "@/lib/domain/result";
 import styles from "./admin.module.css";
 import a from "./agent.module.css";
@@ -17,6 +18,15 @@ export type AgentSettingsValues = {
   srcHuggingface: boolean;
   srcProductHunt: boolean;
   cron: { enabled: boolean; secretConfigured: boolean; schedule: string; nextRunAt: string };
+  budget: {
+    priceInputPerM: number;
+    priceOutputPerM: number;
+    monthlyBudget: number;
+    recommendShare: number;
+    enforced: boolean;
+    usage: { purpose: ModelPurpose; calls: number; promptTokens: number; completionTokens: number; cost: number }[];
+  };
+  recommend: { enabled: boolean; dailyCap: number };
   apiKeyLast4: string | null;
   githubTokenLast4: string | null;
   phTokenLast4: string | null;
@@ -106,6 +116,79 @@ export function AgentSettingsForm({ action, initial }: Props) {
           {!initial.cron.secretConfigured && (
             <p className={a.warnBox}>服务器未配置 CRON_SECRET，定时采集接口会拒绝执行。请在 Vercel 环境变量中添加 CRON_SECRET（如 openssl rand -hex 32）后重新部署。</p>
           )}
+
+          <h3 className={a.group}>
+            <span className={a.optLabel}>
+              花费上限
+              <HelpTip label="花费上限说明">
+                按本月（北京时间）所有模型调用的 token 用量 × 下面的单价折算。达到每月上限后采集、补全、扩词都会停；前台推荐另有占比上限，超过后只停推荐（前台改为显示相关资源）。单价都填 0 时只统计 token，不限制花费。
+              </HelpTip>
+            </span>
+          </h3>
+          <Field label="输入单价（元 / 百万 token）" name="priceInputPerM" error={err("priceInputPerM")} hint="按服务商价格填，如 2">
+            <input id="f-priceInputPerM" name="priceInputPerM" type="number" min={0} step="0.01" defaultValue={initial.budget.priceInputPerM} />
+          </Field>
+          <Field label="输出单价（元 / 百万 token）" name="priceOutputPerM" error={err("priceOutputPerM")} hint="如 8">
+            <input id="f-priceOutputPerM" name="priceOutputPerM" type="number" min={0} step="0.01" defaultValue={initial.budget.priceOutputPerM} />
+          </Field>
+          <Field label="每月上限（元）" name="monthlyBudget" error={err("monthlyBudget")} hint="0 表示不限">
+            <input id="f-monthlyBudget" name="monthlyBudget" type="number" min={0} step="1" defaultValue={initial.budget.monthlyBudget} />
+          </Field>
+          <Field label="前台推荐最多占（%）" name="recommendShare" error={err("recommendShare")} hint="默认 50">
+            <input id="f-recommendShare" name="recommendShare" type="number" min={0} max={100} step="1" defaultValue={initial.budget.recommendShare} />
+          </Field>
+          <div className={a.wideHint}>
+            <table className={a.usage}>
+              <caption>本月用量{initial.budget.enforced ? "" : "（未填单价，不限制花费）"}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">用途</th>
+                  <th scope="col">调用</th>
+                  <th scope="col">Token（入 + 出）</th>
+                  <th scope="col">金额</th>
+                </tr>
+              </thead>
+              <tbody>
+                {initial.budget.usage.map((u) => (
+                  <tr key={u.purpose}>
+                    <th scope="row">{purposeLabels[u.purpose]}</th>
+                    <td>{u.calls}</td>
+                    <td>
+                      {u.promptTokens.toLocaleString()} + {u.completionTokens.toLocaleString()}
+                    </td>
+                    <td>{yuan(u.cost)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th scope="row">合计</th>
+                  <td>{initial.budget.usage.reduce((n, u) => n + u.calls, 0)}</td>
+                  <td />
+                  <td>
+                    {yuan(initial.budget.usage.reduce((n, u) => n + u.cost, 0))}
+                    {initial.budget.enforced && initial.budget.monthlyBudget > 0 ? ` / ${yuan(initial.budget.monthlyBudget)}` : ""}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <h3 className={a.group}>前台推荐</h3>
+          <label className={styles.opt}>
+            <input type="checkbox" name="recommendEnabled" defaultChecked={initial.recommend.enabled} />
+            <span>
+              <span className={a.optLabel}>
+                开启首页「AI 推荐」
+                <HelpTip label="前台推荐说明">
+                  访客用一句话描述需求，模型从已上架资源里挑 3–5 个并写推荐理由。每个 IP 每分钟 5 次、每天 50 次；同一句话 24 小时内走缓存不花钱。模型出错或额度用完时自动改为显示关键词匹配的资源。
+                </HelpTip>
+              </span>
+            </span>
+          </label>
+          <Field label="全站每日调用上限" name="recommendDailyCap" error={err("recommendDailyCap")} hint="所有访客合计，默认 1000">
+            <input id="f-recommendDailyCap" name="recommendDailyCap" type="number" min={1} step="1" defaultValue={initial.recommend.dailyCap} />
+          </Field>
 
           <h3 className={a.group}>可选 Token</h3>
           <Field label="GitHub Token" name="githubToken" error={err("githubToken")} hint={secretHint(initial.githubTokenLast4, initial.unreadable.githubToken, "只需公开仓库只读权限，用于提高 API 限额")}>

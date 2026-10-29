@@ -3,6 +3,7 @@ import { checkCronAuth } from "@/lib/agent/cron-auth";
 import { getSetting } from "@/lib/data/agent.repo";
 import { runCollection } from "@/lib/domain/collector.service";
 import { DomainError } from "@/lib/domain/result";
+import { purgeExpiredRecommendCache } from "@/lib/data/recommend.repo";
 import { purgeExpiredRateLimits } from "@/lib/security/rate-limit";
 
 /** 每日定时采集（vercel.json crons）。最长运行 300 秒；结果只返回计数，不含任何密钥。 */
@@ -17,7 +18,8 @@ export async function GET(request: Request) {
   const auth = checkCronAuth(request.headers.get("authorization"), process.env.CRON_SECRET);
   if (auth === "unconfigured") return NextResponse.json({ ok: false, error: "未配置 CRON_SECRET，定时采集已禁用" }, { status: 503 });
   if (auth === "denied") return NextResponse.json({ ok: false, error: "未授权" }, { status: 401 });
-  await purgeExpiredRateLimits().catch(() => 0); // 顺带清理过期的限流计数，失败不影响采集
+  // 顺带清理过期的限流计数与推荐缓存，失败不影响采集
+  await Promise.all([purgeExpiredRateLimits().catch(() => 0), purgeExpiredRecommendCache().catch(() => 0)]);
   // 后台关掉了定时采集：正常返回 200，Vercel 不会当成失败重试
   if (!(await getSetting()).cronEnabled) return NextResponse.json({ ok: true, skipped: true, message: "定时采集已在后台关闭" });
   try {

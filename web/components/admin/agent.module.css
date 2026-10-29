@@ -130,3 +130,8 @@ details[open] > .catHead .catName::before { transform: rotate(90deg); }
 .wandLegend { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-xs); color: var(--ink-2); }
 .wandLegend i { display: inline-block; width: 10px; height: 10px; margin-left: 4px; border: 1.5px solid var(--ink); border-radius: 50%; text-decoration: none; }
 .wandDraft { margin: 0; max-height: 220px; overflow: auto; white-space: pre-wrap; line-height: 1.6; }
+.usage { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.usage caption { text-align: left; font-weight: 800; margin-bottom: 4px; }
+.usage th, .usage td { padding: 4px 8px; text-align: left; border-bottom: 1.5px dashed color-mix(in srgb, var(--ink) 25%, transparent); font-variant-numeric: tabular-nums; }
+.usage thead th { font-size: var(--fs-xs); color: var(--ink-2); font-weight: 700; }
+.usage tfoot th, .usage tfoot td { font-weight: 800; border-bottom: 0; }

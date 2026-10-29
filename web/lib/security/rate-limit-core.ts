@@ -13,6 +13,12 @@ export const LOGIN_IP: Bucket = { name: "login:ip", limit: 20, windowSec: 5 * 60
 export const LOGIN_EMAIL_IP: Bucket = { name: "login:email-ip", limit: 5, windowSec: 5 * 60 };
 export const LOGIN_EMAIL: Bucket = { name: "login:email", limit: 30, windowSec: 60 * 60 };
 
+/** 前台推荐（规格 docs/spec/前台推荐Agent方案.md §5.1）；全站每日上限由后台设置 */
+export const RECOMMEND_IP_MIN: Bucket = { name: "recommend:ip-min", limit: 5, windowSec: 60 };
+export const RECOMMEND_IP_DAY: Bucket = { name: "recommend:ip-day", limit: 50, windowSec: 24 * 60 * 60 };
+export const recommendGlobalDay = (limit: number): Bucket => ({ name: "recommend:global-day", limit, windowSec: 24 * 60 * 60 });
+export const GLOBAL_SUBJECT = "global";
+
 /** 取不到客户端 IP 时共用的主体：宁可误伤也不放行 */
 export const UNKNOWN_IP = "unknown";
 

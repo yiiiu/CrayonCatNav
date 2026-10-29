@@ -2,7 +2,9 @@ import "server-only";
 import { collectScheduleLabel, nextCollectRun } from "@/lib/agent/cron-schedule";
 import { decryptSecret, encryptSecret, keySource, last4 } from "@/lib/agent/crypto";
 import { chat, LlmError, type ChatConfig } from "@/lib/agent/llm";
+import { budgetEnforced, costOf, modelPurposes } from "@/lib/agent/budget";
 import * as repo from "@/lib/data/agent.repo";
+import { budgetSettingsOf, monthUsage } from "./model-budget.service";
 import { agentSettingsSchema } from "@/lib/validation/agent";
 import { DomainError } from "./result";
 
@@ -10,6 +12,8 @@ import { DomainError } from "./result";
 export async function getSettingsView() {
   const s = await repo.getSetting();
   const unreadable = (enc: string | null) => !!enc && decryptSecret(enc) === null;
+  const usage = await monthUsage();
+  const budget = budgetSettingsOf(s);
   return {
     baseUrl: s.baseUrl,
     model: s.model,
@@ -26,6 +30,16 @@ export async function getSettingsView() {
       schedule: collectScheduleLabel(),
       nextRunAt: nextCollectRun().toISOString(),
     },
+    budget: {
+      priceInputPerM: s.priceInputPerM,
+      priceOutputPerM: s.priceOutputPerM,
+      monthlyBudget: s.monthlyBudget,
+      recommendShare: s.recommendShare,
+      enforced: budgetEnforced(budget),
+      /** 本月各用途用量与按当前单价折算的金额 */
+      usage: modelPurposes.map((p) => ({ purpose: p, ...usage[p], cost: costOf(usage[p], budget.prices) })),
+    },
+    recommend: { enabled: s.recommendEnabled, dailyCap: s.recommendDailyCap },
     apiKeyLast4: s.apiKeyEnc ? s.apiKeyLast4 : null,
     githubTokenLast4: s.githubTokenEnc ? s.githubTokenLast4 : null,
     phTokenLast4: s.phTokenEnc ? s.phTokenLast4 : null,
@@ -64,6 +78,12 @@ export async function saveSettings(raw: unknown) {
     srcAwesome: v.srcAwesome,
     srcHuggingface: v.srcHuggingface,
     srcProductHunt: v.srcProductHunt,
+    priceInputPerM: v.priceInputPerM,
+    priceOutputPerM: v.priceOutputPerM,
+    monthlyBudget: v.monthlyBudget,
+    recommendShare: v.recommendShare,
+    recommendEnabled: v.recommendEnabled,
+    recommendDailyCap: v.recommendDailyCap,
     ...secretPatch(v.apiKey, false, "apiKeyEnc", "apiKeyLast4"),
     ...secretPatch(v.githubToken, v.clearGithubToken, "githubTokenEnc", "githubTokenLast4"),
     ...secretPatch(v.phToken, v.clearPhToken, "phTokenEnc", "phTokenLast4"),

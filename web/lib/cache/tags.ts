@@ -5,4 +5,6 @@ export const cacheTags = {
   home: "home",
   taxonomy: "taxonomy",
   tools: "tools",
+  /** 前台推荐开关（后台保存 Agent 设置时失效） */
+  recommend: "recommend-settings",
 } as const;

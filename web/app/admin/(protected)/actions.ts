@@ -142,6 +142,7 @@ export async function saveAgentSettingsAction(_prev: ActionResult, fd: FormData)
   } catch (e) {
     return fromDomainError(e);
   }
+  updateTag(cacheTags.recommend); // 首页的推荐入口跟随开关
   refresh(); // 让页面重新渲染：表单回填新值、密钥末四位提示更新
   return { ok: true, message: "设置已保存" };
 }

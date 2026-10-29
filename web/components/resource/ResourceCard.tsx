@@ -1,10 +1,20 @@
 import Link from "next/link";
 import { Card, Chip, Mono } from "@/components/ui";
-import type { ResourceCardData } from "@/lib/data/resource.repo";
 import styles from "./resource.module.css";
 
+/** 卡片需要的最少字段（列表页传完整记录，推荐结果传精简对象）。 */
+export type ResourceCardView = {
+  slug: string;
+  name: string;
+  summary: string;
+  websiteUrl: string | null;
+  githubUrl: string | null;
+  category: { slug: string; name: string };
+  tags: { tag: { id: string; name: string } }[];
+};
+
 /** 资源卡片：整卡链接到详情页；外链只在详情页出现，避免嵌套链接。 */
-export function ResourceCard({ r }: { r: ResourceCardData }) {
+export function ResourceCard({ r }: { r: ResourceCardView }) {
   return (
     <Link href={`/resources/${r.slug}`} className={styles.cardLink}>
       <Card interactive>
