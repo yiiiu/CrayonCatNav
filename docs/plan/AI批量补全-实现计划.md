@@ -78,7 +78,7 @@ ALTER TABLE "Resource" ADD COLUMN "aiReview" BOOLEAN NOT NULL DEFAULT false;
 
 ## 8. 实现状态（2026-10-26）
 - 任务 1–7 已完成，未偏离计划：`lib/agent/enrich.ts`（+测试）、`safe-fetch.fetchEnrichMaterial`、`resource.repo` 补全相关查询、`lib/domain/enrich.service.ts`、`enrichBatchAction / enrichOneAction`、`components/admin/EnrichButton.tsx`、采集 Agent 页「资源 AI 补全」卡片、编辑页按钮与提示、资源列表「AI 待核对」标记与筛选。
-- 待预览环境按第 5 节验收。
+- 已于 2026-10-29 随 collector-agent 合入 main。
 
 ## 9. 迭代：定价抓取（2026-10-26）
 - 问题：Cursor 等产品首页不写价格，只在 `/pricing`，原先只抓首页，模型拿不到定价。
