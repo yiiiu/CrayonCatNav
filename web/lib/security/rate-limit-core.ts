@@ -9,8 +9,8 @@ export type Bucket = { name: string; limit: number; windowSec: number };
 export type HitResult = { ok: boolean; remaining: number; retryAfterSec: number };
 
 /** 登录限流（规格：docs/spec/限流改数据库方案.md §4） */
-export const LOGIN_IP: Bucket = { name: "login:ip", limit: 20, windowSec: 10 * 60 };
-export const LOGIN_EMAIL_IP: Bucket = { name: "login:email-ip", limit: 5, windowSec: 10 * 60 };
+export const LOGIN_IP: Bucket = { name: "login:ip", limit: 20, windowSec: 5 * 60 };
+export const LOGIN_EMAIL_IP: Bucket = { name: "login:email-ip", limit: 5, windowSec: 5 * 60 };
 export const LOGIN_EMAIL: Bucket = { name: "login:email", limit: 30, windowSec: 60 * 60 };
 
 /** 取不到客户端 IP 时共用的主体：宁可误伤也不放行 */

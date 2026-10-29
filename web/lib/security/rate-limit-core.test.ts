@@ -61,8 +61,8 @@ describe("限流 rateKey", () => {
 
 describe("登录桶配置", () => {
   it("与规格一致", () => {
-    expect([LOGIN_IP.limit, LOGIN_IP.windowSec]).toEqual([20, 600]);
-    expect([LOGIN_EMAIL_IP.limit, LOGIN_EMAIL_IP.windowSec]).toEqual([5, 600]);
+    expect([LOGIN_IP.limit, LOGIN_IP.windowSec]).toEqual([20, 300]);
+    expect([LOGIN_EMAIL_IP.limit, LOGIN_EMAIL_IP.windowSec]).toEqual([5, 300]);
     expect([LOGIN_EMAIL.limit, LOGIN_EMAIL.windowSec]).toEqual([30, 3600]);
   });
   it("retryText 向上取整到分钟", () => {
