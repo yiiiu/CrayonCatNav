@@ -302,3 +302,14 @@ model TagSuggestion {
 
   @@index([status, hits])
 }
+
+/// 通用限流计数（固定窗口，跨函数实例可靠）。key = 桶名 + ":" + HMAC 哈希，不存 IP / 邮箱原文。
+/// 读写见 lib/data/rate-limit.repo.ts；规格见 docs/spec/限流改数据库方案.md。
+model RateLimit {
+  key       String   @id
+  count     Int
+  /// timestamptz：计数 SQL 用数据库 now() 比较与写入，避免会话时区影响
+  expiresAt DateTime @db.Timestamptz(3)
+
+  @@index([expiresAt])
+}
