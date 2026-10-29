@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { Button, Card, ScrollArea } from "@/components/ui";
+import { Button, Card, HelpTip, ScrollArea } from "@/components/ui";
 import type { ActionResult } from "@/lib/domain/result";
 import styles from "./admin.module.css";
 import a from "./agent.module.css";
@@ -80,9 +80,9 @@ export function AgentSettingsForm({ action, initial }: Props) {
             {SOURCES.map(([name, label, hint]) => (
               <label key={name} className={styles.opt}>
                 <input type="checkbox" name={name} defaultChecked={initial[name]} />
-                <span>
+                <span className={a.optLabel}>
                   {label}
-                  <span className={a.optHint}>{hint}</span>
+                  <HelpTip label={`${label} 说明`}>{hint}</HelpTip>
                 </span>
               </label>
             ))}

@@ -1,0 +1,50 @@
+/* 手绘风【?】说明图标 + 说明浮层 */
+.root {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+
+.btn {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin: -3px 0;
+  color: var(--ink-2);
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  cursor: help;
+  transition: color 0.15s, transform 0.15s;
+}
+.btn:hover,
+.btn[data-open] { color: var(--blue); transform: rotate(-8deg); }
+.btn:focus-visible { outline: 3px solid var(--blue); outline-offset: 1px; }
+
+/* 覆盖 [popover] 的 UA 默认样式（inset:0 / margin:auto / Canvas 底色 / 边框） */
+.tip {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 10px 12px;
+  width: max-content;
+  max-width: min(300px, calc(100vw - 16px));
+  overflow: auto;
+  font: 600 var(--fs-sm) / 1.6 var(--font);
+  color: var(--ink);
+  text-align: left;
+  white-space: normal;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 12px 18px 14px 16px / 16px 12px 18px 14px;
+  box-shadow: var(--shadow-sm);
+  cursor: default;
+}
+/* 未定位时不可见，避免打开瞬间在视口左上角闪一帧 */
+.tip:not([data-side]) { visibility: hidden; }
+.tip[data-side="bottom"] { animation: drop 0.12s ease-out; }
+.tip[data-side="top"] { animation: rise 0.12s ease-out; }
+@keyframes drop { from { opacity: 0; transform: translateY(-3px); } }
+@keyframes rise { from { opacity: 0; transform: translateY(3px); } }
