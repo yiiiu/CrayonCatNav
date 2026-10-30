@@ -134,5 +134,8 @@
 - 纯逻辑：`lib/agent/budget.ts`（折算、检查）、`lib/recommend/prefilter.ts`（分词打分补齐）、`lib/recommend/prompt.ts`（提示词、输出校验、输入校验），均有单测。
 - 服务：`lib/domain/model-budget.service.ts`（`trackedChat` 记用量、`assertBudget`）、`lib/domain/recommend.service.ts`；采集 / 补全 / 扩词改走 `trackedChat` 并在开始前检查上限。
 - 接口：`app/api/recommend/route.ts`（POST、同源校验、no-store）。
-- 前台：`components/recommend/RecommendChat.tsx`（2026-10-30 由首页 Hero 卡片改为全站右下角气泡对话框）；`RecommendLauncher` 挂在公开页布局，按 `getRecommendEnabled()`（缓存标签 `recommend-settings`）显示。气泡：猫头按钮→面板（欢迎语、3 个示例、消息流、输入框）；Esc/点外部关闭；手机全屏；记录只在页面内存、最多 10 轮，每问独立。
+- 前台：`components/recommend/RecommendChat.tsx`（2026-10-30 由首页 Hero 卡片改为全站右下角气泡对话框）；`RecommendLauncher` 挂在公开页布局，按 `getRecommendEnabled()`（缓存标签 `recommend-settings`）显示。气泡：猫头按钮→面板（欢迎语、3 个示例、消息流、输入框）；Esc/点外部关闭；手机全屏；消息区用 ui ScrollArea 手绘滚动条。
+- 持久化（2026-10-30，`lib/recommend/history.ts`）：对话存访客浏览器 localStorage（最近 20 轮、最后写入 30 天过期、只存界面字段），输入历史最近 20 条，输入框光标在首/末行时 ↑/↓ 翻看；「清空」经 ConfirmDialog 确认后删除两者。本站服务器不保存。
+- 追问：请求可带 `context`（最近 2 轮成功问答的问题 + 推荐 slug），服务端 `validateContext` 校验（问题同 validateQuery、slug 正则、每轮 ≤5），粗筛用本次+上文问题召回，提示词加 `<上文>`（含当时推荐名称，要求追问「更多/别的」时不重复），缓存 key 含上文。
+- 生成中可停止（中止请求，显示「已停止」）；失败轮次可重试（限流/输入不合法除外）。
 - 后台：「采集 Agent」设置表单新增「花费上限」（含本月用量表）与「前台推荐」两组。

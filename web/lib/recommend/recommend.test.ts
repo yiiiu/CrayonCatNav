@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { normalizeQuery, prefilter, scoreItem, tokenize, type CatalogItem } from "./prefilter";
-import { buildRecommendPrompt, cleanText, MAX_PICKS, parseRecommendOutput, validateQuery } from "./prompt";
+import { buildRecommendPrompt, cleanText, MAX_PICKS, parseRecommendOutput, validateContext, validateQuery } from "./prompt";
 
 const item = (slug: string, name: string, summary: string, cat: string, tags: string[] = [], featuredOrder: number | null = null): CatalogItem => ({
   slug,
@@ -85,5 +85,38 @@ describe("输入校验", () => {
     expect(validateQuery("12345")).toBeNull();
     expect(validateQuery("字".repeat(201))).toBeNull();
     expect(validateQuery(null)).toBeNull();
+  });
+});
+
+describe("追问上文", () => {
+  it("最多保留最近 2 轮，非法问题与 slug 丢弃", () => {
+    const ctx = validateContext([
+      { q: "第一问很早", slugs: ["a"] },
+      { q: "免费开源的大模型", slugs: ["llama", "Bad Slug", "llama", 3, "../x"] },
+      { q: "!!", slugs: [] },
+      { q: "还有别的吗", slugs: "x" },
+    ]);
+    expect(ctx).toEqual([
+      { q: "免费开源的大模型", slugs: ["llama"] },
+      { q: "还有别的吗", slugs: [] },
+    ]);
+  });
+  it("不是数组返回空", () => {
+    expect(validateContext("x")).toEqual([]);
+    expect(validateContext(undefined)).toEqual([]);
+  });
+  it("slug 最多 MAX_PICKS 个", () => {
+    const ctx = validateContext([{ q: "开源模型", slugs: ["a", "b", "c", "d", "e", "f", "g"] }]);
+    expect(ctx[0].slugs).toHaveLength(MAX_PICKS);
+  });
+  it("提示词带上文并去掉尖括号", () => {
+    const p = buildRecommendPrompt("还有免费的吗", catalog.slice(0, 2), [{ q: "做 <PPT> 的 AI", names: ["Gamma"] }]);
+    expect(p).toContain("<上文>");
+    expect(p).toContain("当时推荐：Gamma");
+    expect(p).not.toContain("<PPT>");
+    expect(p.indexOf("<上文>")).toBeLessThan(p.indexOf("<需求>"));
+  });
+  it("没有上文时不出现 <上文>", () => {
+    expect(buildRecommendPrompt("做 PPT", catalog)).not.toContain("<上文>");
   });
 });

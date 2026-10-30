@@ -6,7 +6,7 @@ import * as agentRepo from "@/lib/data/agent.repo";
 import { getRecommendCache, purgeExpiredRecommendCache, setRecommendCache } from "@/lib/data/recommend.repo";
 import { listRecommendCatalog, type RecommendCatalogRow } from "@/lib/data/resource.repo";
 import { normalizeQuery, prefilter } from "@/lib/recommend/prefilter";
-import { buildRecommendPrompt, parseRecommendOutput, RECOMMEND_SYSTEM_PROMPT, validateQuery } from "@/lib/recommend/prompt";
+import { buildRecommendPrompt, parseRecommendOutput, RECOMMEND_SYSTEM_PROMPT, validateContext, validateQuery, type ContextTurn } from "@/lib/recommend/prompt";
 import { GLOBAL_SUBJECT, hitAll, RECOMMEND_IP_DAY, RECOMMEND_IP_MIN, recommendGlobalDay } from "@/lib/security/rate-limit";
 import { extractJson } from "@/lib/validation/candidate";
 import { loadRuntimeConfig } from "./agent-settings.service";
@@ -57,7 +57,11 @@ function toItem(r: RecommendCatalogRow, reason: string): RecommendItem {
   };
 }
 
-const cacheKey = (q: string) => `rec:${createHmac("sha256", process.env.AUTH_SECRET ?? "").update(normalizeQuery(q)).digest("hex").slice(0, 40)}`;
+/** 缓存 key：本次问题 + 追问上文（问题与已推荐 slug）一起哈希，只存 HMAC。 */
+function cacheKey(q: string, ctx: ContextTurn[]): string {
+  const material = [normalizeQuery(q), ...ctx.map((c) => `${normalizeQuery(c.q)}|${c.slugs.join(",")}`)].join("\n");
+  return `rec:${createHmac("sha256", process.env.AUTH_SECRET ?? "").update(material).digest("hex").slice(0, 40)}`;
+}
 
 /** 缓存结果映射回当前目录：已下架的资源过滤掉。 */
 function fromCache(c: Cached, bySlug: Map<string, RecommendCatalogRow>): RecommendResponse {
@@ -70,7 +74,11 @@ function readCached(v: unknown): Cached | null {
   return v as Cached;
 }
 
-export async function recommend(raw: unknown, ip: string): Promise<RecommendResponse> {
+/**
+ * @param raw 访客本次输入
+ * @param rawContext 可选追问上文（客户端带来的最近 2 轮问题与当时推荐的 slug），校验后使用，同样不落库
+ */
+export async function recommend(raw: unknown, ip: string, rawContext?: unknown): Promise<RecommendResponse> {
   const q = validateQuery(raw);
   if (!q) return { ok: false, code: "invalid_input", message: "请用 2–200 字描述你想做的事" };
 
@@ -91,7 +99,10 @@ export async function recommend(raw: unknown, ip: string): Promise<RecommendResp
 
   const catalog = await listRecommendCatalog();
   const bySlug = new Map(catalog.map((r) => [r.slug, r]));
-  const pre = prefilter(catalog.map((r) => ({ ...r, tags: r.tags.map(({ tag }) => tag) })), q, CANDIDATES);
+  const ctx = validateContext(rawContext);
+  // 追问（如「还有免费的吗」）本身关键词少：粗筛时把上文问题一起算进去，提高召回
+  const recallText = [q, ...ctx.map((c) => c.q)].join(" ");
+  const pre = prefilter(catalog.map((r) => ({ ...r, tags: r.tags.map(({ tag }) => tag) })), recallText, CANDIDATES);
   const fallback = (notice: string): RecommendResponse => ({
     ok: true,
     mode: "fallback",
@@ -99,7 +110,7 @@ export async function recommend(raw: unknown, ip: string): Promise<RecommendResp
     notice: pre.matched > 0 ? `${notice}，先看看这些相关资源` : `${notice}，先看看这些精选资源`,
   });
 
-  const key = cacheKey(q);
+  const key = cacheKey(q, ctx);
   const cached = readCached(await getRecommendCache(key));
   if (cached) return fromCache(cached, bySlug);
 
@@ -120,7 +131,12 @@ export async function recommend(raw: unknown, ip: string): Promise<RecommendResp
       cfg.chat,
       [
         { role: "system", content: RECOMMEND_SYSTEM_PROMPT },
-        { role: "user", content: buildRecommendPrompt(q, pre.items) },
+        { role: "user", content: buildRecommendPrompt(
+          q,
+          pre.items,
+          ctx.map((c) => ({ q: c.q, names: c.slugs.flatMap((s) => (bySlug.has(s) ? [bySlug.get(s)!.name] : [])) })),
+        ),
+      },
       ],
       { json: true, maxTokens: 600, timeoutMs: LLM_TIMEOUT_MS },
     );

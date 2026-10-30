@@ -31,7 +31,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, code: "invalid_input", message: "请求格式不对" }, { status: 400 });
   }
   try {
-    const r = await recommend((body as { q?: unknown } | null)?.q, clientIp(req.headers) || UNKNOWN_IP);
+    const b = body as { q?: unknown; context?: unknown } | null;
+    const r = await recommend(b?.q, clientIp(req.headers) || UNKNOWN_IP, b?.context);
     const status = r.ok ? 200 : r.code === "rate_limited" ? 429 : r.code === "disabled" ? 503 : 400;
     const headers: Record<string, string> = { "Cache-Control": "no-store" };
     if (!r.ok && r.retryAfterSec) headers["Retry-After"] = String(r.retryAfterSec);
