@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { listPublishedSlugs } from "@/lib/data/resource.repo";
+import { DOC_PAGES } from "@/lib/docs/pages";
 import { siteConfig } from "@/lib/site";
 import { isPubliclyListed, toolMetas } from "@/lib/tools/metas";
 
@@ -9,6 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/` },
     { url: `${base}/resources` },
     { url: `${base}/tools` },
+    ...DOC_PAGES.filter((d) => !d.soon).map((d) => ({ url: `${base}${d.href}` })),
     ...toolMetas.filter(isPubliclyListed).map((t) => ({ url: `${base}/tools/${t.slug}` })),
   ];
   try {

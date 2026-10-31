@@ -350,3 +350,18 @@ model RecommendCache {
 
   @@index([expiresAt])
 }
+
+enum AgentApiChannel {
+  http
+  mcp
+}
+
+/// Agent 接入调用计数（docs/spec/Agent接入方案.md §8）：按北京时间自然日 × 通道 × 工具累加；不存查询内容。
+model AgentApiDaily {
+  day     DateTime        @db.Date
+  channel AgentApiChannel
+  tool    String
+  calls   Int             @default(0)
+
+  @@id([day, channel, tool])
+}

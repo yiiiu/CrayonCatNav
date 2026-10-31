@@ -17,6 +17,10 @@ export const LOGIN_EMAIL: Bucket = { name: "login:email", limit: 30, windowSec: 
 export const RECOMMEND_IP_MIN: Bucket = { name: "recommend:ip-min", limit: 5, windowSec: 60 };
 export const RECOMMEND_IP_DAY: Bucket = { name: "recommend:ip-day", limit: 50, windowSec: 24 * 60 * 60 };
 export const recommendGlobalDay = (limit: number): Bucket => ({ name: "recommend:global-day", limit, windowSec: 24 * 60 * 60 });
+/** Agent 接入（HTTP API / MCP）匿名调用，按 IP 与全站（docs/spec/Agent接入方案.md §8） */
+export const AGENT_IP_MIN: Bucket = { name: "agent:ip-min", limit: 60, windowSec: 60 };
+export const AGENT_IP_DAY: Bucket = { name: "agent:ip-day", limit: 2000, windowSec: 24 * 60 * 60 };
+export const AGENT_GLOBAL_DAY: Bucket = { name: "agent:global-day", limit: 50000, windowSec: 24 * 60 * 60 };
 export const GLOBAL_SUBJECT = "global";
 
 /** 取不到客户端 IP 时共用的主体：宁可误伤也不放行 */

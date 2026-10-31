@@ -8,6 +8,8 @@ import { SearchPanel } from "@/components/admin/overview/SearchPanel";
 import { TrendChart } from "@/components/admin/overview/TrendChart";
 import { Card, ScrollArea } from "@/components/ui";
 import { deviceLabels, sourceLabels, type Device, type TrafficSource } from "@/lib/analytics/traffic";
+import { addDays, statDay } from "@/lib/analytics/traffic";
+import { sumAgentApiCalls } from "@/lib/data/agent-api.repo";
 import { trafficOverview } from "@/lib/data/analytics.repo";
 import { getBingPanel, getGscPanel } from "@/lib/data/search-console";
 import { fmt } from "@/lib/ui/chart";
@@ -23,6 +25,9 @@ export default function OverviewPage() {
       <ScrollArea className={styles.scrollPane} viewportClassName={styles.scrollPaneVp}>
         <Suspense fallback={<Card className={ov.card}><p className={ov.empty}>统计加载中…</p></Card>}>
           <Traffic />
+        </Suspense>
+        <Suspense fallback={<Pending title="Agent 接入调用" />}>
+          <AgentCalls />
         </Suspense>
         <div className={ov.split}>
           <Suspense fallback={<Pending title="Google 搜索（Search Console）" />}>
@@ -126,6 +131,43 @@ async function Traffic() {
         )}
       </Card>
     </>
+  );
+}
+
+const AGENT_TOOLS = ["list_categories", "list_tags", "search_resources", "get_resource"] as const;
+
+/** Agent 接入（HTTP API / MCP）近 30 天调用量，按工具 × 通道（docs/spec/Agent接入方案.md §8）。 */
+async function AgentCalls() {
+  await connection();
+  const today = statDay();
+  const rows = await sumAgentApiCalls(addDays(today, -29), addDays(today, 1));
+  const n = (tool: string, ch: "http" | "mcp") => rows.find((r) => r.tool === tool && r.channel === ch)?.calls ?? 0;
+  const sum = (ch: "http" | "mcp") => rows.filter((r) => r.channel === ch).reduce((a, r) => a + r.calls, 0);
+  return (
+    <Card className={ov.card}>
+      <h2 className={ov.h2}>Agent 接入调用<span className={ov.range}>近 30 天 · 不记查询内容</span></h2>
+      <dl className={ov.kpis4}>
+        <div><dt>合计</dt><dd>{fmt(sum("http") + sum("mcp"))}</dd></div>
+        <div><dt>MCP</dt><dd>{fmt(sum("mcp"))}</dd></div>
+        <div><dt>HTTP API</dt><dd>{fmt(sum("http"))}</dd></div>
+        <div><dt>资源详情</dt><dd>{fmt(n("get_resource", "http") + n("get_resource", "mcp"))}</dd></div>
+      </dl>
+      {rows.length > 0 ? (
+        <div className={ov.tblWrap}>
+          <table className={ov.tbl}>
+            <caption>按工具</caption>
+            <thead><tr><th scope="col">工具</th><th scope="col">MCP</th><th scope="col">HTTP API</th></tr></thead>
+            <tbody>
+              {AGENT_TOOLS.map((t) => (
+                <tr key={t}><th scope="row">{t}</th><td>{fmt(n(t, "mcp"))}</td><td>{fmt(n(t, "http"))}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className={ov.empty}>还没有 Agent 调用</p>
+      )}
+    </Card>
   );
 }
 

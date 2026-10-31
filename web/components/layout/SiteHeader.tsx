@@ -29,6 +29,7 @@ export function SiteHeader() {
 
   const isDiscover = pathname === "/" || pathname.startsWith("/resources");
   const isTools = pathname.startsWith("/tools");
+  const isDocs = pathname.startsWith("/docs");
 
   return (
     <header className={styles.top}>
@@ -51,6 +52,14 @@ export function SiteHeader() {
           aria-current={isTools ? "page" : undefined}
         >
           工具箱
+          <Scribble />
+        </Link>
+        <Link
+          href="/docs"
+          className={`${styles.navLink} ${isDocs ? styles.on : ""}`}
+          aria-current={isDocs ? "page" : undefined}
+        >
+          Agent 接入
           <Scribble />
         </Link>
       </nav>
