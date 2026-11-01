@@ -36,8 +36,8 @@ export function cardTags<T extends { id: string; name: string }>(tags: readonly 
 }
 
 /**
- * 资源 Logo 候选地址，按顺序尝试：后台填的图标 → GitHub 组织/作者头像 → 官网 favicon。
- * 只用 https；全部失败时由组件回退到首字母色块。
+ * 资源 Logo 候选地址，按顺序尝试：后台填的图标 → 官网 favicon → GitHub 组织/作者头像。
+ * GitHub 放最后：国内访问慢，且只是作者头像不是产品图标。只用 https；全部失败时由组件回退到首字母色块。
  */
 export function logoCandidates(r: { iconUrl?: string | null; githubUrl?: string | null; websiteUrl?: string | null }): string[] {
   const out: string[] = [];
@@ -45,8 +45,6 @@ export function logoCandidates(r: { iconUrl?: string | null; githubUrl?: string 
     if (!out.includes(u)) out.push(u);
   };
   if (r.iconUrl?.startsWith("https://")) add(r.iconUrl);
-  const owner = r.githubUrl?.match(/^https:\/\/github\.com\/([A-Za-z0-9-]+)/)?.[1];
-  if (owner) add(`https://avatars.githubusercontent.com/${owner}?s=96`);
   if (r.websiteUrl?.startsWith("https://")) {
     try {
       const u = new URL(r.websiteUrl);
@@ -55,6 +53,9 @@ export function logoCandidates(r: { iconUrl?: string | null; githubUrl?: string 
       /* 非法链接跳过 */
     }
   }
+  // 注意：avatars.githubusercontent.com/<名字> 对组织返回默认占位图，必须用 github.com/<名字>.png
+  const owner = r.githubUrl?.match(/^https:\/\/github\.com\/([A-Za-z0-9-]+)/)?.[1];
+  if (owner) add(`https://github.com/${owner}.png?size=96`);
   return out;
 }
 

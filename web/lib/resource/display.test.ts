@@ -29,10 +29,10 @@ describe("cardTags", () => {
 });
 
 describe("logoCandidates", () => {
-  it("按图标、GitHub 头像、官网 favicon 顺序", () => {
+  it("按图标、官网 favicon、GitHub 头像顺序", () => {
     expect(
       logoCandidates({ iconUrl: "https://cdn.x/icon.png", githubUrl: "https://github.com/anthropics/claude-code", websiteUrl: "https://claude.com/product" }),
-    ).toEqual(["https://cdn.x/icon.png", "https://avatars.githubusercontent.com/anthropics?s=96", "https://claude.com/favicon.ico"]);
+    ).toEqual(["https://cdn.x/icon.png", "https://claude.com/favicon.ico", "https://github.com/anthropics.png?size=96"]);
   });
   it("忽略非 https 与 github 官网", () => {
     expect(logoCandidates({ iconUrl: "http://x/i.png", websiteUrl: "https://github.com/a/b" })).toEqual([]);

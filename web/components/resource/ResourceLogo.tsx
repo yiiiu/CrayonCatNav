@@ -5,6 +5,8 @@ import { Mono } from "@/components/ui";
 import { logoCandidates } from "@/lib/resource/display";
 import styles from "./resource.module.css";
 
+const LOAD_TIMEOUT_MS = 4000;
+
 type Props = {
   name: string;
   accentKey: string;
@@ -20,10 +22,19 @@ export function ResourceLogo({ name, accentKey, size = "md", ...urls }: Props) {
   const [i, setI] = useState(0);
   const src = candidates[i];
   const img = useRef<HTMLImageElement>(null);
-  // 服务端渲染的图片可能在水合前就加载失败，onError 收不到，水合后补查一次
+  // 服务端渲染的图片可能在水合前就加载失败，onError 收不到，水合后补查一次；
+  // 4 秒还没加载出来（如国内访问 GitHub 卡住）也换下一个
   useEffect(() => {
     const el = img.current;
-    if (el?.complete && el.naturalWidth < 8) setI((n) => n + 1);
+    if (!el) return;
+    if (el.complete) {
+      if (el.naturalWidth < 8) setI((n) => n + 1);
+      return;
+    }
+    const t = setTimeout(() => {
+      if (!el.complete || el.naturalWidth < 8) setI((n) => n + 1);
+    }, LOAD_TIMEOUT_MS);
+    return () => clearTimeout(t);
   }, [src]);
   if (!src) return <Mono name={name} accentKey={accentKey} size={size} />;
   return (
