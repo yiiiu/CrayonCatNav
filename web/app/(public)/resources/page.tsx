@@ -81,10 +81,7 @@ async function Results({ searchParams }: { searchParams: SP }) {
                 </ChipLink>
               ))}
             </div>
-            <div className={styles.seg}>
-              <small>平台</small>
-              <PlatformSelect current={current} />
-            </div>
+            <PlatformSelect current={current} className={styles.platformSelect} />
           </div>
 
           {(current.q || tag || current.platform) && (

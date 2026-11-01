@@ -9,12 +9,13 @@ import { buildSearchHref, type PublicSearchParams } from "@/lib/validation/searc
 const options = [{ value: "", label: "全部平台" }, ...platforms.map((p) => ({ value: p, label: platformLabels[p] }))];
 
 /** 平台筛选下拉：选中即跳转，保留其余筛选条件。 */
-export function PlatformSelect({ current }: { current: PublicSearchParams }) {
+export function PlatformSelect({ current, className }: { current: PublicSearchParams; className?: string }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   return (
     <Select
       aria-label="平台"
+      className={className}
       options={options}
       value={current.platform ?? ""}
       searchable={false}

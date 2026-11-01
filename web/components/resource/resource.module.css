@@ -8,7 +8,9 @@
 .gridList { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 22px; margin-top: 20px; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 10px 28px; margin-top: 16px; align-items: center; }
 .seg { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.seg > div { min-width: 140px; }
+/* 平台下拉：与左侧筛选按钮同一行、同高度 */
+.platformSelect { flex: 0 0 auto; width: 132px; }
+.platformSelect button { min-height: 36px; padding: 4px 12px; font-size: 13px; font-weight: 700; }
 .seg small { font-size: 13px; font-weight: 800; color: var(--ink-2); margin-right: 2px; }
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; margin-top: 20px; }
 
