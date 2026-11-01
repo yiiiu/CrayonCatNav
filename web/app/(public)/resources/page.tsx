@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { ResourceCard } from "@/components/resource/ResourceCard";
+import { PlatformSelect } from "@/components/resource/PlatformSelect";
 import { ResourceFilters } from "@/components/resource/ResourceFilters";
 import styles from "@/components/resource/resource.module.css";
 import { ButtonLink, ChipLink, EmptyState, SearchBox } from "@/components/ui";
@@ -79,6 +80,10 @@ async function Results({ searchParams }: { searchParams: SP }) {
                   {pricingLabels[p]}
                 </ChipLink>
               ))}
+            </div>
+            <div className={styles.seg}>
+              <small>平台</small>
+              <PlatformSelect current={current} />
             </div>
           </div>
 

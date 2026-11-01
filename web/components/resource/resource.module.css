@@ -8,6 +8,7 @@
 .gridList { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 22px; margin-top: 20px; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 10px 28px; margin-top: 16px; align-items: center; }
 .seg { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg > div { min-width: 140px; }
 .seg small { font-size: 13px; font-weight: 800; color: var(--ink-2); margin-right: 2px; }
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; margin-top: 20px; }
 
@@ -30,7 +31,9 @@
 
 /* 列表 */
 .layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 28px; align-items: start; }
-.side { position: sticky; top: 16px; display: grid; gap: 18px; }
+.side { position: sticky; top: 16px; display: flex; flex-direction: column; max-height: calc(100vh - 32px); }
+.sideScroll { flex: 1 1 auto; min-height: 0; }
+.sideInner { display: grid; gap: 18px; align-content: start; }
 .side h2 { margin: 0 0 10px; font-size: 16px; font-weight: 900; }
 .catList { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .catList a { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 38px; padding: 0 10px; font-size: var(--fs-md); font-weight: 700; border-radius: var(--wob2); }
@@ -63,7 +66,8 @@
 @media (max-width: 900px) {
   .tiles, .cards, .tools, .grid2, .grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .layout { grid-template-columns: 1fr; }
-  .side { position: static; }
+  .side { position: static; max-height: none; }
+  .sideInner { overflow: visible; }
 }
 @media (max-width: 680px) {
   .tiles, .cards, .tools, .grid2, .grid3 { grid-template-columns: 1fr; }
