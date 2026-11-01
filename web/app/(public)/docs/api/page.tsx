@@ -73,6 +73,9 @@ export default function ApiDocs() {
           失败时返回 <code>{`{ "ok": false, "code": "…", "message": "…" }`}</code>，<code>message</code> 会说明哪个参数有问题。
         </li>
         <li>结果可能有最多 1 分钟的缓存。</li>
+        <li>
+          OpenAPI 3.1 描述：<code>{base}/openapi.json</code>，可导入 Postman 或给支持 OpenAPI 的 Agent 使用。
+        </li>
       </ul>
 
       <h2>GET /categories</h2>

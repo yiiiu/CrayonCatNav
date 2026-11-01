@@ -28,8 +28,8 @@ export default function DocsHome() {
           <small>Claude Code、Cursor、VS Code、Codex 等支持 MCP 的客户端，一行配置接入。推荐。</small>
         </Link>
         <Link href="/docs/skill" className={styles.way}>
-          <b>Skill（即将推出）</b>
-          <small>给支持 Agent Skills 的客户端装一个技能包，教它怎么查本站。</small>
+          <b>Skill</b>
+          <small>装一个 SKILL.md 技能包，Agent 用 curl 就能查本站，不用配 MCP。</small>
         </Link>
         <Link href="/docs/cli" className={styles.way}>
           <b>CLI（即将推出）</b>

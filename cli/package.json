@@ -1,0 +1,14 @@
+{
+  "name": "crayoncat",
+  "version": "0.1.0",
+  "description": "蜡笔猫导航命令行：在终端或 Agent 里查询经过人工审核的 AI 资源（MCP、Agent Skills、UI 组件库、模型 API…）",
+  "type": "module",
+  "bin": { "crayoncat": "bin/crayoncat.mjs" },
+  "files": ["bin", "lib", "README.md"],
+  "engines": { "node": ">=20" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "keywords": ["ai", "mcp", "agent", "cli", "crayoncat", "directory"],
+  "homepage": "https://crayon-cat-nav.vercel.app/docs/cli",
+  "repository": { "type": "git", "url": "git+https://github.com/yiiiu/CrayonCatNav.git", "directory": "cli" },
+  "license": "MIT"
+}

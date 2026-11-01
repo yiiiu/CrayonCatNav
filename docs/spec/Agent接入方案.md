@@ -108,6 +108,13 @@ Agent 收到任务「在蜡笔猫找一个可用的 UI 组件库」：
 2. Skill 包 + `/llms.txt` + OpenAPI；补「接入方式」数据
 3. CLI 发 npm（`crayoncat search / show / categories`）
 
+### 进度（2026-11-01）
+
+- 第一期：已推送 agent-access（6af0a9a），Vercel 预览通过。
+- 第二期（不含「补接入方式数据」）：`lib/agent-api/skill.ts` → `/skills/crayoncat/SKILL.md`（按部署域名生成；安装路径 Claude Code `~/.claude/skills`、Codex `~/.agents/skills`、Cursor `~/.cursor/skills`、VS Code `~/.copilot/skills`）；`lib/agent-api/openapi.ts` → `/api/agent/v1/openapi.json`（手写，改参数时同步，单测校验 limit 上限）；`/llms.txt`（分类表按收录数动态生成）；`/docs/skill` 上线。
+- 第三期：仓库根 `cli/`（npm 包名 `crayoncat`，零依赖、Node 20+，`node --test`），命令 categories / tags / search / show，`--json`、`--base` / `CRAYONCAT_BASE_URL`；退出码 0/1/2/4。npm 尚未发布，`/docs/cli` 保持「即将推出」。
+- 补「接入方式」（quickstart）数据：待做，走采集补全或后台编辑。
+
 ## 11. 验收
 
 - 用 MCP Inspector 和 Claude Code 实际连上，跑通「找 UI 组件库」等 5 个任务
