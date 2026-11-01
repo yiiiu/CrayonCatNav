@@ -15,7 +15,6 @@ export async function GET() {
 - [MCP 服务](${o}/docs/mcp): Streamable HTTP，地址 ${o}/api/mcp，工具 list_categories / list_tags / search_resources / get_resource
 - [HTTP API](${o}/docs/api): ${o}/api/agent/v1，OpenAPI 描述 ${o}/api/agent/v1/openapi.json
 - [Agent Skill](${o}/docs/skill): ${o}/skills/${SKILL_NAME}/SKILL.md
-- [CLI](${o}/docs/cli): npx crayoncat
 
 ## 分类
 
