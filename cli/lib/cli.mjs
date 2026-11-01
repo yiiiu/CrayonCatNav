@@ -3,7 +3,7 @@
  * 规格 docs/spec/Agent接入方案.md §10 第三期。
  */
 
-export const DEFAULT_BASE = "https://crayon-cat-nav.vercel.app";
+export const DEFAULT_BASE = "https://www.crayoncat.online";
 export const VERSION = "0.1.0";
 
 export const HELP = `蜡笔猫导航 CLI ${VERSION}

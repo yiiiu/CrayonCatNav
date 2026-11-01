@@ -8,7 +8,7 @@
   "engines": { "node": ">=20" },
   "scripts": { "test": "node --test test/*.test.mjs" },
   "keywords": ["ai", "mcp", "agent", "cli", "crayoncat", "directory"],
-  "homepage": "https://crayon-cat-nav.vercel.app/docs/cli",
+  "homepage": "https://www.crayoncat.online/docs/cli",
   "repository": { "type": "git", "url": "git+https://github.com/yiiiu/CrayonCatNav.git", "directory": "cli" },
   "license": "MIT"
 }

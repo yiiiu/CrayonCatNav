@@ -3,7 +3,7 @@
  * 所以这里只做超时与体积限制；任意链接抓取请用 safe-fetch。
  */
 
-const UA = "CrayonCatNavBot/1.0 (+https://crayon-cat-nav.vercel.app)";
+const UA = "CrayonCatNavBot/1.0 (+https://www.crayoncat.online)";
 
 export class SourceError extends Error {}
 

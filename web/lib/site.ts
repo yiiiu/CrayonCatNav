@@ -1,10 +1,13 @@
+/** 正式生产域名（2026-11 绑定，根域名 308 跳到 www）。 */
+export const productionSiteUrl = "https://www.crayoncat.online";
+
 const defaultSiteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  (process.env.VERCEL_ENV === "production"
+    ? productionSiteUrl
     : process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
-      : "https://crayon-cat-nav.vercel.app");
+      : productionSiteUrl);
 
 export const siteConfig = {
   name: "蜡笔猫导航",

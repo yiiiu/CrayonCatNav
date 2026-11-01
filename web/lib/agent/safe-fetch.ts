@@ -21,7 +21,7 @@ export class SafeFetchError extends Error {}
 
 type Options = { timeoutMs?: number; maxBytes?: number; maxRedirects?: number; accept?: string };
 
-const UA = "CrayonCatNavBot/1.0 (+https://crayon-cat-nav.vercel.app)";
+const UA = "CrayonCatNavBot/1.0 (+https://www.crayoncat.online)";
 
 /** 连接时的 DNS 解析：任何一个解析结果是非公网地址都拒绝。 */
 function guardedLookup(
