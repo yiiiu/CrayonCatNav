@@ -224,6 +224,8 @@ model AgentSetting {
   reviewMaxPerRun       Int        @default(20)
   /// 批量审核运行锁（后台任务进行中）与上次结果
   reviewLockedUntil     DateTime?
+  /// 单条审核时正在审的候选 id（批量为空），候选箱据此把等待状态显示在那一条上
+  reviewTargetId        String?
   reviewLastResult      String     @default("")
   reviewLastAt          DateTime?
   /// 每月模型花费上限（元），0 表示不限

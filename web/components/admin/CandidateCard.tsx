@@ -64,6 +64,10 @@ type Props = {
   aiReview: () => Promise<void>;
   /** 采纳 AI 建议并上架 */
   adopt: (prev: ActionResult, fd: FormData) => Promise<ActionResult>;
+  /** 这一条正在后台 AI 审核 */
+  aiReviewing?: boolean;
+  /** 有 AI 审核任务在跑（同一时间只跑一个） */
+  aiBusy?: boolean;
 };
 
 const verdictText = { approve: "建议上架", reject: "建议拒绝", unsure: "需人工" } as const;
@@ -110,7 +114,7 @@ function ExtLink({ href, children }: { href: string; children: React.ReactNode }
 }
 
 /** 候选卡片：待审核时可改名称 / slug / 简介 / 分类 / 标签后「直接上架」或「存为草稿并编辑」，或「拒绝」。 */
-export function CandidateCard({ c, categories, review, reject, aiReview, adopt }: Props) {
+export function CandidateCard({ c, categories, review, reject, aiReview, adopt, aiReviewing = false, aiBusy = false }: Props) {
   const [state, formAction, pending] = useActionState(review, { ok: true } as ActionResult);
   const [rState, rejectAction, rPending] = useActionState(reject, { ok: true } as ActionResult);
   const [aState, adoptAction, aPending] = useActionState(adopt, { ok: true } as ActionResult);
@@ -164,7 +168,14 @@ export function CandidateCard({ c, categories, review, reject, aiReview, adopt }
         {c.toolSlugs.length > 0 && <span className={styles.hint}> 关联工具：{c.toolSlugs.join("、")}</span>}
       </div>
       {c.reason && <p className={a.reason}>推荐理由：{c.reason}</p>}
-      {c.ai && <AiPanel ai={c.ai} />}
+      {aiReviewing ? (
+        <p className={a.running} role="status">
+          <span className={a.spin} aria-hidden="true" />
+          AI 审核中（约 10–30 秒），可以离开本页，完成后这里会自动显示结论
+        </p>
+      ) : (
+        c.ai && <AiPanel ai={c.ai} />
+      )}
       <details className={a.more}>
         <summary>完整介绍与来源原文</summary>
         <p className={a.desc}>{c.description || "（模型未写详细介绍）"}</p>
@@ -226,7 +237,21 @@ export function CandidateCard({ c, categories, review, reject, aiReview, adopt }
                   )}
                 </ConfirmButton>
               )}
-              <PendingButton formAction={aiReview} formNoValidate disabled={busy} label={c.ai ? "重新 AI 审核" : "AI 审核"} pendingLabel="正在启动…" />
+              {aiReviewing ? (
+                <Button disabled aria-busy="true">
+                  <span className={a.spin} aria-hidden="true" />
+                  AI 审核中…
+                </Button>
+              ) : (
+                <PendingButton
+                  formAction={aiReview}
+                  formNoValidate
+                  disabled={busy || aiBusy}
+                  title={aiBusy ? "有 AI 审核正在进行，结束后再试" : undefined}
+                  label={c.ai ? "重新 AI 审核" : "AI 审核"}
+                  pendingLabel="正在启动…"
+                />
+              )}
               <ConfirmButton
                 className={a.reject}
                 formAction={rejectAction}

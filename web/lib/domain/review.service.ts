@@ -205,7 +205,7 @@ export async function startReviewOne(id: string) {
   const cand = await repo.findCandidate(id);
   if (!cand) throw new DomainError("候选不存在或已删除");
   if (cand.status !== "pending") throw new DomainError("这条候选已处理过了");
-  if (!(await repo.acquireReviewLock(REVIEW_LOCK_TTL_MS))) throw new DomainError("AI 审核正在进行，请等它结束");
+  if (!(await repo.acquireReviewLock(REVIEW_LOCK_TTL_MS, id))) throw new DomainError("AI 审核正在进行，请等它结束");
 }
 
 /** startReviewOne 抢到锁之后调用：审核一条并释放锁、记下结果。 */

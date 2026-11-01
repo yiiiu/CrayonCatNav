@@ -40,19 +40,19 @@ export function releaseLock() {
 }
 
 /** 批量审核的运行锁：同一时间只跑一批。 */
-export async function acquireReviewLock(ttlMs: number) {
+export async function acquireReviewLock(ttlMs: number, targetId: string | null = null) {
   await getSetting();
   const now = new Date();
   const { count } = await prisma.agentSetting.updateMany({
     where: { id: SETTING_ID, OR: [{ reviewLockedUntil: null }, { reviewLockedUntil: { lt: now } }] },
-    data: { reviewLockedUntil: new Date(now.getTime() + ttlMs) },
+    data: { reviewLockedUntil: new Date(now.getTime() + ttlMs), reviewTargetId: targetId },
   });
   return count === 1;
 }
 
 /** 释放审核锁并记下本次结果（后台页面展示）。 */
 export function finishReviewRun(result: string) {
-  return prisma.agentSetting.update({ where: { id: SETTING_ID }, data: { reviewLockedUntil: null, reviewLastResult: result.slice(0, 300), reviewLastAt: new Date() } });
+  return prisma.agentSetting.update({ where: { id: SETTING_ID }, data: { reviewLockedUntil: null, reviewTargetId: null, reviewLastResult: result.slice(0, 300), reviewLastAt: new Date() } });
 }
 
 /** 上次运行被平台强制中断（锁过期）后，残留的 running 记录标记为失败。 */

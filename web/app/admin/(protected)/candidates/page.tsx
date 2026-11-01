@@ -52,6 +52,9 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
   ]);
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const reviewing = !!setting.reviewLockedUntil && setting.reviewLockedUntil > new Date();
+  // 单条审核：等待状态显示在那一条候选上；批量审核才用顶部横幅
+  const reviewingId = reviewing ? setting.reviewTargetId : null;
+  const batchRunning = reviewing && !reviewingId;
   const catName = new Map(categories.map((c) => [c.slug, c.name]));
   const href = (patch: { status?: string; page?: number; cat?: string | null; ai?: string | null }) => {
     const p = new URLSearchParams();
@@ -127,12 +130,13 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
       </AdminTop>
       <RunPoller active={reviewing} />
       {sp.done && !reviewing && <p className={styles.ok} role="status">{sp.done.slice(0, 200)}</p>}
-      {reviewing ? (
+      {batchRunning ? (
         <p className={a.running} role="status">
           <span className={a.spin} aria-hidden="true" />
           AI 审核进行中（每条约 10–30 秒），可以离开本页，结束后这里会自动刷新并显示结果
         </p>
       ) : (
+        !reviewing &&
         setting.reviewLastAt && (
           <p className={a.lastRun}>
             上次 AI 审核（{dayTime.format(setting.reviewLastAt)}）：{setting.reviewLastResult || "—"}
@@ -168,7 +172,7 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
             <form action={reviewPendingAction.bind(null, filter)}>
               <PendingButton
                 disabled={unreviewed === 0 || reviewing}
-                label={reviewing ? "AI 审核进行中" : `AI 审核未审的 ${Math.min(unreviewed, setting.reviewMaxPerRun)} 条`}
+                label={batchRunning ? "AI 审核进行中" : `AI 审核未审的 ${Math.min(unreviewed, setting.reviewMaxPerRun)} 条`}
                 pendingLabel="正在启动…"
               />
             </form>
@@ -196,6 +200,8 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
               review={reviewCandidateAction.bind(null, c.id, filter)}
               reject={rejectCandidateAction.bind(null, c.id, filter)}
               aiReview={reviewOneAction.bind(null, c.id, filter)}
+              aiReviewing={reviewingId === c.id}
+              aiBusy={reviewing}
               adopt={adoptAiSuggestionAction.bind(null, c.id, filter)}
             />
           ))}
