@@ -13,7 +13,7 @@ type Props = {
 /** 合并重复标签：来源的资源转到目标，来源名称变成目标的别名，然后删除来源。 */
 export function TagMerge({ tags, merge }: Props) {
   const [state, action, pending] = useActionState(merge, { ok: true } as ActionResult);
-  const options = tags.map((t) => ({ value: t.id, label: t.name, hint: `${t.usage}` }));
+  const options = tags.map((t) => ({ value: t.id, label: t.name, hint: `${t.slug} · ${t.usage} 个` }));
   return (
     <form action={action} className={styles.mergeRow}>
       <Select name="source" options={options} placeholder="要合并掉的标签" aria-label="要合并掉的标签" required />
