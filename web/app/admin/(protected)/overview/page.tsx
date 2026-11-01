@@ -9,7 +9,9 @@ import { TrendChart } from "@/components/admin/overview/TrendChart";
 import { Card, ScrollArea } from "@/components/ui";
 import { deviceLabels, sourceLabels, type Device, type TrafficSource } from "@/lib/analytics/traffic";
 import { addDays, statDay } from "@/lib/analytics/traffic";
+import { agreement } from "@/lib/agent/review";
 import { sumAgentApiCalls } from "@/lib/data/agent-api.repo";
+import { listAiHandled, listHumanAfterAi } from "@/lib/data/agent.repo";
 import { trafficOverview } from "@/lib/data/analytics.repo";
 import { getBingPanel, getGscPanel } from "@/lib/data/search-console";
 import { fmt } from "@/lib/ui/chart";
@@ -25,6 +27,9 @@ export default function OverviewPage() {
       <ScrollArea className={styles.scrollPane} viewportClassName={styles.scrollPaneVp}>
         <Suspense fallback={<Card className={ov.card}><p className={ov.empty}>统计加载中…</p></Card>}>
           <Traffic />
+        </Suspense>
+        <Suspense fallback={<Pending title="审核 Agent" />}>
+          <AiReview />
         </Suspense>
         <Suspense fallback={<Pending title="Agent 接入调用" />}>
           <AgentCalls />
@@ -131,6 +136,50 @@ async function Traffic() {
         )}
       </Card>
     </>
+  );
+}
+
+const statusText: Record<string, string> = { published: "已发布", drafted: "进草稿", rejected: "已拒绝", pending: "待审核" };
+const aiTime = new Intl.DateTimeFormat("zh-CN", { timeZone: "Asia/Shanghai", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
+
+/** 审核 Agent：近 7 天自动处理的候选（抽查、撤回）与近 30 天建议模式的一致率（docs/spec/审核Agent方案.md §8）。 */
+async function AiReview() {
+  await connection();
+  const now = new Date();
+  const [handled, human] = await Promise.all([listAiHandled(new Date(now.getTime() - 7 * 86_400_000)), listHumanAfterAi(new Date(now.getTime() - 30 * 86_400_000))]);
+  const pub = handled.filter((h) => h.status === "published" || h.status === "drafted").length;
+  const rej = handled.filter((h) => h.status === "rejected").length;
+  const { total, agree } = agreement(human);
+  return (
+    <Card className={ov.card}>
+      <h2 className={ov.h2}>审核 Agent<span className={ov.range}>自动处理近 7 天 · 一致率近 30 天</span></h2>
+      <dl className={ov.kpis4}>
+        <div><dt>自动上架</dt><dd>{fmt(pub)}</dd></div>
+        <div><dt>自动拒绝</dt><dd>{fmt(rej)}</dd></div>
+        <div><dt>AI 与人工一致</dt><dd>{total ? `${Math.round((agree / total) * 100)}%` : "—"}</dd></div>
+        <div><dt>参与对比</dt><dd>{fmt(total)}</dd></div>
+      </dl>
+      {handled.length > 0 ? (
+        <div className={ov.tblWrap}>
+          <table className={ov.tbl}>
+            <caption>最近自动处理（点资源可改回草稿）</caption>
+            <thead><tr><th scope="col">候选</th><th scope="col">结果</th><th scope="col">分数</th><th scope="col">时间</th></tr></thead>
+            <tbody>
+              {handled.map((h) => (
+                <tr key={h.id}>
+                  <th scope="row">{h.resource ? <a href={`/admin/resources/${h.resource.id}`}>{h.name}</a> : h.name}</th>
+                  <td>{statusText[h.status] ?? h.status}</td>
+                  <td>{h.reviewScore ?? "—"}</td>
+                  <td>{h.reviewedAt ? aiTime.format(h.reviewedAt) : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className={ov.empty}>近 7 天没有自动处理的候选（建议模式下只给结论，不自动处理）</p>
+      )}
+    </Card>
   );
 }
 

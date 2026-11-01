@@ -1,5 +1,5 @@
 import "server-only";
-import { checkBudget, emptyUsage, monthRange, type BudgetSettings, type ModelPurpose, type Usage } from "@/lib/agent/budget";
+import { checkBudget, emptyUsage, modelPurposes, monthRange, type BudgetSettings, type ModelPurpose, type Usage } from "@/lib/agent/budget";
 import { chat, type ChatConfig, type ChatMessage, type ChatResult } from "@/lib/agent/llm";
 import { statDay } from "@/lib/analytics/traffic";
 import * as repo from "@/lib/data/agent.repo";
@@ -17,7 +17,7 @@ export function budgetSettingsOf(s: Pick<Setting, "priceInputPerM" | "priceOutpu
 /** 本月（北京时间）各用途用量。 */
 export async function monthUsage(now = new Date()): Promise<Record<ModelPurpose, Usage>> {
   const { start, end } = monthRange(statDay(now));
-  const out: Record<ModelPurpose, Usage> = { recommend: emptyUsage(), collect: emptyUsage(), enrich: emptyUsage(), term: emptyUsage() };
+  const out = Object.fromEntries(modelPurposes.map((p) => [p, emptyUsage()])) as Record<ModelPurpose, Usage>;
   for (const r of await sumModelUsage(start, end)) out[r.purpose] = { calls: r.calls, promptTokens: r.promptTokens, completionTokens: r.completionTokens };
   return out;
 }

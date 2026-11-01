@@ -6,13 +6,16 @@
  */
 const STATUSES = new Set(["pending", "published", "drafted", "rejected"]);
 
-export type CandidateFilter = { status?: string | null; cat?: string | null; page?: number | null };
+export type CandidateFilter = { status?: string | null; cat?: string | null; ai?: string | null; page?: number | null };
+
+const VERDICTS = new Set(["approve", "reject", "unsure", "none"]);
 
 export function candidateReturnUrl(filter: CandidateFilter | null | undefined, done: string): string {
   const p = new URLSearchParams();
   const f = filter ?? {};
   if (f.status && STATUSES.has(f.status) && f.status !== "pending") p.set("status", f.status);
   if (typeof f.cat === "string" && f.cat.length > 0 && f.cat.length <= 100) p.set("cat", f.cat);
+  if (typeof f.ai === "string" && VERDICTS.has(f.ai)) p.set("ai", f.ai);
   const page = Number(f.page);
   if (Number.isInteger(page) && page > 1 && page <= 500) p.set("page", String(page));
   p.set("done", done.slice(0, 200));

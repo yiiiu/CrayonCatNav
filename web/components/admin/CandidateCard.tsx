@@ -37,6 +37,20 @@ export type CandidateView = {
   rawSummary: string;
   createdAt: string;
   resource: { id: string; slug: string; status: string } | null;
+  /** 审核 Agent 的结论；未审核为 null */
+  ai: {
+    verdict: "approve" | "reject" | "unsure";
+    score: number | null;
+    why: string;
+    reason: string;
+    rules: string[];
+    issues: string[];
+    applied: string[];
+    hasFixes: boolean;
+    error?: string;
+    by: "human" | "ai" | null;
+    at: string | null;
+  } | null;
 };
 
 type Props = {
@@ -44,7 +58,42 @@ type Props = {
   categories: { slug: string; name: string }[];
   review: (prev: ActionResult, fd: FormData) => Promise<ActionResult>;
   reject: (prev: ActionResult, fd: FormData) => Promise<ActionResult>;
+  /** 单条 AI 审核 */
+  aiReview: () => Promise<void>;
+  /** 采纳 AI 建议并上架 */
+  adopt: (prev: ActionResult, fd: FormData) => Promise<ActionResult>;
 };
+
+const verdictText = { approve: "建议上架", reject: "建议拒绝", unsure: "需人工" } as const;
+
+function AiPanel({ ai }: { ai: NonNullable<CandidateView["ai"]> }) {
+  const badge = ai.verdict === "approve" ? a.bApprove : ai.verdict === "reject" ? a.bReject : a.bUnsure;
+  return (
+    <div className={a.ai}>
+      <div className={a.aiHead}>
+        <span>AI 审核</span>
+        <span className={`${a.badge} ${badge}`}>{verdictText[ai.verdict]}</span>
+        {ai.score !== null && <span>{ai.score} 分</span>}
+        {ai.by === "ai" && <span className={styles.hint}>已由审核 Agent 自动处理</span>}
+        {ai.at && <span className={styles.hint}>{ai.at}</span>}
+      </div>
+      <p className={a.reason}>{ai.why}</p>
+      {ai.reason && ai.reason !== ai.why && <p className={a.reason}>模型理由：{ai.reason}</p>}
+      {ai.error && <p className={a.aiErr}>{ai.error}</p>}
+      {(ai.rules.length > 0 || ai.issues.length > 0) && (
+        <ul className={a.aiList}>
+          {ai.rules.map((x) => (
+            <li key={`r-${x}`}>{x}</li>
+          ))}
+          {ai.issues.map((x) => (
+            <li key={`i-${x}`}>{x}</li>
+          ))}
+        </ul>
+      )}
+      {ai.applied.length > 0 && <p className={styles.hint}>上架时已应用修正：{ai.applied.join("、")}</p>}
+    </div>
+  );
+}
 
 const confClass = (v: number) => (v >= 0.75 ? a.confHi : v >= 0.5 ? a.confMid : a.confLo);
 
@@ -59,13 +108,14 @@ function ExtLink({ href, children }: { href: string; children: React.ReactNode }
 }
 
 /** 候选卡片：待审核时可改名称 / slug / 简介 / 分类 / 标签后「直接上架」或「存为草稿并编辑」，或「拒绝」。 */
-export function CandidateCard({ c, categories, review, reject }: Props) {
+export function CandidateCard({ c, categories, review, reject, aiReview, adopt }: Props) {
   const [state, formAction, pending] = useActionState(review, { ok: true } as ActionResult);
   const [rState, rejectAction, rPending] = useActionState(reject, { ok: true } as ActionResult);
+  const [aState, adoptAction, aPending] = useActionState(adopt, { ok: true } as ActionResult);
   const err = (k: string) => (!state.ok ? state.fieldErrors?.[k] : undefined);
   const v = (k: string, fallback: string) => (!state.ok && typeof state.values?.[k] === "string" ? (state.values[k] as string) : fallback);
-  const busy = pending || rPending;
-  const formError = !state.ok ? state.formError : !rState.ok ? rState.formError : undefined;
+  const busy = pending || rPending || aPending;
+  const formError = !state.ok ? state.formError : !rState.ok ? rState.formError : !aState.ok ? aState.formError : undefined;
 
   return (
     <article className={a.cand} aria-labelledby={`cand-${c.id}`}>
@@ -112,6 +162,7 @@ export function CandidateCard({ c, categories, review, reject }: Props) {
         {c.toolSlugs.length > 0 && <span className={styles.hint}> 关联工具：{c.toolSlugs.join("、")}</span>}
       </div>
       {c.reason && <p className={a.reason}>推荐理由：{c.reason}</p>}
+      {c.ai && <AiPanel ai={c.ai} />}
       <details className={a.more}>
         <summary>完整介绍与来源原文</summary>
         <p className={a.desc}>{c.description || "（模型未写详细介绍）"}</p>
@@ -153,6 +204,20 @@ export function CandidateCard({ c, categories, review, reject }: Props) {
               </Button>
               <Button type="submit" name="intent" value="draft" disabled={busy}>
                 存为草稿并编辑
+              </Button>
+              {c.ai?.verdict === "approve" && (
+                <ConfirmButton
+                  formAction={adoptAction}
+                  disabled={busy}
+                  title="采纳 AI 建议"
+                  message={c.ai.hasFixes ? "按 AI 的修正（简介 / 分类 / 标签等）更新后直接上架？表单里的手动修改不会生效。" : "按当前内容直接上架？"}
+                  confirmText="上架"
+                >
+                  {aPending ? "处理中…" : "采纳 AI 建议"}
+                </ConfirmButton>
+              )}
+              <Button type="submit" formAction={aiReview} formNoValidate disabled={busy}>
+                {c.ai ? "重新 AI 审核" : "AI 审核"}
               </Button>
               <ConfirmButton
                 className={a.reject}

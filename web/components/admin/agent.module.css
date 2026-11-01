@@ -135,3 +135,14 @@ details[open] > .catHead .catName::before { transform: rotate(90deg); }
 .usage th, .usage td { padding: 4px 8px; text-align: left; border-bottom: 1.5px dashed color-mix(in srgb, var(--ink) 25%, transparent); font-variant-numeric: tabular-nums; }
 .usage thead th { font-size: var(--fs-xs); color: var(--ink-2); font-weight: 700; }
 .usage tfoot th, .usage tfoot td { font-weight: 800; border-bottom: 0; }
+
+/* 审核 Agent */
+.ai { margin-top: 10px; padding: 8px 12px; border: 2px dashed var(--ink); border-radius: 12px 16px 10px 14px; background: #fbf8f2; font-size: var(--fs-sm); line-height: 1.6; }
+.aiHead { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-weight: 800; }
+.badge { display: inline-flex; padding: 1px 10px; border: 2px solid var(--ink); border-radius: var(--wob2); font-size: 12px; font-weight: 900; }
+.bApprove { background: #d9f2df; color: #1f5a30; }
+.bReject { background: #f8d7d7; color: #9b1e1e; }
+.bUnsure { background: #fdebc8; color: #8a4b08; }
+.aiList { margin: 4px 0 0; padding-left: 18px; color: var(--ink-2); }
+.aiErr { color: #9b1e1e; font-weight: 700; }
+.aiBar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }

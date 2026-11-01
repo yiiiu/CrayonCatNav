@@ -198,13 +198,16 @@ export async function createCandidate(data: CandidateCreate) {
 export const CANDIDATE_PAGE_SIZE = 20;
 
 /** 按候选的 categorySlug（模型整理 / 管理员修改后的分类）筛选。 */
-const candidateWhere = (status: CandidateStatus | undefined, categorySlug?: string | null): Prisma.ResourceCandidateWhereInput => ({
+export type VerdictFilter = "approve" | "reject" | "unsure" | "none";
+
+const candidateWhere = (status: CandidateStatus | undefined, categorySlug?: string | null, verdict?: VerdictFilter | null): Prisma.ResourceCandidateWhereInput => ({
   ...(status ? { status } : {}),
+  ...(verdict ? { reviewVerdict: verdict } : {}),
   ...(categorySlug ? { payload: { path: ["categorySlug"], equals: categorySlug } } : {}),
 });
 
-export async function listCandidates(status: CandidateStatus, page: number, categorySlug?: string | null) {
-  const where = candidateWhere(status, categorySlug);
+export async function listCandidates(status: CandidateStatus, page: number, categorySlug?: string | null, verdict?: VerdictFilter | null) {
+  const where = candidateWhere(status, categorySlug, verdict);
   const [total, items] = await Promise.all([
     prisma.resourceCandidate.count({ where }),
     prisma.resourceCandidate.findMany({
@@ -240,14 +243,15 @@ export function updateCandidatePayload(id: string, payload: Prisma.InputJsonValu
   return prisma.resourceCandidate.update({ where: { id }, data: { payload, name } });
 }
 
-export function rejectCandidate(id: string) {
-  return prisma.resourceCandidate.updateMany({ where: { id, status: "pending" }, data: { status: "rejected", reviewedAt: new Date() } });
+export function rejectCandidate(id: string, actor: "human" | "ai" = "human") {
+  return prisma.resourceCandidate.updateMany({ where: { id, status: "pending" }, data: { status: "rejected", reviewedAt: new Date(), reviewedBy: actor } });
 }
 
 /** 候选转资源：在一个事务里补建缺失标签、建资源、回写候选状态与 resourceId。 */
 export function convertCandidateTx(args: {
   candidateId: string;
   status: "published" | "drafted";
+  actor?: "human" | "ai";
   newTags: { name: string; slug: string }[];
   existingTagIds: string[];
   toolIds: string[];
@@ -269,7 +273,7 @@ export function convertCandidateTx(args: {
     // 只有 pending 的候选能转换，防止重复点击建出两条资源
     const claimed = await tx.resourceCandidate.updateMany({
       where: { id: args.candidateId, status: "pending" },
-      data: { status: args.status, reviewedAt: new Date() },
+      data: { status: args.status, reviewedAt: new Date(), reviewedBy: args.actor ?? "human" },
     });
     if (claimed.count !== 1) return null;
     const tagIds = [...args.existingTagIds];
@@ -302,3 +306,66 @@ export const reviewLookups = {
   toolsBySlugs: (slugs: string[]) => prisma.tool.findMany({ where: { slug: { in: slugs } }, select: { id: true } }),
   resourceUrls: () => prisma.resource.findMany({ select: { name: true, websiteUrl: true, githubUrl: true } }),
 };
+
+/* ---------- 审核 Agent ---------- */
+
+/** 还没被审核 Agent 看过的待审核候选，先来先审。 */
+export function listUnreviewedPending(limit: number) {
+  return prisma.resourceCandidate.findMany({
+    where: { status: "pending", aiReviewedAt: null },
+    orderBy: { createdAt: "asc" },
+    take: limit,
+    select: { id: true },
+  });
+}
+
+export function countUnreviewedPending() {
+  return prisma.resourceCandidate.count({ where: { status: "pending", aiReviewedAt: null } });
+}
+
+export function saveReview(id: string, data: { verdict: "approve" | "reject" | "unsure"; score: number | null; notes: Prisma.InputJsonValue }) {
+  return prisma.resourceCandidate.update({
+    where: { id },
+    data: { reviewVerdict: data.verdict, reviewScore: data.score, reviewNotes: data.notes, aiReviewedAt: new Date() },
+  });
+}
+
+/** 自某时刻起审核 Agent 自动上架（发布或草稿）的数量。 */
+export function countAiPublishedSince(since: Date) {
+  return prisma.resourceCandidate.count({ where: { reviewedBy: "ai", status: { in: ["published", "drafted"] }, reviewedAt: { gte: since } } });
+}
+
+export function countPublishedInCategory(categorySlug: string) {
+  return prisma.resource.count({ where: { status: "published", category: { slug: categorySlug } } });
+}
+
+/** 近 N 天审核 Agent 自动处理的候选（总览抽查用）。 */
+export function listAiHandled(since: Date, take = 20) {
+  return prisma.resourceCandidate.findMany({
+    where: { reviewedBy: "ai", reviewedAt: { gte: since } },
+    orderBy: { reviewedAt: "desc" },
+    take,
+    select: { id: true, name: true, status: true, reviewScore: true, reviewedAt: true, resource: { select: { id: true, slug: true, status: true } } },
+  });
+}
+
+/** 建议模式下的一致率：AI 给过结论、之后由人工处理的候选。 */
+export function listHumanAfterAi(since: Date) {
+  return prisma.resourceCandidate.findMany({
+    where: { reviewedBy: "human", reviewVerdict: { in: ["approve", "reject"] }, reviewedAt: { gte: since } },
+    select: { reviewVerdict: true, status: true },
+  });
+}
+
+/** 待审核候选按 AI 结论计数（候选箱筛选用）。 */
+export async function countPendingByVerdict(categorySlug?: string | null) {
+  const rows = await prisma.resourceCandidate.groupBy({ by: ["reviewVerdict"], where: candidateWhere("pending", categorySlug), _count: { _all: true } });
+  const out: Record<VerdictFilter, number> = { approve: 0, reject: 0, unsure: 0, none: 0 };
+  for (const r of rows) out[r.reviewVerdict] = r._count._all;
+  return out;
+}
+
+/** 资源是否由审核 Agent 自动上架（编辑页提示用）。 */
+export function findAiCandidateForResource(resourceId: string) {
+  return prisma.resourceCandidate.findFirst({ where: { resourceId, reviewedBy: "ai" }, select: { reviewedAt: true, reviewScore: true } });
+}

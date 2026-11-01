@@ -214,6 +214,14 @@ model AgentSetting {
   /// 模型单价（元 / 百万 token）：用于折算花费；都为 0 时不限制花费，只统计 token
   priceInputPerM   Float     @default(0)
   priceOutputPerM  Float     @default(0)
+  /// 审核 Agent
+  reviewMode            ReviewMode @default(suggest)
+  /// 自动通过后进草稿而不是直接发布
+  reviewPublishDraft    Boolean    @default(false)
+  reviewApproveScore    Int        @default(80)
+  reviewRejectScore     Int        @default(40)
+  reviewDailyPublishCap Int        @default(10)
+  reviewMaxPerRun       Int        @default(20)
   /// 每月模型花费上限（元），0 表示不限
   monthlyBudget    Float     @default(30)
   /// 前台推荐最多占每月上限的百分比
@@ -283,10 +291,18 @@ model ResourceCandidate {
   resourceId      String?
   resource        Resource?       @relation(fields: [resourceId], references: [id], onDelete: SetNull)
   reviewedAt      DateTime?
+  /// 审核 Agent：结论、分数、问题清单（规则 + 模型），见 lib/agent/review
+  reviewVerdict   ReviewVerdict   @default(none)
+  reviewScore     Int?
+  reviewNotes     Json            @default("{}")
+  /// 最终处理人：人工或审核 Agent 自动处理
+  reviewedBy      ReviewActor?
+  aiReviewedAt    DateTime?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
   @@index([status, createdAt])
+  @@index([status, aiReviewedAt])
 }
 
 enum TagSuggestionStatus {
@@ -329,6 +345,27 @@ enum ModelPurpose {
   collect
   enrich
   term
+  review
+}
+
+/// 审核 Agent 结论（docs/spec/审核Agent方案.md）
+enum ReviewVerdict {
+  none
+  approve
+  reject
+  unsure
+}
+
+enum ReviewActor {
+  human
+  ai
+}
+
+/// 审核 Agent 运行模式：关闭 / 建议（只打分不处理）/ 自动
+enum ReviewMode {
+  off
+  suggest
+  auto
 }
 
 /// 模型用量按日（北京时间）× 用途聚合，用于每月花费上限；不存任何输入内容。

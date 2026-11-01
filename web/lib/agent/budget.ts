@@ -3,10 +3,10 @@
  * 花费 = 输入 token × 输入单价 + 输出 token × 输出单价（元 / 百万 token），按当前单价折算整月用量。
  */
 
-export const modelPurposes = ["recommend", "collect", "enrich", "term"] as const;
+export const modelPurposes = ["recommend", "collect", "enrich", "term", "review"] as const;
 export type ModelPurpose = (typeof modelPurposes)[number];
 
-export const purposeLabels: Record<ModelPurpose, string> = { recommend: "前台推荐", collect: "采集", enrich: "AI 补全", term: "AI 扩词" };
+export const purposeLabels: Record<ModelPurpose, string> = { recommend: "前台推荐", collect: "采集", enrich: "AI 补全", term: "AI 扩词", review: "AI 审核" };
 
 export type Usage = { calls: number; promptTokens: number; completionTokens: number };
 export type Prices = { input: number; output: number };

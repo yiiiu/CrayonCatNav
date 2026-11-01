@@ -39,7 +39,13 @@ export const agentSettingsSchema = z.object({
   clearGithubToken: z.boolean().default(false),
   phToken: secret,
   clearPhToken: z.boolean().default(false),
-});
+  reviewMode: z.enum(["off", "suggest", "auto"]).default("suggest"),
+  reviewPublishDraft: z.boolean().default(false),
+  reviewApproveScore: z.coerce.number().int("请填写整数").min(50, "50–100").max(100, "50–100").default(80),
+  reviewRejectScore: z.coerce.number().int("请填写整数").min(0, "0–60").max(60, "0–60").default(40),
+  reviewDailyPublishCap: z.coerce.number().int("请填写整数").min(0, "0–50").max(50, "0–50").default(10),
+  reviewMaxPerRun: z.coerce.number().int("请填写整数").min(1, "1–30").max(30, "1–30（防止函数超时）").default(20),
+}).refine((v) => v.reviewRejectScore < v.reviewApproveScore, { message: "拒绝分数线要低于上架分数线", path: ["reviewRejectScore"] });
 
 export type AgentSettingsInput = z.infer<typeof agentSettingsSchema>;
 
@@ -69,6 +75,12 @@ export function agentSettingsFromForm(fd: FormData) {
     clearGithubToken: on("clearGithubToken"),
     phToken: str("phToken"),
     clearPhToken: on("clearPhToken"),
+    reviewMode: str("reviewMode") || "suggest",
+    reviewPublishDraft: str("reviewPublishAs") === "draft",
+    reviewApproveScore: str("reviewApproveScore") || "80",
+    reviewRejectScore: str("reviewRejectScore") || "40",
+    reviewDailyPublishCap: str("reviewDailyPublishCap") || "10",
+    reviewMaxPerRun: str("reviewMaxPerRun") || "20",
   };
 }
 

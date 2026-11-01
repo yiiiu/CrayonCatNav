@@ -4,14 +4,26 @@ import { AdminTop } from "@/components/admin/AdminTop";
 import styles from "@/components/admin/admin.module.css";
 import a from "@/components/admin/agent.module.css";
 import { CandidateCard, type CandidateView } from "@/components/admin/CandidateCard";
-import { Card, ChipLink, ScrollArea } from "@/components/ui";
+import { Button, Card, ChipLink, ScrollArea } from "@/components/ui";
 import { candidateStatuses, candidateStatusLabels, sourceLabels, type CandidateSource, type CandidateStatusValue } from "@/lib/agent/types";
-import { countCandidatesByStatus, listCandidates, loadClosedSuggestions, loadTaxonomy } from "@/lib/data/agent.repo";
+import { readReviewNotes } from "@/lib/agent/review";
+import { countCandidatesByStatus, countPendingByVerdict, countUnreviewedPending, getSetting, listCandidates, loadClosedSuggestions, loadTaxonomy, type VerdictFilter } from "@/lib/data/agent.repo";
 import { candidatePayloadSchema } from "@/lib/validation/candidate";
 import { pricingLabels } from "@/lib/validation/resource";
-import { rejectCandidateAction, reviewCandidateAction } from "../actions";
+import { adoptAiSuggestionAction, rejectCandidateAction, reviewCandidateAction, reviewOneAction, reviewPendingAction } from "../actions";
 
 export const metadata = { title: "候选箱" };
+
+/** AI 审核可能运行数分钟：页面级配置作用于本页触发的全部 action */
+export const maxDuration = 300;
+
+const VERDICT_FILTERS: { value: VerdictFilter; label: string }[] = [
+  { value: "unsure", label: "需人工" },
+  { value: "approve", label: "建议上架" },
+  { value: "reject", label: "建议拒绝" },
+  { value: "none", label: "未审核" },
+];
+const reviewModeLabels = { off: "已关闭", suggest: "建议模式", auto: "自动模式" } as const;
 
 type SP = Promise<Record<string, string | undefined>>;
 
@@ -28,22 +40,31 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
   const ignoredSlugs = new Set(ignored.map((x) => x.slug));
   // 分类筛选：按候选当前的 categorySlug；不认识的值忽略
   const cat = categories.some((c) => c.slug === sp.cat) ? sp.cat! : null;
-  const [counts, { total, items, pageSize }] = await Promise.all([countCandidatesByStatus(cat), listCandidates(status, page, cat)]);
+  const ai = status === "pending" && VERDICT_FILTERS.some((v) => v.value === sp.ai) ? (sp.ai as VerdictFilter) : null;
+  const [counts, verdictCounts, unreviewed, setting, { total, items, pageSize }] = await Promise.all([
+    countCandidatesByStatus(cat),
+    countPendingByVerdict(cat),
+    countUnreviewedPending(),
+    getSetting(),
+    listCandidates(status, page, cat, ai),
+  ]);
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const catName = new Map(categories.map((c) => [c.slug, c.name]));
-  const href = (patch: { status?: string; page?: number; cat?: string | null }) => {
+  const href = (patch: { status?: string; page?: number; cat?: string | null; ai?: string | null }) => {
     const p = new URLSearchParams();
     const st = patch.status ?? status;
     const c = patch.cat === undefined ? cat : patch.cat;
+    const v = patch.status && patch.status !== "pending" ? null : patch.ai === undefined ? ai : patch.ai;
     if (st !== "pending") p.set("status", st);
     if (c) p.set("cat", c);
+    if (v) p.set("ai", v);
     if (patch.page && patch.page > 1) p.set("page", String(patch.page));
     const s = p.toString();
     return s ? `/admin/candidates?${s}` : "/admin/candidates";
   };
 
   // 审核后回到当前筛选（状态 / 分类 / 页码），不重置为全部分类
-  const filter = { status, cat, page };
+  const filter = { status, cat, ai, page };
 
   const views: CandidateView[] = items.map((c) => {
     const parsed = candidatePayloadSchema.safeParse(c.payload);
@@ -76,6 +97,23 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
       rawSummary: c.rawSummary,
       createdAt: dayTime.format(c.createdAt),
       resource: c.resource,
+      ai: (() => {
+        const n = readReviewNotes(c.reviewNotes);
+        if (c.reviewVerdict === "none" || !n) return null;
+        return {
+          verdict: c.reviewVerdict,
+          score: c.reviewScore,
+          why: n.why,
+          reason: n.reason,
+          rules: n.rules.map((x) => x.message),
+          issues: n.issues.map((x) => `${x.field ? `【${x.field}】` : ""}${x.problem}${x.fix ? ` → ${x.fix}` : ""}`),
+          applied: n.applied,
+          hasFixes: Object.keys(n.fixes).length > 0,
+          error: n.error,
+          by: c.reviewedBy,
+          at: c.aiReviewedAt ? dayTime.format(c.aiReviewedAt) : null,
+        };
+      })(),
     };
   });
 
@@ -95,8 +133,29 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
               </ChipLink>
             ))}
           </div>
-          <span className={styles.hint}>Agent 只整理、不上架；每条都需要人工确认。拒绝后同一链接不再推送。</span>
+          <span className={styles.hint}>
+            审核 Agent：{reviewModeLabels[setting.reviewMode]}
+            {setting.reviewMode === "auto" ? "，高分自动上架、硬伤自动拒绝" : "，只给建议，上架仍需人工确认"}。拒绝后同一链接不再推送。
+          </span>
         </div>
+        {status === "pending" && (
+          <div className={`${styles.seg} ${a.catFilter} ${a.aiBar}`} role="group" aria-label="按 AI 结论筛选">
+            <ChipLink href={href({ ai: null, page: 1 })} active={!ai}>
+              全部结论
+            </ChipLink>
+            {VERDICT_FILTERS.map((v) => (
+              <ChipLink key={v.value} href={href({ ai: v.value, page: 1 })} active={ai === v.value}>
+                {v.label}
+                <span className={a.count}>{verdictCounts[v.value]}</span>
+              </ChipLink>
+            ))}
+            <form action={reviewPendingAction.bind(null, filter)}>
+              <Button type="submit" disabled={unreviewed === 0}>
+                AI 审核未审的 {Math.min(unreviewed, setting.reviewMaxPerRun)} 条
+              </Button>
+            </form>
+          </div>
+        )}
         <div className={`${styles.seg} ${a.catFilter}`} role="group" aria-label="按分类筛选">
           <ChipLink href={href({ cat: null, page: 1 })} active={!cat}>
             全部分类
@@ -118,6 +177,8 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
               categories={categories}
               review={reviewCandidateAction.bind(null, c.id, filter)}
               reject={rejectCandidateAction.bind(null, c.id, filter)}
+              aiReview={reviewOneAction.bind(null, c.id, filter)}
+              adopt={adoptAiSuggestionAction.bind(null, c.id, filter)}
             />
           ))}
         </ScrollArea>

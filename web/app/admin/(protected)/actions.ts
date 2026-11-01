@@ -10,6 +10,8 @@ import { convertCandidate, rejectCandidate } from "@/lib/domain/candidate.servic
 import { candidateReturnUrl, type CandidateFilter } from "@/lib/agent/candidate-return";
 import { saveCollectConfig } from "@/lib/domain/category-collect.service";
 import { collectLink, runCollection } from "@/lib/domain/collector.service";
+import { adoptSuggestion, batchMessage, reviewOne, reviewPending } from "@/lib/domain/review.service";
+import { verdictLabels } from "@/lib/agent/review";
 import { enrichBatch, enrichOne } from "@/lib/domain/enrich.service";
 import { suggestDescription, suggestTerms, type TermDraft, type TermSuggestion } from "@/lib/domain/term-suggest.service";
 import type { TermField } from "@/lib/agent/term-rules";
@@ -257,6 +259,50 @@ export async function rejectCandidateAction(id: string, filter: CandidateFilter 
     return fromDomainError(e);
   }
   redirect(candidateReturnUrl(filter, "已拒绝，之后不会再推送同一链接"));
+}
+
+/* ---------- 审核 Agent ---------- */
+// 审核可能运行数分钟：受 candidates/page.tsx 的 maxDuration=300 约束
+
+export async function reviewPendingAction(filter: CandidateFilter | null) {
+  await requireAdmin();
+  let msg: string;
+  try {
+    const r = await reviewPending("manual");
+    if (r.slugs.length) touchResources(...r.slugs);
+    updateTag(cacheTags.taxonomy);
+    msg = `AI 审核完成：${batchMessage(r)}`;
+  } catch (e) {
+    msg = `AI 审核失败：${fromDomainError(e).formError ?? "未知错误"}`;
+  }
+  redirect(candidateReturnUrl(filter, msg));
+}
+
+export async function reviewOneAction(id: string, filter: CandidateFilter | null) {
+  await requireAdmin();
+  let msg: string;
+  try {
+    const r = await reviewOne(id);
+    if (r.slug) touchResources(r.slug);
+    const done = { publish: "已自动发布", draft: "已自动存草稿", reject: "已自动拒绝", human: "留给人工" }[r.action === "failed" ? "human" : r.action];
+    msg = `「${r.name}」AI 审核：${r.verdict ? verdictLabels[r.verdict] : "无结论"}${r.score !== null ? `（${r.score} 分）` : ""}，${done}`;
+  } catch (e) {
+    msg = `AI 审核失败：${fromDomainError(e).formError ?? "未知错误"}`;
+  }
+  redirect(candidateReturnUrl(filter, msg));
+}
+
+export async function adoptAiSuggestionAction(id: string, filter: CandidateFilter | null, _prev: ActionResult, _fd?: FormData): Promise<ActionResult> {
+  await requireAdmin();
+  let r: Awaited<ReturnType<typeof adoptSuggestion>>;
+  try {
+    r = await adoptSuggestion(id);
+  } catch (e) {
+    return fromDomainError(e);
+  }
+  touchResources(r.slug);
+  updateTag(cacheTags.taxonomy);
+  redirect(candidateReturnUrl(filter, `已按 AI 建议上架「${r.name}」`));
 }
 
 /* ---------- 标签待定池 ---------- */

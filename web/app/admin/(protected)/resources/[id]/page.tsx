@@ -5,6 +5,7 @@ import { AdminTop } from "@/components/admin/AdminTop";
 import { ConfirmButton } from "@/components/ui";
 import { ResourceForm } from "@/components/admin/ResourceForm";
 import { findById } from "@/lib/data/resource.repo";
+import { findAiCandidateForResource } from "@/lib/data/agent.repo";
 import { adminListCategories, adminListTags, adminListTools } from "@/lib/data/taxonomy.repo";
 import { EnrichButton } from "@/components/admin/EnrichButton";
 import { deleteResourceAction, enrichOneAction, saveResourceAction } from "../../actions";
@@ -18,7 +19,7 @@ type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ created?
 
 export default async function EditResourcePage({ params, searchParams }: Props) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
-  const [r, categories, tags, tools] = await Promise.all([findById(id), adminListCategories(), adminListTags(), adminListTools()]);
+  const [r, categories, tags, tools, aiCand] = await Promise.all([findById(id), adminListCategories(), adminListTags(), adminListTools(), findAiCandidateForResource(id)]);
   if (!r) notFound();
   return (
     <>
@@ -40,7 +41,11 @@ export default async function EditResourcePage({ params, searchParams }: Props) 
         categories={categories}
         tags={tags}
         tools={tools}
-        notice={sp.created === "candidate" ? `已从候选箱存为草稿，完善后可发布${sp.note ? `。${sp.note.slice(0, 200)}` : ""}` : sp.created ? "已创建" : r.aiReview ? "这条资源的详情由 AI 补全，请核对后保存（保存即视为已核对）" : undefined}
+        notice={sp.created === "candidate" ? `已从候选箱存为草稿，完善后可发布${sp.note ? `。${sp.note.slice(0, 200)}` : ""}` : sp.created ? "已创建" : r.aiReview
+                ? "这条资源的详情由 AI 补全，请核对后保存（保存即视为已核对）"
+                : aiCand
+                  ? `这条资源由审核 Agent 自动上架${aiCand.reviewScore !== null ? `（${aiCand.reviewScore} 分）` : ""}；如有问题把状态改为草稿后保存即可下架`
+                  : undefined}
         initial={{
           slug: r.slug,
           name: r.name,

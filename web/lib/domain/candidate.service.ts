@@ -62,7 +62,7 @@ export async function planTags(entries: readonly TagEntry[], strict: boolean): P
 
 export type ConvertResult = { resourceId: string; slug: string; note?: string };
 
-export async function convertCandidate(id: string, intent: "publish" | "draft", rawReview: unknown): Promise<ConvertResult> {
+export async function convertCandidate(id: string, intent: "publish" | "draft", rawReview: unknown, actor: "human" | "ai" = "human"): Promise<ConvertResult> {
   const cand = await repo.findCandidate(id);
   if (!cand) throw new DomainError("候选不存在或已删除");
   if (cand.status !== "pending") throw new DomainError("这条候选已处理过了");
@@ -120,6 +120,7 @@ export async function convertCandidate(id: string, intent: "publish" | "draft", 
   const created = await repo.convertCandidateTx({
     candidateId: id,
     status: intent === "publish" ? "published" : "drafted",
+    actor,
     newTags: tags.newTags,
     existingTagIds: tags.existingIds,
     toolIds: check.data.toolIds,
@@ -145,7 +146,7 @@ export async function convertCandidate(id: string, intent: "publish" | "draft", 
   };
 }
 
-export async function rejectCandidate(id: string) {
-  const { count } = await repo.rejectCandidate(id);
+export async function rejectCandidate(id: string, actor: "human" | "ai" = "human") {
+  const { count } = await repo.rejectCandidate(id, actor);
   if (count !== 1) throw new DomainError("这条候选不存在或已处理过了");
 }

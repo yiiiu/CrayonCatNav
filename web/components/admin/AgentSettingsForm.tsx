@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { Button, Card, HelpTip, ScrollArea } from "@/components/ui";
+import { Button, Card, HelpTip, ScrollArea, Select } from "@/components/ui";
 import { purposeLabels, yuan, type ModelPurpose } from "@/lib/agent/budget";
 import type { ActionResult } from "@/lib/domain/result";
 import styles from "./admin.module.css";
@@ -27,6 +27,7 @@ export type AgentSettingsValues = {
     usage: { purpose: ModelPurpose; calls: number; promptTokens: number; completionTokens: number; cost: number }[];
   };
   recommend: { enabled: boolean; dailyCap: number };
+  review: { mode: "off" | "suggest" | "auto"; publishDraft: boolean; approveScore: number; rejectScore: number; dailyCap: number; maxPerRun: number };
   apiKeyLast4: string | null;
   githubTokenLast4: string | null;
   phTokenLast4: string | null;
@@ -188,6 +189,45 @@ export function AgentSettingsForm({ action, initial }: Props) {
           </label>
           <Field label="全站每日调用上限" name="recommendDailyCap" error={err("recommendDailyCap")} hint="所有访客合计，默认 1000">
             <input id="f-recommendDailyCap" name="recommendDailyCap" type="number" min={1} step="1" defaultValue={initial.recommend.dailyCap} />
+          </Field>
+
+          <h3 className={a.group}>审核 Agent</h3>
+          <Field label="审核模式" name="reviewMode" error={err("reviewMode")} hint="建议模式只打分、写问题清单，不自动上架或拒绝">
+            <Select
+              id="f-reviewMode"
+              name="reviewMode"
+              defaultValue={initial.review.mode}
+              searchable={false}
+              options={[
+                { value: "off", label: "关闭" },
+                { value: "suggest", label: "建议模式（推荐先用）" },
+                { value: "auto", label: "自动模式" },
+              ]}
+            />
+          </Field>
+          <Field label="自动通过后" name="reviewPublishAs" hint="仅自动模式生效">
+            <Select
+              id="f-reviewPublishAs"
+              name="reviewPublishAs"
+              defaultValue={initial.review.publishDraft ? "draft" : "published"}
+              searchable={false}
+              options={[
+                { value: "published", label: "直接发布" },
+                { value: "draft", label: "先进草稿" },
+              ]}
+            />
+          </Field>
+          <Field label="上架分数线" name="reviewApproveScore" error={err("reviewApproveScore")} hint="模型打分 ≥ 此值且无规则问题才算建议上架">
+            <input id="f-reviewApproveScore" name="reviewApproveScore" type="number" min={50} max={100} step="1" defaultValue={initial.review.approveScore} />
+          </Field>
+          <Field label="拒绝分数线" name="reviewRejectScore" error={err("reviewRejectScore")} hint="模型判拒绝且打分 ≤ 此值才算建议拒绝">
+            <input id="f-reviewRejectScore" name="reviewRejectScore" type="number" min={0} max={60} step="1" defaultValue={initial.review.rejectScore} />
+          </Field>
+          <Field label="每日自动上架上限" name="reviewDailyPublishCap" error={err("reviewDailyPublishCap")} hint="超出的留给人工，0 表示不自动上架">
+            <input id="f-reviewDailyPublishCap" name="reviewDailyPublishCap" type="number" min={0} max={50} step="1" defaultValue={initial.review.dailyCap} />
+          </Field>
+          <Field label="每次最多审核" name="reviewMaxPerRun" error={err("reviewMaxPerRun")} hint="每天 10:00（北京时间）自动审核一次，也可在候选箱手动触发">
+            <input id="f-reviewMaxPerRun" name="reviewMaxPerRun" type="number" min={1} max={30} step="1" defaultValue={initial.review.maxPerRun} />
           </Field>
 
           <h3 className={a.group}>可选 Token</h3>
