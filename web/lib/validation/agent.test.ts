@@ -11,9 +11,9 @@ describe("Agent 设置表单", () => {
     const v = agentSettingsSchema.parse(agentSettingsFromForm(fd));
     expect(v).toMatchObject({ maxPerRun: 8, srcGithub: true, srcMcpRegistry: false, apiKey: "", clearGithubToken: false });
   });
-  it("条数上限 1–20，Base URL 需 http(s)", () => {
+  it("条数上限 1–30，Base URL 需 http(s)", () => {
     expect(agentSettingsSchema.safeParse({ maxPerRun: 0 }).success).toBe(false);
-    expect(agentSettingsSchema.safeParse({ maxPerRun: 21 }).success).toBe(false);
+    expect(agentSettingsSchema.safeParse({ maxPerRun: 31 }).success).toBe(false);
     expect(agentSettingsSchema.safeParse({ baseUrl: "ftp://x" }).success).toBe(false);
     expect(agentSettingsSchema.safeParse({ baseUrl: "http://localhost:8787/v1" }).success).toBe(true);
   });

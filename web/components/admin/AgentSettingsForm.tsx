@@ -83,8 +83,8 @@ export function AgentSettingsForm({ action, initial }: Props) {
           </Field>
 
           <h3 className={a.group}>采集</h3>
-          <Field label="每次采集条数上限" name="maxPerRun" error={err("maxPerRun")} hint="1–20，默认 8；条数越多越可能超出函数执行时间">
-            <input id="f-maxPerRun" name="maxPerRun" type="number" min={1} max={20} defaultValue={initial.maxPerRun} />
+          <Field label="每次采集条数上限" name="maxPerRun" error={err("maxPerRun")} hint="1–30，默认 8；同时处理 5 条，条数越多越可能超出函数执行时间">
+            <input id="f-maxPerRun" name="maxPerRun" type="number" min={1} max={30} defaultValue={initial.maxPerRun} />
           </Field>
           <p className={`${styles.hint} ${a.wideHint}`}>全局开关：关掉的来源任何分类都不会跑；每个分类实际用哪些来源在右侧「分类采集配置」里设。</p>
           <div className={a.sources} role="group" aria-label="采集来源">

@@ -217,7 +217,7 @@ export function CandidateCard({ c, categories, review, reject, aiReview, adopt }
                   {aPending ? "处理中…" : "采纳 AI 建议"}
                 </ConfirmButton>
               )}
-              <PendingButton formAction={aiReview} formNoValidate disabled={busy} label={c.ai ? "重新 AI 审核" : "AI 审核"} pendingLabel="AI 审核中…（约 20 秒）" />
+              <PendingButton formAction={aiReview} formNoValidate disabled={busy} label={c.ai ? "重新 AI 审核" : "AI 审核"} pendingLabel="正在启动…" />
               <ConfirmButton
                 className={a.reject}
                 formAction={rejectAction}

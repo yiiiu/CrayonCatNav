@@ -130,7 +130,7 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
       {reviewing ? (
         <p className={a.running} role="status">
           <span className={a.spin} aria-hidden="true" />
-          AI 审核进行中（每条约 10–30 秒），可以离开本页，结束后列表会自动刷新
+          AI 审核进行中（每条约 10–30 秒），可以离开本页，结束后这里会自动刷新并显示结果
         </p>
       ) : (
         setting.reviewLastAt && (

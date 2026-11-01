@@ -29,6 +29,7 @@ import { DomainError } from "./result";
 const LLM_TIMEOUT_MS = 45_000;
 /** 批量审核的时间预算（Vercel 函数最长 300 秒，留余量） */
 const BATCH_DEADLINE_MS = 240_000;
+const REVIEW_LOCK_TTL_MS = 330_000;
 
 type Setting = Awaited<ReturnType<typeof repo.getSetting>>;
 
@@ -190,6 +191,38 @@ export async function reviewOne(id: string): Promise<ReviewOutcome> {
   return reviewWithCtx(id, ctx);
 }
 
+const actionText = { publish: "已自动发布", draft: "已自动存草稿", reject: "已自动拒绝", human: "留给人工", failed: "留给人工" } as const;
+
+/** 单条审核的结果说明（候选箱「上次 AI 审核」显示）。 */
+export function outcomeMessage(o: ReviewOutcome): string {
+  const verdict = o.verdict ? { approve: "建议上架", reject: "建议拒绝", unsure: "需人工" }[o.verdict] : "无结论";
+  return `「${o.name}」${verdict}${o.score !== null ? `（${o.score} 分）` : ""}，${actionText[o.action]}`;
+}
+
+/** 后台单条审核：action 里检查并抢锁，审核本身放到 after() 里跑，页面可以随意切换。 */
+export async function startReviewOne(id: string) {
+  await loadRuntimeConfig();
+  const cand = await repo.findCandidate(id);
+  if (!cand) throw new DomainError("候选不存在或已删除");
+  if (cand.status !== "pending") throw new DomainError("这条候选已处理过了");
+  if (!(await repo.acquireReviewLock(REVIEW_LOCK_TTL_MS))) throw new DomainError("AI 审核正在进行，请等它结束");
+}
+
+/** startReviewOne 抢到锁之后调用：审核一条并释放锁、记下结果。 */
+export async function reviewOneHeld(id: string): Promise<ReviewOutcome | null> {
+  let msg = "";
+  try {
+    const o = await reviewOne(id);
+    msg = outcomeMessage(o);
+    return o;
+  } catch (e) {
+    msg = `失败：${e instanceof Error ? e.message.slice(0, 200) : "未知错误"}`;
+    return null;
+  } finally {
+    await repo.finishReviewRun(msg).catch(() => undefined);
+  }
+}
+
 export type ReviewBatchResult = {
   skipped?: string;
   reviewed: number;
@@ -202,7 +235,6 @@ export type ReviewBatchResult = {
   slugs: string[];
 };
 
-const REVIEW_LOCK_TTL_MS = 330_000;
 
 /**
  * 后台手动批量审核：在 action 里先检查模型配置并抢锁（错误能立即显示），

@@ -22,7 +22,7 @@ export const agentSettingsSchema = z.object({
   baseUrl: httpUrl.default(""),
   model: z.string().trim().max(100, "模型名过长").default(""),
   apiKey: secret,
-  maxPerRun: z.coerce.number().int("请填写整数").min(1, "至少 1 条").max(20, "单次最多 20 条（防止函数超时）").default(8),
+  maxPerRun: z.coerce.number().int("请填写整数").min(1, "至少 1 条").max(30, "单次最多 30 条（防止函数超时）").default(8),
   cronEnabled: z.boolean().default(false),
   srcMcpRegistry: z.boolean().default(false),
   srcGithub: z.boolean().default(false),

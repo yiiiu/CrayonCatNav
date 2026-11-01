@@ -32,7 +32,7 @@ const LOCK_TTL_MS = 330_000;
 /** 超过这个时长不再开始处理新条目，给进行中的条目留出收尾时间。 */
 const START_BUDGET_MS = 150_000;
 const LLM_TIMEOUT_MS = 45_000;
-const CONCURRENCY = 3;
+const CONCURRENCY = 5;
 
 export type RunSummary = {
   runId: string;

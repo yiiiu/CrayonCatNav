@@ -11,8 +11,7 @@ import { convertCandidate, rejectCandidate } from "@/lib/domain/candidate.servic
 import { candidateReturnUrl, type CandidateFilter } from "@/lib/agent/candidate-return";
 import { saveCollectConfig } from "@/lib/domain/category-collect.service";
 import { collectLink, runCollection, startCollection } from "@/lib/domain/collector.service";
-import { adoptSuggestion, reviewOne, reviewPending, startReviewBatch } from "@/lib/domain/review.service";
-import { verdictLabels } from "@/lib/agent/review";
+import { adoptSuggestion, reviewOneHeld, reviewPending, startReviewBatch, startReviewOne } from "@/lib/domain/review.service";
 import { enrichBatch, enrichOne } from "@/lib/domain/enrich.service";
 import { suggestDescription, suggestTerms, type TermDraft, type TermSuggestion } from "@/lib/domain/term-suggest.service";
 import type { TermField } from "@/lib/agent/term-rules";
@@ -267,6 +266,17 @@ export async function rejectCandidateAction(id: string, filter: CandidateFilter 
 }
 
 /* ---------- 审核 Agent ---------- */
+
+/** after() 里不能用 updateTag，改用 revalidateTag 让前台缓存过期；失败不影响审核结果。 */
+function revalidateResources(slugs: string[]) {
+  for (const t of [cacheTags.resources, cacheTags.home, cacheTags.taxonomy, ...slugs.map((x) => cacheTags.resource(x))]) {
+    try {
+      revalidateTag(t, "max");
+    } catch {
+      /* 忽略 */
+    }
+  }
+}
 // 审核可能运行数分钟：受 candidates/page.tsx 的 maxDuration=300 约束
 
 /** 开始批量 AI 审核：抢锁后立即返回，审核在响应之后（after）进行，页面可以随意切换。 */
@@ -277,16 +287,7 @@ export async function reviewPendingAction(filter: CandidateFilter | null) {
     await startReviewBatch();
     after(async () => {
       const r = await reviewPending("manual", true).catch(() => null);
-      // after 里不能用 updateTag，用 revalidateTag 让前台缓存过期
-      if (r?.slugs.length) {
-        for (const t of [cacheTags.resources, cacheTags.home, cacheTags.taxonomy, ...r.slugs.map((x) => cacheTags.resource(x))]) {
-          try {
-            revalidateTag(t, "max");
-          } catch {
-            /* 缓存刷新失败不影响审核结果 */
-          }
-        }
-      }
+      if (r?.slugs.length) revalidateResources(r.slugs);
     });
     msg = "已开始 AI 审核，可以离开本页，完成后这里会显示结果";
   } catch (e) {
@@ -295,16 +296,19 @@ export async function reviewPendingAction(filter: CandidateFilter | null) {
   redirect(candidateReturnUrl(filter, msg));
 }
 
+/** 单条 AI 审核：同样后台运行（after），不阻塞切换页面；结果显示在候选箱顶部。 */
 export async function reviewOneAction(id: string, filter: CandidateFilter | null) {
   await requireAdmin();
   let msg: string;
   try {
-    const r = await reviewOne(id);
-    if (r.slug) touchResources(r.slug);
-    const done = { publish: "已自动发布", draft: "已自动存草稿", reject: "已自动拒绝", human: "留给人工" }[r.action === "failed" ? "human" : r.action];
-    msg = `「${r.name}」AI 审核：${r.verdict ? verdictLabels[r.verdict] : "无结论"}${r.score !== null ? `（${r.score} 分）` : ""}，${done}`;
+    await startReviewOne(id);
+    after(async () => {
+      const o = await reviewOneHeld(id);
+      if (o?.slug) revalidateResources([o.slug]);
+    });
+    msg = "已开始 AI 审核这条候选（约 20 秒），可以离开本页";
   } catch (e) {
-    msg = `AI 审核失败：${fromDomainError(e).formError ?? "未知错误"}`;
+    msg = `AI 审核没有开始：${fromDomainError(e).formError ?? "未知错误"}`;
   }
   redirect(candidateReturnUrl(filter, msg));
 }
