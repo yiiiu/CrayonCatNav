@@ -278,14 +278,31 @@ async function processQueue(queue: RawCandidate[], ctx: Ctx, limit: number, star
 
 export type TargetChoice = "auto" | { categoryId: string };
 
+/**
+ * 后台手动采集：在 action 里先检查配置与预算并抢锁（错误能立即显示），
+ * 真正的采集放到响应之后（after）运行，页面可以随意切换。
+ */
+export async function startCollection() {
+  await loadRuntimeConfig();
+  await assertBudget("collect");
+  if (!(await repo.acquireLock(LOCK_TTL_MS))) throw new DomainError("已有采集正在进行，请等它结束后再试");
+}
+
 async function withRun(
   trigger: "manual" | "cron" | "link",
   choice: TargetChoice | null,
   body: (ctx: Ctx, startedAt: number) => Promise<Omit<RunSummary, "runId" | "message"> & { notes: unknown }>,
+  lockHeld = false,
 ): Promise<RunSummary> {
-  const cfg = await loadRuntimeConfig();
-  await assertBudget("collect");
-  if (!(await repo.acquireLock(LOCK_TTL_MS))) throw new DomainError("已有采集正在进行，请等它结束后再试");
+  let cfg: RuntimeConfig;
+  try {
+    cfg = await loadRuntimeConfig();
+    await assertBudget("collect");
+  } catch (e) {
+    if (lockHeld) await repo.releaseLock().catch(() => undefined);
+    throw e;
+  }
+  if (!lockHeld && !(await repo.acquireLock(LOCK_TTL_MS))) throw new DomainError("已有采集正在进行，请等它结束后再试");
   const startedAt = Date.now();
   let runId = "";
   try {
@@ -322,7 +339,7 @@ async function withRun(
 }
 
 /** 为目标分类采集一轮：手动可指定分类或自动；定时固定自动（选资源最少的已配置分类）。 */
-export function runCollection(trigger: "manual" | "cron", choice: TargetChoice = "auto") {
+export function runCollection(trigger: "manual" | "cron", choice: TargetChoice = "auto", lockHeld = false) {
   return withRun(trigger, trigger === "cron" ? "auto" : choice, async (ctx, startedAt) => {
     const target = ctx.target!;
     const targetNote = { slug: target.slug, name: target.name, mode: target.mode, ...(target.snapshot ? { snapshot: target.snapshot } : {}) };
@@ -346,7 +363,7 @@ export function runCollection(trigger: "manual" | "cron", choice: TargetChoice =
       error: fatal,
       notes: { target: targetNote, sources: sourceNotes, items: notes.slice(0, 40), duplicates: duplicates + counts.duplicates, unprocessed: Math.max(0, queue.length - counts.created - counts.skipped - counts.failed - counts.duplicates) },
     };
-  });
+  }, lockHeld);
 }
 
 /** 管理员贴一个链接让 Agent 整理成候选（同样去重、防 SSRF、人工审核）。 */

@@ -202,11 +202,39 @@ export type ReviewBatchResult = {
   slugs: string[];
 };
 
-/** 批量审核未审过的待审核候选（cron 与后台按钮共用）。 */
-export async function reviewPending(trigger: "cron" | "manual"): Promise<ReviewBatchResult> {
+const REVIEW_LOCK_TTL_MS = 330_000;
+
+/**
+ * 后台手动批量审核：在 action 里先检查模型配置并抢锁（错误能立即显示），
+ * 审核本身放到响应之后（after）运行，页面可以随意切换。
+ */
+export async function startReviewBatch() {
+  await loadRuntimeConfig();
+  if ((await repo.countUnreviewedPending()) === 0) throw new DomainError("没有需要审核的候选");
+  if (!(await repo.acquireReviewLock(REVIEW_LOCK_TTL_MS))) throw new DomainError("AI 审核正在进行，请等它结束");
+}
+
+/** 批量审核未审过的待审核候选（cron 与后台按钮共用）；lockHeld 表示调用方已抢到锁。 */
+export async function reviewPending(trigger: "cron" | "manual", lockHeld = false): Promise<ReviewBatchResult> {
   const empty: ReviewBatchResult = { reviewed: 0, published: 0, drafted: 0, rejected: 0, human: 0, failed: 0, remaining: 0, slugs: [] };
   const setting = await repo.getSetting();
   if (setting.reviewMode === "off" && trigger === "cron") return { ...empty, skipped: "审核 Agent 已在后台关闭" };
+  if (!lockHeld && !(await repo.acquireReviewLock(REVIEW_LOCK_TTL_MS))) return { ...empty, skipped: "AI 审核正在进行" };
+  let result: ReviewBatchResult = empty;
+  let error: string | null = null;
+  try {
+    result = await runBatch(trigger, setting);
+    return result;
+  } catch (e) {
+    error = e instanceof Error ? e.message : "未知错误";
+    throw e;
+  } finally {
+    await repo.finishReviewRun(error ? `失败：${error}` : batchMessage(result)).catch(() => undefined);
+  }
+}
+
+async function runBatch(trigger: "cron" | "manual", setting: Setting): Promise<ReviewBatchResult> {
+  const empty: ReviewBatchResult = { reviewed: 0, published: 0, drafted: 0, rejected: 0, human: 0, failed: 0, remaining: 0, slugs: [] };
   const ctx = await buildCtx(trigger === "manual");
   const started = Date.now();
   const list = await repo.listUnreviewedPending(Math.max(1, setting.reviewMaxPerRun));

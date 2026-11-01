@@ -1,6 +1,7 @@
 "use server";
 
-import { refresh, updateTag } from "next/cache";
+import { refresh, revalidateTag, updateTag } from "next/cache";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { signOut } from "@/lib/auth/auth";
 import { requireAdmin } from "@/lib/auth/require-admin";
@@ -9,8 +10,8 @@ import { saveSettings, testConnection } from "@/lib/domain/agent-settings.servic
 import { convertCandidate, rejectCandidate } from "@/lib/domain/candidate.service";
 import { candidateReturnUrl, type CandidateFilter } from "@/lib/agent/candidate-return";
 import { saveCollectConfig } from "@/lib/domain/category-collect.service";
-import { collectLink, runCollection } from "@/lib/domain/collector.service";
-import { adoptSuggestion, batchMessage, reviewOne, reviewPending } from "@/lib/domain/review.service";
+import { collectLink, runCollection, startCollection } from "@/lib/domain/collector.service";
+import { adoptSuggestion, reviewOne, reviewPending, startReviewBatch } from "@/lib/domain/review.service";
 import { verdictLabels } from "@/lib/agent/review";
 import { enrichBatch, enrichOne } from "@/lib/domain/enrich.service";
 import { suggestDescription, suggestTerms, type TermDraft, type TermSuggestion } from "@/lib/domain/term-suggest.service";
@@ -171,17 +172,21 @@ export async function testAgentConnectionAction(_prev: ActionResult): Promise<Ac
   }
 }
 
+/** 开始采集：检查配置并抢锁后立即返回，采集在响应之后（after）进行，页面可以随意切换；进度看运行记录。 */
 export async function runCollectAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
   await requireAdmin();
   // 目标分类：auto（默认，选资源最少的已配置分类）或分类 id
   const target = (fd.get("target") ?? "auto").toString().slice(0, 64);
   try {
-    const r = await runCollection("manual", !target || target === "auto" ? "auto" : { categoryId: target });
-    refresh(); // 刷新运行记录与导航里的待审核数量
-    return r.status === "failed" ? { ok: false, formError: r.message } : { ok: true, message: r.message };
+    await startCollection();
   } catch (e) {
     return fromDomainError(e);
   }
+  after(async () => {
+    await runCollection("manual", !target || target === "auto" ? "auto" : { categoryId: target }, true).catch(() => undefined);
+  });
+  refresh(); // 页面显示「采集进行中」并开始自动刷新
+  return { ok: true, message: "已开始采集（约 1–3 分钟），可以离开本页，结果见运行记录" };
 }
 
 export async function collectLinkAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
@@ -264,16 +269,28 @@ export async function rejectCandidateAction(id: string, filter: CandidateFilter 
 /* ---------- 审核 Agent ---------- */
 // 审核可能运行数分钟：受 candidates/page.tsx 的 maxDuration=300 约束
 
+/** 开始批量 AI 审核：抢锁后立即返回，审核在响应之后（after）进行，页面可以随意切换。 */
 export async function reviewPendingAction(filter: CandidateFilter | null) {
   await requireAdmin();
   let msg: string;
   try {
-    const r = await reviewPending("manual");
-    if (r.slugs.length) touchResources(...r.slugs);
-    updateTag(cacheTags.taxonomy);
-    msg = `AI 审核完成：${batchMessage(r)}`;
+    await startReviewBatch();
+    after(async () => {
+      const r = await reviewPending("manual", true).catch(() => null);
+      // after 里不能用 updateTag，用 revalidateTag 让前台缓存过期
+      if (r?.slugs.length) {
+        for (const t of [cacheTags.resources, cacheTags.home, cacheTags.taxonomy, ...r.slugs.map((x) => cacheTags.resource(x))]) {
+          try {
+            revalidateTag(t, "max");
+          } catch {
+            /* 缓存刷新失败不影响审核结果 */
+          }
+        }
+      }
+    });
+    msg = "已开始 AI 审核，可以离开本页，完成后这里会显示结果";
   } catch (e) {
-    msg = `AI 审核失败：${fromDomainError(e).formError ?? "未知错误"}`;
+    msg = `AI 审核没有开始：${fromDomainError(e).formError ?? "未知错误"}`;
   }
   redirect(candidateReturnUrl(filter, msg));
 }

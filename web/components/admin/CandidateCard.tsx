@@ -7,6 +7,7 @@ import { formatTagInput } from "@/lib/validation/tag-vocab";
 import styles from "./admin.module.css";
 import a from "./agent.module.css";
 import { Field } from "./Field";
+import { PendingButton } from "./PendingButton";
 
 export type CandidateView = {
   id: string;
@@ -216,9 +217,7 @@ export function CandidateCard({ c, categories, review, reject, aiReview, adopt }
                   {aPending ? "处理中…" : "采纳 AI 建议"}
                 </ConfirmButton>
               )}
-              <Button type="submit" formAction={aiReview} formNoValidate disabled={busy}>
-                {c.ai ? "重新 AI 审核" : "AI 审核"}
-              </Button>
+              <PendingButton formAction={aiReview} formNoValidate disabled={busy} label={c.ai ? "重新 AI 审核" : "AI 审核"} pendingLabel="AI 审核中…（约 20 秒）" />
               <ConfirmButton
                 className={a.reject}
                 formAction={rejectAction}

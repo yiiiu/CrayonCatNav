@@ -102,7 +102,7 @@
 
 ## 7. 数据模型变更
 
-实现说明：「采纳 AI 建议」用存在 reviewNotes.fixes 里的修正；单条「AI 审核 / 重新 AI 审核」不受模式开关限制（关闭只停定时任务）。
+实现说明：手动「开始采集」与「批量 AI 审核」在 action 里只做检查并抢锁，任务本身用 `after()` 在响应后运行（不阻塞切换页面），页面用 RunPoller 每 5 秒刷新状态；审核锁与上次结果存在 AgentSetting.reviewLockedUntil / reviewLastResult / reviewLastAt（迁移 review_background）。「采纳 AI 建议」用存在 reviewNotes.fixes 里的修正；单条「AI 审核 / 重新 AI 审核」不受模式开关限制（关闭只停定时任务）。
 
 `ResourceCandidate` 新增：
 - `reviewVerdict` 枚举 `approve | reject | unsure | none`（默认 none）

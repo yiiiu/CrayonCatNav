@@ -4,7 +4,9 @@ import { AdminTop } from "@/components/admin/AdminTop";
 import styles from "@/components/admin/admin.module.css";
 import a from "@/components/admin/agent.module.css";
 import { CandidateCard, type CandidateView } from "@/components/admin/CandidateCard";
-import { Button, Card, ChipLink, ScrollArea } from "@/components/ui";
+import { PendingButton } from "@/components/admin/PendingButton";
+import { RunPoller } from "@/components/admin/RunPoller";
+import { Card, ChipLink, ScrollArea } from "@/components/ui";
 import { candidateStatuses, candidateStatusLabels, sourceLabels, type CandidateSource, type CandidateStatusValue } from "@/lib/agent/types";
 import { readReviewNotes } from "@/lib/agent/review";
 import { countCandidatesByStatus, countPendingByVerdict, countUnreviewedPending, getSetting, listCandidates, loadClosedSuggestions, loadTaxonomy, type VerdictFilter } from "@/lib/data/agent.repo";
@@ -49,6 +51,7 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
     listCandidates(status, page, cat, ai),
   ]);
   const pages = Math.max(1, Math.ceil(total / pageSize));
+  const reviewing = !!setting.reviewLockedUntil && setting.reviewLockedUntil > new Date();
   const catName = new Map(categories.map((c) => [c.slug, c.name]));
   const href = (patch: { status?: string; page?: number; cat?: string | null; ai?: string | null }) => {
     const p = new URLSearchParams();
@@ -122,7 +125,20 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
       <AdminTop title="候选箱">
         <Link href="/admin/agent">采集 Agent 设置 ›</Link>
       </AdminTop>
-      {sp.done && <p className={styles.ok} role="status">{sp.done.slice(0, 200)}</p>}
+      <RunPoller active={reviewing} />
+      {sp.done && !reviewing && <p className={styles.ok} role="status">{sp.done.slice(0, 200)}</p>}
+      {reviewing ? (
+        <p className={a.running} role="status">
+          <span className={a.spin} aria-hidden="true" />
+          AI 审核进行中（每条约 10–30 秒），可以离开本页，结束后列表会自动刷新
+        </p>
+      ) : (
+        setting.reviewLastAt && (
+          <p className={a.lastRun}>
+            上次 AI 审核（{dayTime.format(setting.reviewLastAt)}）：{setting.reviewLastResult || "—"}
+          </p>
+        )
+      )}
       <Card className={styles.fill}>
         <div className={styles.toolbar}>
           <div className={styles.seg} role="group" aria-label="状态">
@@ -150,9 +166,11 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
               </ChipLink>
             ))}
             <form action={reviewPendingAction.bind(null, filter)}>
-              <Button type="submit" disabled={unreviewed === 0}>
-                AI 审核未审的 {Math.min(unreviewed, setting.reviewMaxPerRun)} 条
-              </Button>
+              <PendingButton
+                disabled={unreviewed === 0 || reviewing}
+                label={reviewing ? "AI 审核进行中" : `AI 审核未审的 ${Math.min(unreviewed, setting.reviewMaxPerRun)} 条`}
+                pendingLabel="正在启动…"
+              />
             </form>
           </div>
         )}

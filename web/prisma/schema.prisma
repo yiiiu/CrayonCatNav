@@ -222,6 +222,10 @@ model AgentSetting {
   reviewRejectScore     Int        @default(40)
   reviewDailyPublishCap Int        @default(10)
   reviewMaxPerRun       Int        @default(20)
+  /// 批量审核运行锁（后台任务进行中）与上次结果
+  reviewLockedUntil     DateTime?
+  reviewLastResult      String     @default("")
+  reviewLastAt          DateTime?
   /// 每月模型花费上限（元），0 表示不限
   monthlyBudget    Float     @default(30)
   /// 前台推荐最多占每月上限的百分比

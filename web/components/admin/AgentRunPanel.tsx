@@ -65,15 +65,35 @@ export function AgentRunPanel({
         <div className={a.runBtns} style={{ marginTop: 12 }}>
           {/* 提交上方的「目标分类」表单 */}
           <Button type="submit" variant="primary" form="agent-run" disabled={busy}>
-            {runPending ? "采集中…（约 1–3 分钟）" : running ? "有采集正在进行" : "开始采集"}
+            {runPending ? (
+              <>
+                <span className={a.spin} aria-hidden="true" />
+                正在启动…
+              </>
+            ) : running ? (
+              <>
+                <span className={a.spin} aria-hidden="true" />
+                采集进行中…（可离开本页）
+              </>
+            ) : (
+              "开始采集"
+            )}
           </Button>
           <form action={testAction}>
             <Button type="submit" disabled={testPending}>
-              {testPending ? "测试中…" : "测试连接"}
+              {testPending ? (
+                <>
+                  <span className={a.spin} aria-hidden="true" />
+                  测试中…
+                </>
+              ) : (
+                "测试连接"
+              )}
             </Button>
           </form>
         </div>
-        <Feedback state={runState} />
+        {/* 采集已结束时不再显示「已开始采集」的提示 */}
+        {(!runState.ok || running) && <Feedback state={runState} />}
         <Feedback state={testState} />
         <p className={styles.hint} style={{ marginTop: 10 }}>保存设置后再测试；测试只发一条「回复 ok」的消息。</p>
       </Card>

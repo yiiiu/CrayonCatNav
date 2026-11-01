@@ -14,6 +14,8 @@ const repo = vi.hoisted(() => ({
   updateCandidatePayload: vi.fn(),
   listUnreviewedPending: vi.fn(),
   countUnreviewedPending: vi.fn(),
+  acquireReviewLock: vi.fn(),
+  finishReviewRun: vi.fn(),
 }));
 vi.mock("@/lib/data/agent.repo", () => repo);
 
@@ -69,6 +71,8 @@ beforeEach(() => {
   net.fetchEnrichMaterial.mockResolvedValue({ site: null, readme: "README 内容", pricing: null, previewImageUrl: null });
   svc.convertCandidate.mockResolvedValue({ resourceId: "r1", slug: "filesystem-mcp" });
   modelSays("approve", 90);
+  repo.acquireReviewLock.mockResolvedValue(true);
+  repo.finishReviewRun.mockResolvedValue(undefined);
 });
 
 describe("reviewOne", () => {
@@ -124,5 +128,12 @@ describe("reviewPending", () => {
     repo.countUnreviewedPending.mockResolvedValue(0);
     const r = await reviewPending("manual");
     expect(r).toMatchObject({ reviewed: 1, human: 1, failed: 0, remaining: 0 });
+    expect(repo.finishReviewRun).toHaveBeenCalledWith(expect.stringContaining("审核 1 条"));
+  });
+
+  it("已有批次在跑时跳过", async () => {
+    repo.acquireReviewLock.mockResolvedValue(false);
+    expect((await reviewPending("cron")).skipped).toBe("AI 审核正在进行");
+    expect(repo.listUnreviewedPending).not.toHaveBeenCalled();
   });
 });

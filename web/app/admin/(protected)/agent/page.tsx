@@ -2,6 +2,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { AdminTop } from "@/components/admin/AdminTop";
 import { AgentRunPanel } from "@/components/admin/AgentRunPanel";
+import { RunPoller } from "@/components/admin/RunPoller";
 import { AgentSettingsForm } from "@/components/admin/AgentSettingsForm";
 import { CategoryCollectConfigs } from "@/components/admin/CategoryCollectConfigs";
 import styles from "@/components/admin/admin.module.css";
@@ -47,6 +48,7 @@ export default async function AgentPage() {
       <div className={styles.split}>
         <AgentSettingsForm action={saveAgentSettingsAction} initial={view} />
         <ScrollArea className={a.side} viewportClassName={a.sideVp}>
+          <RunPoller active={view.running} />
           <AgentRunPanel
             run={runCollectAction}
             test={testAgentConnectionAction}
