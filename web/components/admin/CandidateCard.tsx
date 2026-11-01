@@ -6,6 +6,7 @@ import type { ActionResult } from "@/lib/domain/result";
 import { formatTagInput } from "@/lib/validation/tag-vocab";
 import styles from "./admin.module.css";
 import a from "./agent.module.css";
+import btn from "@/components/ui/Button.module.css";
 import { Field } from "./Field";
 import { PendingButton } from "./PendingButton";
 
@@ -208,13 +209,21 @@ export function CandidateCard({ c, categories, review, reject, aiReview, adopt }
               </Button>
               {c.ai?.verdict === "approve" && (
                 <ConfirmButton
+                  className={`${btn.btn} ${a.adopt}`}
                   formAction={adoptAction}
                   disabled={busy}
                   title="采纳 AI 建议"
                   message={c.ai.hasFixes ? "按 AI 的修正（简介 / 分类 / 标签等）更新后直接上架？表单里的手动修改不会生效。" : "按当前内容直接上架？"}
                   confirmText="上架"
                 >
-                  {aPending ? "处理中…" : "采纳 AI 建议"}
+                  {aPending ? (
+                    <>
+                      <span className={a.spin} aria-hidden="true" />
+                      上架中…
+                    </>
+                  ) : (
+                    "✨ 采纳 AI 建议"
+                  )}
                 </ConfirmButton>
               )}
               <PendingButton formAction={aiReview} formNoValidate disabled={busy} label={c.ai ? "重新 AI 审核" : "AI 审核"} pendingLabel="正在启动…" />
