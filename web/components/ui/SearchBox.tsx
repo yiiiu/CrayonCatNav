@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition, type FormEvent, type KeyboardEvent } from "react";
 import { moveActive, normalizeQuery, parseSuggest, type SuggestResult } from "@/lib/ui/live-search";
-import { buildSearchHref } from "@/lib/validation/search";
+import { buildSearchHref, type PublicSearchParams } from "@/lib/validation/search";
 import styles from "./SearchBox.module.css";
 
 type Props = {
@@ -11,7 +11,7 @@ type Props = {
   defaultValue?: string;
   placeholder?: string;
   /** 需要随搜索一起保留的其他条件（如 cat、tag） */
-  hidden?: Record<string, string | undefined>;
+  hidden?: Omit<PublicSearchParams, "q" | "page">;
   className?: string;
   /**
    * 实时模式：
@@ -56,7 +56,7 @@ export function SearchBox({ action = "/resources", defaultValue, placeholder = "
     [],
   );
 
-  const listHref = (q: string) => buildSearchHref({ cat: hidden?.cat, tag: hidden?.tag }, { q: q || undefined }, action);
+  const listHref = (q: string) => buildSearchHref({ ...hidden }, { q: q || undefined }, action);
 
   function applyFilter(raw: string) {
     const q = normalizeQuery(raw);

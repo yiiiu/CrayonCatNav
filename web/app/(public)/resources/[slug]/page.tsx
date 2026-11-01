@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { splitName } from "@/lib/resource/display";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { QuickStart } from "@/components/resource/QuickStart";
@@ -62,14 +63,14 @@ export default async function ResourceDetailPage({ params }: Props) {
         items={[
           { label: "发现", href: "/resources" },
           { label: r.category.name, href: `/resources?cat=${r.category.slug}` },
-          { label: r.name },
+          { label: splitName(r.name).title },
         ]}
       />
 
       <Card className={`${styles.titlecard} ${r.previewImageUrl ? styles.withPreview : ""}`}>
-        <Mono name={r.name} accentKey={r.category.slug + r.slug} size="lg" />
+        <Mono name={splitName(r.name).title} accentKey={r.category.slug + r.slug} size="lg" />
         <div className={styles.tbody}>
-          <h1>{r.name}</h1>
+          <h1>{splitName(r.name).title}</h1>
           <p>{r.summary}</p>
           <div className={styles.tags}>
             <Chip flat cat>{r.category.name}</Chip>

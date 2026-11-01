@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card, Chip, Mono } from "@/components/ui";
+import { cardTags, splitName } from "@/lib/resource/display";
 import styles from "./resource.module.css";
 
 /** 卡片需要的最少字段（列表页传完整记录，推荐结果传精简对象）。 */
@@ -14,20 +15,28 @@ export type ResourceCardView = {
 };
 
 /** 资源卡片：整卡链接到详情页；外链只在详情页出现，避免嵌套链接。 */
-export function ResourceCard({ r }: { r: ResourceCardView }) {
+export function ResourceCard({ r, hideCategory = false }: { r: ResourceCardView; /** 已按分类筛选时不再重复显示分类 */ hideCategory?: boolean }) {
+  const { title } = splitName(r.name);
+  const tags = cardTags(
+    r.tags.map(({ tag }) => tag),
+    r.category.name,
+    3,
+  );
   return (
     <Link href={`/resources/${r.slug}`} className={styles.cardLink}>
       <Card interactive>
         <div className={styles.cardTop}>
-          <Mono name={r.name} accentKey={r.category.slug + r.slug} />
-          <b>{r.name}</b>
+          <Mono name={title} accentKey={r.category.slug + r.slug} />
+          <b title={title === r.name ? undefined : r.name}>{title}</b>
         </div>
         <p className={styles.cardSummary}>{r.summary}</p>
         <div className={styles.tags}>
-          <Chip flat cat>
-            {r.category.name}
-          </Chip>
-          {r.tags.slice(0, 4).map(({ tag }) => (
+          {!hideCategory && (
+            <Chip flat cat>
+              {r.category.name}
+            </Chip>
+          )}
+          {tags.map((tag) => (
             <Chip flat key={tag.id}>
               {tag.name}
             </Chip>

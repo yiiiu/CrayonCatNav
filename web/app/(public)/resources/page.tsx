@@ -7,7 +7,9 @@ import styles from "@/components/resource/resource.module.css";
 import { ButtonLink, ChipLink, EmptyState, SearchBox } from "@/components/ui";
 import { searchPublished } from "@/lib/data/resource.repo";
 import { listCategoriesWithCounts, listUsedTags } from "@/lib/data/taxonomy.repo";
-import { buildSearchHref, parsePublicSearch } from "@/lib/validation/search";
+import { pricingLabels } from "@/lib/validation/resource";
+import { platformLabels } from "@/lib/validation/resource-details";
+import { PRICES, SORTS, buildSearchHref, parsePublicSearch, sortLabels } from "@/lib/validation/search";
 
 export const metadata: Metadata = {
   title: "发现 AI 资源",
@@ -47,7 +49,7 @@ async function Results({ searchParams }: { searchParams: SP }) {
             <SearchBox
               defaultValue={current.q}
               placeholder={cat ? `在 ${cat.name} 里搜索…` : "搜索 MCP、Agent、模型…"}
-              hidden={{ cat: current.cat, tag: current.tag }}
+              hidden={{ cat: current.cat, tag: current.tag, sort: current.sort, price: current.price, platform: current.platform }}
               live="filter"
             />
             <span className={styles.count} role="status">
@@ -55,11 +57,37 @@ async function Results({ searchParams }: { searchParams: SP }) {
             </span>
           </div>
 
-          {(current.q || tag) && (
+          <div className={styles.toolbar}>
+            <div className={styles.seg} role="group" aria-label="排序">
+              <small>排序</small>
+              <ChipLink flat active={!current.sort} href={buildSearchHref(current, { sort: undefined })}>
+                {sortLabels.default}
+              </ChipLink>
+              {SORTS.map((s) => (
+                <ChipLink flat key={s} active={current.sort === s} href={buildSearchHref(current, { sort: s })}>
+                  {sortLabels[s]}
+                </ChipLink>
+              ))}
+            </div>
+            <div className={styles.seg} role="group" aria-label="定价">
+              <small>定价</small>
+              <ChipLink flat active={!current.price} href={buildSearchHref(current, { price: undefined })}>
+                全部
+              </ChipLink>
+              {PRICES.map((p) => (
+                <ChipLink flat key={p} active={current.price === p} href={buildSearchHref(current, { price: current.price === p ? undefined : p })}>
+                  {pricingLabels[p]}
+                </ChipLink>
+              ))}
+            </div>
+          </div>
+
+          {(current.q || tag || current.platform) && (
             <div className={styles.pills}>
               <small>已筛选</small>
               {current.q && <ChipLink href={buildSearchHref(current, { q: undefined })}>关键词：{current.q} ×</ChipLink>}
               {tag && <ChipLink href={buildSearchHref(current, { tag: undefined })}>标签：{tag.name} ×</ChipLink>}
+              {current.platform && <ChipLink href={buildSearchHref(current, { platform: undefined })}>平台：{platformLabels[current.platform]} ×</ChipLink>}
             </div>
           )}
 
@@ -73,9 +101,9 @@ async function Results({ searchParams }: { searchParams: SP }) {
               </EmptyState>
             </div>
           ) : (
-            <div className={styles.grid2}>
+            <div className={styles.gridList}>
               {items.map((r) => (
-                <ResourceCard key={r.id} r={r} />
+                <ResourceCard key={r.id} r={r} hideCategory={Boolean(cat)} />
               ))}
             </div>
           )}

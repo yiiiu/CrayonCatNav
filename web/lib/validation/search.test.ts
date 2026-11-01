@@ -3,13 +3,24 @@ import { buildSearchHref, parsePublicSearch, suggestSlug } from "./search";
 
 describe("parsePublicSearch", () => {
   it("丢弃非法参数", () => {
-    expect(parsePublicSearch({ q: "  mcp ", cat: "Bad Slug", tag: "stdio", page: "-3" })).toEqual({ q: "mcp", cat: undefined, tag: "stdio", page: 1 });
+    expect(parsePublicSearch({ q: "  mcp ", cat: "Bad Slug", tag: "stdio", page: "-3" })).toEqual({ q: "mcp", cat: undefined, tag: "stdio", sort: undefined, price: undefined, platform: undefined, page: 1 });
   });
   it("数组取首个、页码上限", () => {
     expect(parsePublicSearch({ cat: ["mcp", "x"], page: "9999" })).toMatchObject({ cat: "mcp", page: 1 });
   });
   it("关键词截断到 50 字", () => {
     expect(parsePublicSearch({ q: "a".repeat(80) }).q).toHaveLength(50);
+  });
+});
+
+describe("排序与筛选参数", () => {
+  it("只接受白名单值", () => {
+    expect(parsePublicSearch({ sort: "hot", price: "free", platform: "cli" })).toMatchObject({ sort: "hot", price: "free", platform: "cli" });
+    expect(parsePublicSearch({ sort: "views", price: "unknown", platform: "dos" })).toMatchObject({ sort: undefined, price: undefined, platform: undefined });
+  });
+  it("链接保留排序与筛选，改动回到第 1 页", () => {
+    expect(buildSearchHref({ cat: "mcp", sort: "new", page: 2 }, { price: "paid" })).toBe("/resources?cat=mcp&sort=new&price=paid");
+    expect(buildSearchHref({ sort: "hot", platform: "cli" }, { sort: undefined })).toBe("/resources?platform=cli");
   });
 });
 

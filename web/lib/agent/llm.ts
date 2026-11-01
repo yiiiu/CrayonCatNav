@@ -124,7 +124,7 @@ export function buildUserPrompt(raw: RawCandidate, ctx: PromptContext): string {
     ...ctx.tools.map((t) => `${t.slug}: ${t.name}——${t.description}`),
     "",
     "【输出 JSON 字段】",
-    `{"name": "产品名（保留原名，可加中文说明不超过 80 字）", "slug": "小写英文-连字符", "summary": "中文一句话", "description": "中文多段", "categorySlug": "...", "tags": ["现有标签"], "suggestedTags": [], "websiteUrl": "... 或 null", "githubUrl": "... 或 null", "pricingType": "unknown", "toolSlugs": [], "highlights": ["核心功能"], "useCases": ["适合谁/场景"], "quickstart": "", "platforms": [], "pricingNote": "", "reason": "中文推荐理由", "confidence": 0.0}`,
+    `{"name": "产品原名，不要加括号或破折号说明（说明写进 summary）", "slug": "小写英文-连字符", "summary": "中文一句话", "description": "中文多段", "categorySlug": "...", "tags": ["现有标签"], "suggestedTags": [], "websiteUrl": "... 或 null", "githubUrl": "... 或 null", "pricingType": "unknown", "toolSlugs": [], "highlights": ["核心功能"], "useCases": ["适合谁/场景"], "quickstart": "", "platforms": [], "pricingNote": "", "reason": "中文推荐理由", "confidence": 0.0}`,
   ];
   return lines.join("\n");
 }

@@ -2,7 +2,8 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import type { Prisma, ResourceStatus } from "@/generated/prisma/client";
 import { cacheTags } from "@/lib/cache/tags";
-import type { ResourceDetails } from "@/lib/validation/resource-details";
+import type { Platform, ResourceDetails } from "@/lib/validation/resource-details";
+import type { Price, Sort } from "@/lib/validation/search";
 import { prisma } from "./prisma";
 
 /** 所有公共查询必须经过此条件，从仓储层杜绝草稿泄漏。 */
@@ -19,11 +20,13 @@ export type ResourceCardData = Prisma.ResourceGetPayload<{ include: typeof cardI
 
 /* ---------- 公共读取（带缓存） ---------- */
 
-export type PublicSearch = { q?: string; cat?: string; tag?: string; page: number };
+export type PublicSearch = { q?: string; cat?: string; tag?: string; sort?: Sort; price?: Price; platform?: Platform; page: number };
 
-function publicWhere({ q, cat, tag }: Omit<PublicSearch, "page">): Prisma.ResourceWhereInput {
+function publicWhere({ q, cat, tag, price, platform }: Omit<PublicSearch, "page" | "sort">): Prisma.ResourceWhereInput {
   const and: Prisma.ResourceWhereInput[] = [publishedOnly];
   if (cat) and.push({ category: { slug: cat } });
+  if (price) and.push({ pricingType: price });
+  if (platform) and.push({ details: { path: ["platforms"], array_contains: [platform] } });
   if (tag) and.push({ tags: { some: { tag: { slug: tag } } } });
   if (q) {
     and.push({
@@ -37,18 +40,42 @@ function publicWhere({ q, cat, tag }: Omit<PublicSearch, "page">): Prisma.Resour
   return { AND: and };
 }
 
+const recommendedOrder = [{ featuredOrder: { sort: "asc", nulls: "last" } }, { updatedAt: "desc" }] satisfies Prisma.ResourceOrderByWithRelationInput[];
+
+/** 热门统计窗口：近 30 天详情页浏览。 */
+const HOT_DAYS = 30;
+
 export async function searchPublished(params: PublicSearch) {
   "use cache";
   cacheLife("hours");
   cacheTag(cacheTags.resources);
   const where = publicWhere(params);
+  const skip = (params.page - 1) * PAGE_SIZE;
+
+  if (params.sort === "hot") {
+    // 资源量小（百级），先取全部命中 id 再按浏览量排序分页，避免写原生 SQL
+    const all = await prisma.resource.findMany({ where, select: { id: true }, orderBy: recommendedOrder });
+    const since = new Date(Date.now() - HOT_DAYS * 86_400_000);
+    const views = await prisma.dailyMetric.groupBy({
+      by: ["resourceId"],
+      where: { eventType: "resource_view", date: { gte: since }, resourceId: { in: all.map((r) => r.id) } },
+      _sum: { count: true },
+    });
+    const score = new Map(views.map((v) => [v.resourceId, v._sum.count ?? 0]));
+    // sort 稳定：同浏览量保持推荐顺序
+    const ids = all.map((r) => r.id).sort((a, b) => (score.get(b) ?? 0) - (score.get(a) ?? 0)).slice(skip, skip + PAGE_SIZE);
+    const rows = await prisma.resource.findMany({ where: { id: { in: ids } }, include: cardInclude });
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    return { total: all.length, items: ids.flatMap((id) => byId.get(id) ?? []), pageSize: PAGE_SIZE };
+  }
+
   const [total, items] = await Promise.all([
     prisma.resource.count({ where }),
     prisma.resource.findMany({
       where,
       include: cardInclude,
-      orderBy: [{ featuredOrder: { sort: "asc", nulls: "last" } }, { updatedAt: "desc" }],
-      skip: (params.page - 1) * PAGE_SIZE,
+      orderBy: params.sort === "new" ? [{ createdAt: "desc" }] : recommendedOrder,
+      skip,
       take: PAGE_SIZE,
     }),
   ]);

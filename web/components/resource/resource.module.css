@@ -5,6 +5,10 @@
 .heroSearch { max-width: 640px; margin: 28px auto 0; text-align: left; }
 
 .tiles, .cards, .tools, .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; margin-top: 16px; }
+.gridList { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 22px; margin-top: 20px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px 28px; margin-top: 16px; align-items: center; }
+.seg { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg small { font-size: 13px; font-weight: 800; color: var(--ink-2); margin-right: 2px; }
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; margin-top: 20px; }
 
 .tile { display: flex; align-items: center; gap: 14px; padding: 18px; box-shadow: 4px 5px 0 var(--shade); }
@@ -16,7 +20,7 @@
 .cardLink > div { height: 100%; }
 .cardTop { display: flex; align-items: center; gap: 12px; }
 .cardTop b { font-size: var(--fs-lg); font-weight: 900; overflow-wrap: anywhere; }
-.cardSummary { margin: 12px 0 0; font-size: var(--fs-sm); line-height: 1.6; color: var(--ink-2); }
+.cardSummary { margin: 12px 0 0; font-size: var(--fs-sm); line-height: 1.6; color: var(--ink-2); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: center; }
 .linkline { display: flex; gap: 14px; margin-top: 12px; font-size: 13px; font-weight: 800; color: #2b5fae; }
 

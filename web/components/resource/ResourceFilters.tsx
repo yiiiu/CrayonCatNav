@@ -1,17 +1,18 @@
 import Link from "next/link";
 import { ButtonLink, Card, ChipLink } from "@/components/ui";
-import { buildSearchHref } from "@/lib/validation/search";
+import { platformLabels, platforms } from "@/lib/validation/resource-details";
+import { buildSearchHref, type PublicSearchParams } from "@/lib/validation/search";
 import styles from "./resource.module.css";
 
 type Props = {
-  current: { q?: string; cat?: string; tag?: string };
+  current: PublicSearchParams;
   categories: { slug: string; name: string; _count: { resources: number } }[];
   tags: { slug: string; name: string }[];
 };
 
 /** 侧栏筛选：全部用链接实现，URL 即状态、可分享、无需 JS。 */
 export function ResourceFilters({ current, categories, tags }: Props) {
-  const hasFilter = Boolean(current.q || current.cat || current.tag);
+  const hasFilter = Boolean(current.q || current.cat || current.tag || current.sort || current.price || current.platform);
   return (
     <Card className={styles.side}>
       <nav aria-labelledby="f-cat">
@@ -32,6 +33,19 @@ export function ResourceFilters({ current, categories, tags }: Props) {
           ))}
         </ul>
       </nav>
+      <div>
+        <h2>平台</h2>
+        <div className={styles.tagwrap}>
+          {platforms.map((p) => {
+            const on = current.platform === p;
+            return (
+              <ChipLink key={p} active={on} href={buildSearchHref(current, { platform: on ? undefined : p })}>
+                {platformLabels[p]}
+              </ChipLink>
+            );
+          })}
+        </div>
+      </div>
       {tags.length > 0 && (
         <div>
           <h2>标签</h2>
