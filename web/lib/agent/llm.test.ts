@@ -80,6 +80,11 @@ describe("buildUserPrompt", () => {
     expect(p).toContain("输出 skip");
     expect(SYSTEM_PROMPT).toContain("本次目标分类");
   });
+
+  it("收录范围以分类为准，不因与 AI 无关而跳过", () => {
+    expect(SYSTEM_PROMPT).toContain("不要因为与 AI 无关而跳过");
+    expect(SYSTEM_PROMPT).toContain("和所有分类都不搭");
+  });
   it("贴链接整理（无目标分类）时不出现目标分类段落", () => {
     expect(buildUserPrompt(raw, { categories, tagNames: [], tools: [] })).not.toContain("本次目标分类");
     expect(buildUserPrompt(raw, { categories, target: null, tagNames: [], tools: [] })).not.toContain("本次目标分类");

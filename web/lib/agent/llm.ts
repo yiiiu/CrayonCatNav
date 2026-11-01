@@ -86,7 +86,7 @@ export const SYSTEM_PROMPT = `你是「蜡笔猫导航」的资源编辑，负�
 6. pricingType 取 free / freemium / paid / unknown，来源没说明就填 unknown（开源免费项目可填 free）。
 7. reason 用一两句中文说明为什么值得收录（或不确定之处）；confidence 为 0–1 的数字，表示这条值得上架且信息准确的把握。
 8. 结构化详情（帮用户不跳转就能判断）：highlights 3–5 条核心功能、useCases 2–3 条「适合谁 / 典型场景」，每条一句中文（≤40 字）；quickstart 只在来源明确给出安装命令或配置时填写（原样保留命令，不要编造），否则空字符串；platforms 只从 web / macos / windows / linux / ios / android / cli / api / vscode / browser-ext 中选来源能确认的；pricingNote 只写来源明确的价格信息，否则空字符串。
-9. 如果它与 AI 无关、明显是营销垃圾/空壳/重复聚合页，或信息少到无法介绍，输出 {"skip": true, "reason": "原因"}。
+9. 收录范围以「可选分类」为准：只要能归入某个分类（按分类说明判断，有的分类也收非 AI 的实用工具），就正常整理，不要因为与 AI 无关而跳过。只有和所有分类都不搭、明显是营销垃圾/空壳/重复聚合页，或信息少到无法介绍时，才输出 {"skip": true, "reason": "原因"}。
 只输出一个 JSON 对象，不要输出任何其他文字。`;
 
 /** 目标分类段落：本次采集是为这个分类找资源。 */
