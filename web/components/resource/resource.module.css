@@ -143,7 +143,7 @@
   border: var(--stroke) solid var(--ink);
   border-radius: var(--wob-blob);
 }
-.logo img { width: 70%; height: 70%; object-fit: contain; }
+.logo img { width: 70%; height: 70%; object-fit: contain; border-radius: 24%; }
 .logoLg { width: 60px; height: 60px; }
 
 /* 侧栏「展开更多标签」 */
