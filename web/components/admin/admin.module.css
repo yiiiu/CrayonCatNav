@@ -210,3 +210,7 @@
 .enrichBtn { min-height: 40px; padding: 0 16px; font: 800 14px var(--font); color: var(--ink); background: var(--tint); border: 2px solid var(--ink); border-radius: var(--wob2); box-shadow: var(--shadow-sm); cursor: pointer; }
 .enrichBtn:disabled { opacity: 0.6; cursor: progress; }
 .aiBadge { display: inline-block; margin-left: 8px; padding: 1px 8px; font-size: 12px; font-weight: 800; color: #7a4b00; background: #ffe9b8; border: 2px solid var(--ink); border-radius: var(--wob2); vertical-align: middle; }
+
+/* 合并标签 */
+.mergeRow { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; gap: 8px; align-items: center; margin-bottom: 12px; }
+.mergeRow > p { grid-column: 1 / -1; margin: 0; }

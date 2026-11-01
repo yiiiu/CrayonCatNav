@@ -59,4 +59,20 @@ export const tagRepo = {
   update: (id: string, data: { name: string; slug: string; aliases?: string[] }) => prisma.tag.update({ where: { id }, data }),
   allForVocab: () => prisma.tag.findMany({ select: { id: true, name: true, aliases: true } }),
   delete: (id: string) => prisma.tag.delete({ where: { id } }),
+  findById: (id: string) => prisma.tag.findUnique({ where: { id } }),
+  /**
+   * 合并标签：来源标签的资源转到目标标签（已有的跳过），待定词改指向目标，
+   * 目标别名写入 aliases，最后删除来源标签。返回受影响资源的 slug（刷新缓存用）。
+   */
+  merge: (sourceId: string, targetId: string, aliases: string[]) =>
+    prisma.$transaction(async (tx) => {
+      const links = await tx.resourceTag.findMany({ where: { tagId: sourceId }, select: { resourceId: true, resource: { select: { slug: true } } } });
+      if (links.length > 0) {
+        await tx.resourceTag.createMany({ data: links.map((l) => ({ resourceId: l.resourceId, tagId: targetId })), skipDuplicates: true });
+      }
+      await tx.tagSuggestion.updateMany({ where: { tagId: sourceId }, data: { tagId: targetId } });
+      await tx.tag.delete({ where: { id: sourceId } });
+      await tx.tag.update({ where: { id: targetId }, data: { aliases } });
+      return links.map((l) => l.resource.slug);
+    }),
 };

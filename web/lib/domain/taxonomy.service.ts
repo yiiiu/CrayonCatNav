@@ -39,3 +39,26 @@ export async function saveTag(id: string | null, raw: unknown) {
 
 /** 删除标签会同时解除它与资源的关联（级联）。 */
 export const removeTag = (id: string) => tagRepo.delete(id);
+
+/** 合并后的别名：目标原别名 + 来源名称与别名，去重（忽略大小写），不含目标自身名称。 */
+export function mergedAliases(target: { name: string; aliases: string[] }, source: { name: string; aliases: string[] }): string[] {
+  const out: string[] = [];
+  const seen = new Set([target.name.toLowerCase()]);
+  for (const a of [...target.aliases, source.name, ...source.aliases]) {
+    const k = a.trim().toLowerCase();
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    out.push(a.trim());
+  }
+  return out;
+}
+
+/** 把来源标签合并进目标标签：资源转移、来源名称变成目标的别名、来源删除。 */
+export async function mergeTag(sourceId: string, targetId: string) {
+  if (!sourceId || !targetId) throw new DomainError("请选择要合并的两个标签");
+  if (sourceId === targetId) throw new DomainError("不能合并到自己");
+  const [source, target] = await Promise.all([tagRepo.findById(sourceId), tagRepo.findById(targetId)]);
+  if (!source || !target) throw new DomainError("标签不存在，可能已被删除");
+  const slugs = await tagRepo.merge(source.id, target.id, mergedAliases(target, source));
+  return { source: source.name, target: target.name, slugs };
+}

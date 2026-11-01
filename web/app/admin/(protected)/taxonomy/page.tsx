@@ -1,9 +1,10 @@
 import { AdminTop } from "@/components/admin/AdminTop";
 import styles from "@/components/admin/admin.module.css";
+import { TagMerge } from "@/components/admin/TagMerge";
 import { TaxonomyRow } from "@/components/admin/TaxonomyRow";
 import { Card, ScrollArea } from "@/components/ui";
 import { adminListCategories, adminListTags } from "@/lib/data/taxonomy.repo";
-import { deleteCategoryAction, deleteTagAction, saveCategoryAction, saveTagAction } from "../actions";
+import { deleteCategoryAction, deleteTagAction, mergeTagAction, saveCategoryAction, saveTagAction } from "../actions";
 
 export const metadata = { title: "分类标签" };
 
@@ -37,8 +38,13 @@ export default async function TaxonomyPage() {
         <Card className={styles.fill} style={{ transform: "rotate(0.3deg)" }}>
           <h2 className={styles.cardTitle}>标签（共 {tags.length} 个）</h2>
           <p className={styles.hint} style={{ marginBottom: 12 }}>
-            名称 · slug · 别名。别名会让模型和审核时写的近义词自动映射到该标签。模型建议的新词在「待定标签」里处理。
+            名称 · slug · 别名。别名会让模型和审核时写的近义词自动映射到该标签。重复的标签用下面的「合并」处理。模型建议的新词在「待定标签」里处理。
           </p>
+          <TagMerge
+            key={`merge-${tags.length}`}
+            merge={mergeTagAction}
+            tags={tags.map((t) => ({ id: t.id, name: t.name, slug: t.slug, usage: t._count.resources }))}
+          />
           <div style={{ marginBottom: 12 }}>
             <TaxonomyRow key={`new-tag-${tags.length}`} kind="tag" save={saveTagAction.bind(null, null)} />
           </div>

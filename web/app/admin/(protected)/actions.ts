@@ -17,7 +17,7 @@ import { setFeatured } from "@/lib/domain/featured.service";
 import { changeStatus, removeResource, saveResource, validateResource } from "@/lib/domain/resource.service";
 import { type ActionResult, fromDomainError, fromZodError } from "@/lib/domain/result";
 import { acceptSuggestion, ignoreSuggestionById, mergeSuggestion } from "@/lib/domain/tag-suggestion.service";
-import { removeCategory, removeTag, saveCategory, saveTag } from "@/lib/domain/taxonomy.service";
+import { mergeTag, removeCategory, removeTag, saveCategory, saveTag } from "@/lib/domain/taxonomy.service";
 import { agentSettingsFromForm, collectLinkSchema } from "@/lib/validation/agent";
 import { candidateReviewFromForm } from "@/lib/validation/candidate";
 import { collectConfigFromForm } from "@/lib/validation/collect-config";
@@ -116,6 +116,18 @@ export async function deleteTagAction(id: string, _prev: ActionResult): Promise<
   updateTag(cacheTags.taxonomy);
   updateTag(cacheTags.resources);
   return { ok: true };
+}
+
+export async function mergeTagAction(_prev: ActionResult, fd: FormData): Promise<ActionResult> {
+  await requireAdmin();
+  try {
+    const r = await mergeTag(String(fd.get("source") ?? ""), String(fd.get("target") ?? ""));
+    touchResources(...r.slugs);
+    updateTag(cacheTags.taxonomy);
+    return { ok: true, message: `已把「${r.source}」合并到「${r.target}」，${r.slugs.length} 个资源已转移` };
+  } catch (e) {
+    return fromDomainError(e);
+  }
 }
 
 /* ---------- 精选 ---------- */
