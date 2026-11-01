@@ -31,7 +31,7 @@ async function Results({ searchParams }: { searchParams: SP }) {
   const current = parsePublicSearch(await searchParams);
   const [categories, tags, { total, items, pageSize }] = await Promise.all([
     listCategoriesWithCounts(),
-    listUsedTags(),
+    listUsedTags(60, current.cat),
     searchPublished(current),
   ]);
   const cat = categories.find((c) => c.slug === current.cat);

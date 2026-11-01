@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cardTags, splitName } from "./display";
+import { cardTags, logoCandidates, splitName, splitTags } from "./display";
 
 describe("splitName", () => {
   it("拆末尾全角括号说明", () => {
@@ -25,5 +25,25 @@ describe("cardTags", () => {
   });
   it("可调整上限", () => {
     expect(cardTags([t("a"), t("b"), t("c")], "x", 2)).toHaveLength(2);
+  });
+});
+
+describe("logoCandidates", () => {
+  it("按图标、GitHub 头像、官网 favicon 顺序", () => {
+    expect(
+      logoCandidates({ iconUrl: "https://cdn.x/icon.png", githubUrl: "https://github.com/anthropics/claude-code", websiteUrl: "https://claude.com/product" }),
+    ).toEqual(["https://cdn.x/icon.png", "https://avatars.githubusercontent.com/anthropics?s=96", "https://claude.com/favicon.ico"]);
+  });
+  it("忽略非 https 与 github 官网", () => {
+    expect(logoCandidates({ iconUrl: "http://x/i.png", websiteUrl: "https://github.com/a/b" })).toEqual([]);
+  });
+});
+
+describe("splitTags", () => {
+  const t = (slug: string) => ({ slug });
+  it("超出上限收进 more，选中的提到可见区", () => {
+    const r = splitTags([t("a"), t("b"), t("c"), t("d")], "d", 2);
+    expect(r.shown.map((x) => x.slug)).toEqual(["a", "b", "d"]);
+    expect(r.more.map((x) => x.slug)).toEqual(["c"]);
   });
 });

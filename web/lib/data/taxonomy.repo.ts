@@ -17,13 +17,15 @@ export async function listCategoriesWithCounts() {
 }
 
 /** 仅返回至少挂了一个已发布资源的标签，按使用量排序。 */
-export async function listUsedTags(limit = 24) {
+/** 已发布资源用到的标签，按使用次数排序；传分类时只统计该分类内的资源。 */
+export async function listUsedTags(limit = 60, cat?: string) {
   "use cache";
   cacheLife("hours");
   cacheTag(cacheTags.taxonomy, cacheTags.resources);
+  const scope = cat ? { ...publishedOnly, category: { slug: cat } } : publishedOnly;
   const tags = await prisma.tag.findMany({
-    where: { resources: { some: { resource: publishedOnly } } },
-    include: { _count: { select: { resources: { where: { resource: publishedOnly } } } } },
+    where: { resources: { some: { resource: scope } } },
+    include: { _count: { select: { resources: { where: { resource: scope } } } } },
   });
   return tags.toSorted((a, b) => b._count.resources - a._count.resources || a.name.localeCompare(b.name, "zh")).slice(0, limit);
 }

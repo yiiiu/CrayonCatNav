@@ -34,3 +34,35 @@ export function cardTags<T extends { id: string; name: string }>(tags: readonly 
   }
   return out;
 }
+
+/**
+ * 资源 Logo 候选地址，按顺序尝试：后台填的图标 → GitHub 组织/作者头像 → 官网 favicon。
+ * 只用 https；全部失败时由组件回退到首字母色块。
+ */
+export function logoCandidates(r: { iconUrl?: string | null; githubUrl?: string | null; websiteUrl?: string | null }): string[] {
+  const out: string[] = [];
+  const add = (u: string) => {
+    if (!out.includes(u)) out.push(u);
+  };
+  if (r.iconUrl?.startsWith("https://")) add(r.iconUrl);
+  const owner = r.githubUrl?.match(/^https:\/\/github\.com\/([A-Za-z0-9-]+)/)?.[1];
+  if (owner) add(`https://avatars.githubusercontent.com/${owner}?s=96`);
+  if (r.websiteUrl?.startsWith("https://")) {
+    try {
+      const u = new URL(r.websiteUrl);
+      if (u.hostname !== "github.com") add(`${u.origin}/favicon.ico`);
+    } catch {
+      /* 非法链接跳过 */
+    }
+  }
+  return out;
+}
+
+/** 侧栏标签：最多显示 limit 个，当前选中的标签总在可见区。 */
+export function splitTags<T extends { slug: string }>(tags: readonly T[], active: string | undefined, limit = 12): { shown: T[]; more: T[] } {
+  const shown = tags.slice(0, limit);
+  const more = tags.slice(limit);
+  const i = more.findIndex((t) => t.slug === active);
+  if (i >= 0) shown.push(...more.splice(i, 1));
+  return { shown, more };
+}

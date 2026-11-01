@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { splitName } from "@/lib/resource/display";
+import { ResourceLogo } from "@/components/resource/ResourceLogo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { QuickStart } from "@/components/resource/QuickStart";
 import { RelatedToolCTA } from "@/components/resource/RelatedToolCTA";
 import { ResourceViewTracker } from "@/components/resource/ResourceViewTracker";
 import styles from "@/components/resource/resource.module.css";
-import { Breadcrumb, Card, Chip, ExternalButton, Mono, SectionHead } from "@/components/ui";
+import { Breadcrumb, Card, Chip, ExternalButton, SectionHead } from "@/components/ui";
 import { findPublishedBySlug, listPublishedSlugs, listRelatedPublished } from "@/lib/data/resource.repo";
 import { slugSchema } from "@/lib/validation/common";
 import { pricingLabels } from "@/lib/validation/resource";
@@ -68,7 +69,7 @@ export default async function ResourceDetailPage({ params }: Props) {
       />
 
       <Card className={`${styles.titlecard} ${r.previewImageUrl ? styles.withPreview : ""}`}>
-        <Mono name={splitName(r.name).title} accentKey={r.category.slug + r.slug} size="lg" />
+        <ResourceLogo name={splitName(r.name).title} accentKey={r.category.slug + r.slug} iconUrl={r.iconUrl} githubUrl={r.githubUrl} websiteUrl={r.websiteUrl} size="lg" />
         <div className={styles.tbody}>
           <h1>{splitName(r.name).title}</h1>
           <p>{r.summary}</p>
@@ -193,9 +194,9 @@ export default async function ResourceDetailPage({ params }: Props) {
             {related.map((x) => (
               <Link key={x.id} href={`/resources/${x.slug}`}>
                 <Card interactive className={styles.mini}>
-                  <Mono name={x.name} accentKey={x.category.slug + x.slug} />
+                  <ResourceLogo name={splitName(x.name).title} accentKey={x.category.slug + x.slug} iconUrl={x.iconUrl} githubUrl={x.githubUrl} websiteUrl={x.websiteUrl} />
                   <span>
-                    <b>{x.name}</b>
+                    <b>{splitName(x.name).title}</b>
                     <small>{x.category.name}</small>
                   </span>
                 </Card>

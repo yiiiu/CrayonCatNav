@@ -130,3 +130,24 @@
   .facts { position: static; order: -1; }
   .preview { flex-basis: 100%; }
 }
+
+/* ---------- 资源 Logo ---------- */
+.logo {
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #fff;
+  border: var(--stroke) solid var(--ink);
+  border-radius: var(--wob-blob);
+}
+.logo img { width: 70%; height: 70%; object-fit: contain; }
+.logoLg { width: 60px; height: 60px; }
+
+/* 侧栏「展开更多标签」 */
+.more { margin-top: 8px; }
+.more summary { cursor: pointer; font-size: 13px; font-weight: 800; color: #2b5fae; list-style: none; }
+.more summary::-webkit-details-marker { display: none; }
+.more[open] summary { margin-bottom: 8px; }

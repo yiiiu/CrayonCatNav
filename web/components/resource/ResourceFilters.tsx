@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ButtonLink, Card, ChipLink } from "@/components/ui";
+import { splitTags } from "@/lib/resource/display";
 import { platformLabels, platforms } from "@/lib/validation/resource-details";
 import { buildSearchHref, type PublicSearchParams } from "@/lib/validation/search";
 import styles from "./resource.module.css";
@@ -12,6 +13,15 @@ type Props = {
 
 /** 侧栏筛选：全部用链接实现，URL 即状态、可分享、无需 JS。 */
 export function ResourceFilters({ current, categories, tags }: Props) {
+  const { shown, more } = splitTags(tags, current.tag, 12);
+  const tagChip = (t: { slug: string; name: string }) => {
+    const on = current.tag === t.slug;
+    return (
+      <ChipLink key={t.slug} active={on} href={buildSearchHref(current, { tag: on ? undefined : t.slug })}>
+        {t.name}
+      </ChipLink>
+    );
+  };
   const hasFilter = Boolean(current.q || current.cat || current.tag || current.sort || current.price || current.platform);
   return (
     <Card className={styles.side}>
@@ -49,16 +59,13 @@ export function ResourceFilters({ current, categories, tags }: Props) {
       {tags.length > 0 && (
         <div>
           <h2>标签</h2>
-          <div className={styles.tagwrap}>
-            {tags.map((t) => {
-              const on = current.tag === t.slug;
-              return (
-                <ChipLink key={t.slug} active={on} href={buildSearchHref(current, { tag: on ? undefined : t.slug })}>
-                  {t.name}
-                </ChipLink>
-              );
-            })}
-          </div>
+          <div className={styles.tagwrap}>{shown.map(tagChip)}</div>
+          {more.length > 0 && (
+            <details className={styles.more}>
+              <summary>展开更多（{more.length}）</summary>
+              <div className={styles.tagwrap}>{more.map(tagChip)}</div>
+            </details>
+          )}
         </div>
       )}
       {hasFilter && <ButtonLink href="/resources">清空筛选</ButtonLink>}

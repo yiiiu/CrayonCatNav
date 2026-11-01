@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Card, Chip, Mono } from "@/components/ui";
+import { Card, Chip } from "@/components/ui";
 import { cardTags, splitName } from "@/lib/resource/display";
+import { ResourceLogo } from "./ResourceLogo";
 import styles from "./resource.module.css";
 
 /** 卡片需要的最少字段（列表页传完整记录，推荐结果传精简对象）。 */
@@ -10,6 +11,7 @@ export type ResourceCardView = {
   summary: string;
   websiteUrl: string | null;
   githubUrl: string | null;
+  iconUrl?: string | null;
   category: { slug: string; name: string };
   tags: { tag: { id: string; name: string } }[];
 };
@@ -26,7 +28,7 @@ export function ResourceCard({ r, hideCategory = false }: { r: ResourceCardView;
     <Link href={`/resources/${r.slug}`} className={styles.cardLink}>
       <Card interactive>
         <div className={styles.cardTop}>
-          <Mono name={title} accentKey={r.category.slug + r.slug} />
+          <ResourceLogo name={title} accentKey={r.category.slug + r.slug} iconUrl={r.iconUrl} githubUrl={r.githubUrl} websiteUrl={r.websiteUrl} />
           <b title={title === r.name ? undefined : r.name}>{title}</b>
         </div>
         <p className={styles.cardSummary}>{r.summary}</p>
