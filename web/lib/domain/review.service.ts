@@ -81,7 +81,7 @@ async function askModel(chat: ChatConfig, prompt: string): Promise<ReviewModelRe
     { role: "user", content: prompt },
   ];
   for (let attempt = 0; attempt < 2; attempt++) {
-    const r = await trackedChat("review", chat, messages, { json: true, maxTokens: 1500, timeoutMs: LLM_TIMEOUT_MS });
+    const r = await trackedChat("review", chat, messages, { json: true, maxTokens: 3000, timeoutMs: LLM_TIMEOUT_MS });
     let parsed: ReviewModelResult | null = null;
     try {
       parsed = parseReviewOutput(extractJson(r.content));

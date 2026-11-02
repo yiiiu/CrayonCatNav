@@ -45,6 +45,23 @@ describe("runRules", () => {
 });
 
 describe("parseReviewOutput", () => {
+  it("宽松解析：null 字段、超长、字符串标签、中文结论都不算失败", () => {
+    const r = parseReviewOutput({
+      verdict: "通过",
+      score: "88",
+      reason: "好".repeat(400),
+      issues: ["描述略夸张", { field: "tags", problem: "" }, null],
+      fixes: { summary: null, description: "", tags: "本地运行、开源", pricingType: "收费", highlights: [1, "亮点"] },
+    });
+    expect(r).not.toBeNull();
+    expect(r!.verdict).toBe("approve");
+    expect(r!.reason.length).toBe(300);
+    expect(r!.issues).toEqual([{ field: "", problem: "描述略夸张", fix: "" }]);
+    expect(JSON.parse(JSON.stringify(r!.fixes))).toEqual({ tags: ["本地运行", "开源"], highlights: ["亮点"] });
+  });
+  it("缺 fixes/issues 也能解析", () => {
+    expect(JSON.parse(JSON.stringify(parseReviewOutput({ verdict: "unsure", score: 50, fixes: null })?.fixes))).toEqual({});
+  });
   it("解析合法输出并丢弃不允许改的字段", () => {
     const r = parseReviewOutput({ verdict: "approve", score: "86.4", reason: "好", fixes: { name: "改名", websiteUrl: "https://x", summary: "新简介，长度足够的一句话" } });
     expect(r?.score).toBe(86);

@@ -1,5 +1,5 @@
 import "server-only";
-import { collectScheduleLabel, nextCollectRun } from "@/lib/agent/cron-schedule";
+import { collectScheduleLabel, nextCollectRun, reviewScheduleLabel } from "@/lib/agent/cron-schedule";
 import { decryptSecret, encryptSecret, keySource, last4 } from "@/lib/agent/crypto";
 import { chat, LlmError, type ChatConfig } from "@/lib/agent/llm";
 import { budgetEnforced, costOf, modelPurposes } from "@/lib/agent/budget";
@@ -25,10 +25,12 @@ export async function getSettingsView() {
     srcProductHunt: s.srcProductHunt,
     cron: {
       enabled: s.cronEnabled,
+      timesPerDay: s.cronTimesPerDay,
+      reviewSchedule: reviewScheduleLabel(s.cronTimesPerDay),
       /** 没配 CRON_SECRET 时接口直接拒绝，开关打开也不会跑 */
       secretConfigured: !!process.env.CRON_SECRET,
-      schedule: collectScheduleLabel(),
-      nextRunAt: nextCollectRun().toISOString(),
+      schedule: collectScheduleLabel(s.cronTimesPerDay),
+      nextRunAt: nextCollectRun(s.cronTimesPerDay).toISOString(),
     },
     budget: {
       priceInputPerM: s.priceInputPerM,
@@ -81,6 +83,7 @@ export async function saveSettings(raw: unknown) {
     model: v.model,
     maxPerRun: v.maxPerRun,
     cronEnabled: v.cronEnabled,
+    cronTimesPerDay: v.cronTimesPerDay,
     srcMcpRegistry: v.srcMcpRegistry,
     srcGithub: v.srcGithub,
     srcAwesome: v.srcAwesome,

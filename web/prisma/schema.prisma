@@ -202,6 +202,8 @@ model AgentSetting {
   maxPerRun        Int       @default(8)
   /// 定时采集开关（时间写死在 vercel.json）
   cronEnabled      Boolean   @default(true)
+  /// 定时采集与审核每天几次（1–4），对应 vercel.json 的 4 个时段
+  cronTimesPerDay  Int       @default(1)
   srcMcpRegistry   Boolean   @default(true)
   srcGithub        Boolean   @default(true)
   srcAwesome       Boolean   @default(true)

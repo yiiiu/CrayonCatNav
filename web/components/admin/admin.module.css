@@ -214,3 +214,5 @@
 /* 合并标签 */
 .mergeRow { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; gap: 8px; align-items: center; margin-bottom: 12px; }
 .mergeRow > p { grid-column: 1 / -1; margin: 0; }
+
+.aiBadge.aiPub { color: #1d5b2c; background: #d9f2dc; }

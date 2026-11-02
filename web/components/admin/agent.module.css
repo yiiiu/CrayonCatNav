@@ -156,3 +156,6 @@ details[open] > .catHead .catName::before { transform: rotate(90deg); }
 
 /* 「采纳 AI 建议」：沿用 ui Button 外形，绿色区分 AI 建议上架 */
 .adopt { background: #d9f2df; color: #1f5a30; }
+
+.timesRow { display: flex; align-items: center; gap: 10px; margin: 8px 0 4px; font-weight: 700; }
+.timesRow > :last-child { width: 220px; }

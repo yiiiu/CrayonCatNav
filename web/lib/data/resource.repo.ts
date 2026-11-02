@@ -180,11 +180,12 @@ export async function listPublishedSlugs(limit?: number) {
 
 /* ---------- 后台读写（不缓存） ---------- */
 
-export type AdminSearch = { q?: string; cat?: string; status?: ResourceStatus; page: number; aiReview?: boolean };
+export type AdminSearch = { q?: string; cat?: string; status?: ResourceStatus; page: number; aiReview?: boolean; /** 只看审核 Agent 自动上架的 */ aiPublished?: boolean };
 
-export async function adminSearch({ q, cat, status, page, aiReview }: AdminSearch) {
+export async function adminSearch({ q, cat, status, page, aiReview, aiPublished }: AdminSearch) {
   const where: Prisma.ResourceWhereInput = {
     ...(aiReview ? { aiReview: true } : {}),
+    ...(aiPublished ? { candidates: { some: { reviewedBy: "ai" } } } : {}),
     ...(status ? { status } : {}),
     ...(cat ? { category: { slug: cat } } : {}),
     ...(q
@@ -201,7 +202,7 @@ export async function adminSearch({ q, cat, status, page, aiReview }: AdminSearc
     prisma.resource.count({ where }),
     prisma.resource.findMany({
       where,
-      include: cardInclude,
+      include: { ...cardInclude, candidates: { where: { reviewedBy: "ai" }, select: { id: true }, take: 1 } },
       orderBy: { updatedAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,

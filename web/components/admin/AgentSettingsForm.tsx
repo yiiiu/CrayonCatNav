@@ -17,7 +17,7 @@ export type AgentSettingsValues = {
   srcAwesome: boolean;
   srcHuggingface: boolean;
   srcProductHunt: boolean;
-  cron: { enabled: boolean; secretConfigured: boolean; schedule: string; nextRunAt: string };
+  cron: { enabled: boolean; timesPerDay: number; secretConfigured: boolean; schedule: string; reviewSchedule: string; nextRunAt: string };
   budget: {
     priceInputPerM: number;
     priceOutputPerM: number;
@@ -106,7 +106,7 @@ export function AgentSettingsForm({ action, initial }: Props) {
               <span className={a.optLabel}>
                 开启定时采集
                 <HelpTip label="定时采集说明">
-                  {initial.cron.schedule}自动跑一次，目标分类按「自动」规则选择，条数与来源同上。运行时间由 vercel.json 固定，后台只能开关；改时间需要改代码重新部署。
+                  按下面的次数定时采集（{initial.cron.schedule}），审核 Agent 在每次采集 1 小时后跑（{initial.cron.reviewSchedule}）。目标分类按「自动」规则选择，条数与来源同上。实际触发可能晚到 59 分钟；每日自动上架上限和花费上限对全天所有次数合计生效。
                 </HelpTip>
               </span>
               {initial.cron.enabled && initial.cron.secretConfigured && (
@@ -114,6 +114,20 @@ export function AgentSettingsForm({ action, initial }: Props) {
               )}
             </span>
           </label>
+          <div className={a.timesRow}>
+            <span>每天</span>
+            <Select
+              name="cronTimesPerDay"
+              defaultValue={String(initial.cron.timesPerDay)}
+              aria-label="每天采集与审核次数"
+              options={[
+                { value: "1", label: "1 次（09 点）" },
+                { value: "2", label: "2 次（09、17 点）" },
+                { value: "3", label: "3 次（09、13、21 点）" },
+                { value: "4", label: "4 次（09、13、17、21 点）" },
+              ]}
+            />
+          </div>
           {!initial.cron.secretConfigured && (
             <p className={a.warnBox}>服务器未配置 CRON_SECRET，定时采集接口会拒绝执行。请在 Vercel 环境变量中添加 CRON_SECRET（如 openssl rand -hex 32）后重新部署。</p>
           )}
